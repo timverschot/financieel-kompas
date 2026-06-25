@@ -19,8 +19,8 @@
 </head>
 <body>
   <div id="root"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0F2942;"><div style="text-align:center;color:white;font-family:sans-serif"><div style="font-size:52px;margin-bottom:16px">💎</div><div style="font-size:18px;font-weight:600;margin-bottom:8px">Financieel Kompas</div><div style="font-size:14px;opacity:0.6">App wordt geladen...</div></div></div></div>
-  <!-- ★ ENIGE AANPASSING: vervang YOUR_GOOGLE_CLIENT_ID door jouw echte Client ID -->
-  <script>var GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';</script>
+  <!-- ★ Jouw Google Client ID staat hieronder (al ingevuld) -->
+  <script>var GOOGLE_CLIENT_ID = '85645466663-60fi173neottl60jeseit5ic3t2i9fdd.apps.googleusercontent.com';</script>
   <script>window.addEventListener('error',function(e){var msg=(e.message||'Fout')+'\nRegel:'+(e.lineno||'?')+'\n'+(e.error&&e.error.stack||'');document.getElementById('root').innerHTML='<div style="padding:24px;background:#fef2f2;min-height:100vh;font-family:sans-serif"><h2 style="color:#dc2626">⚠️ Fout</h2><pre style="background:#fff;border:1px solid #fca5a5;padding:16px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap">'+msg+'</pre></div>';});</script>
   <script>
 // ═══════════════════════════════════════════════════════════════
@@ -41,7 +41,7 @@ window.gapiLoaded = () => {
 };
 
 window.gisLoaded = () => {
-  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === '85645466663-60fil73neottl60jeseit5ic3t2i9fdd.apps.googleusercontent.com') return;
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') return;
   _tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/drive.file',
