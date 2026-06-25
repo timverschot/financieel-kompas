@@ -10,19 +10,19 @@
   <meta name="apple-mobile-web-app-title" content="Financieel Kompas">
   <title>Financieel Kompas</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-  <style>*{box-sizing:border-box;}body{margin:0;background:#f8fafc;-webkit-tap-highlight-color:transparent;font-family:Inter,system-ui,sans-serif;}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#f1f5f9;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}</style>
+  <style>*{box-sizing:border-box;}body{margin:0;background:#f8fafc;-webkit-tap-highlight-color:transparent;font-family:-apple-system,BlinkMacSystemFont,Inter,system-ui,sans-serif;}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#f1f5f9;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}</style>
 </head>
 <body>
-  <div id="root"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0F2942;"><div style="text-align:center;color:white;font-family:sans-serif"><div style="font-size:52px;margin-bottom:16px">💎</div><div style="font-size:18px;font-weight:600;margin-bottom:8px">Financieel Kompas</div><div style="font-size:14px;opacity:0.6">App wordt geladen...</div></div></div></div>
-  <!-- ★ Jouw Google Client ID staat hieronder (al ingevuld) -->
+  <div id="root"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0F2942;"><div style="text-align:center;color:white;font-family:-apple-system,sans-serif"><div style="font-size:52px;margin-bottom:16px">💎</div><div style="font-size:18px;font-weight:600;margin-bottom:8px">Financieel Kompas</div><div style="font-size:14px;opacity:0.6">App wordt geladen...</div></div></div></div>
   <script>var GOOGLE_CLIENT_ID = '85645466663-60fil73neottl60jeseit5ic3t2i9fdd.apps.googleusercontent.com';</script>
-  <script>window.addEventListener('error',function(e){var msg=(e.message||'Fout')+'\nRegel:'+(e.lineno||'?')+'\n'+(e.error&&e.error.stack||'');document.getElementById('root').innerHTML='<div style="padding:24px;background:#fef2f2;min-height:100vh;font-family:sans-serif"><h2 style="color:#dc2626">⚠️ Fout</h2><pre style="background:#fff;border:1px solid #fca5a5;padding:16px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap">'+msg+'</pre></div>';});</script>
+  <script>window.addEventListener('error',function(e){var msg=(e.message||'Fout')+'\nRegel:'+(e.lineno||'?')+'\n'+(e.error&&e.error.stack||'');if(msg.indexOf('Script error')>=0||msg.indexOf('script error')>=0){msg='Laadprobleem met een extern script (CDN).\nControleer je internetverbinding en herlaad de pagina.';}document.getElementById('root').innerHTML='<div style="padding:24px;background:#fef2f2;min-height:100vh;font-family:sans-serif"><h2 style="color:#dc2626">Fout</h2><pre style="background:#fff;border:1px solid #fca5a5;padding:16px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap">'+msg+'</pre><button onclick="location.reload()" style="margin-top:16px;padding:8px 20px;background:#0D9488;color:white;border:none;border-radius:8px;cursor:pointer">Herladen</button></div>';});</script>
   <script>
+
 // ═══════════════════════════════════════════════════════════════
 // GOOGLE DRIVE INTEGRATION
 // ═══════════════════════════════════════════════════════════════
@@ -78,26 +78,12 @@ async function driveSave(data) {
   if (!_fileId) await driveFindOrCreate();
   await gapi.client.request({ path: `/upload/drive/v3/files/${_fileId}`, method: 'PATCH', params: { uploadType: 'media' }, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
 }
-</script>
+
+  </script>
   <script>
-
-var _LR = window.LucideReact || {};
-var _FB = function(p){ return React.createElement('span', {style:{display:'inline-flex',alignItems:'center',justifyContent:'center',width:p.size||16,height:p.size||16,flexShrink:0}}); };
-var LayoutDashboard=_LR.LayoutDashboard||_FB; var Receipt=_LR.Receipt||_FB;
-var Building2=_LR.Building2||_FB; var Target=_LR.Target||_FB;
-var PiggyBank=_LR.PiggyBank||_FB; var TrendingUp=_LR.TrendingUp||_FB;
-var Tags=_LR.Tags||_FB; var Settings=_LR.Settings||_FB;
-var Menu=_LR.Menu||_FB; var X=_LR.X||_FB;
-var Plus=_LR.Plus||_FB; var Search=_LR.Search||_FB;
-var ChevronRight=_LR.ChevronRight||_FB; var ChevronDown=_LR.ChevronDown||_FB;
-var Bell=_LR.Bell||_FB; var Download=_LR.Download||_FB;
-var Upload=_LR.Upload||_FB; var Trash2=_LR.Trash2||_FB;
-var Check=_LR.Check||_FB; var Calendar=_LR.Calendar||_FB;
-var AlertCircle=_LR.AlertCircle||_FB; var Info=_LR.Info||_FB;
-var Pencil=_LR.Pencil||_LR.Edit||_FB; var ArrowLeft=_LR.ArrowLeft||_FB;
-var CheckCircle2=_LR.CheckCircle2||_LR.CheckCircle||_FB;
-var { useState, useEffect, useMemo, useCallback, useRef } = React;
-
+var _LR=window.LucideReact||{};var _FB=function(p){return React.createElement('span',{style:{display:'inline-flex',alignItems:'center',justifyContent:'center',width:p.size||16,height:p.size||16,flexShrink:0}});};
+var LayoutDashboard=_LR.LayoutDashboard||_FB,Receipt=_LR.Receipt||_FB,Building2=_LR.Building2||_FB,Target=_LR.Target||_FB,PiggyBank=_LR.PiggyBank||_FB,TrendingUp=_LR.TrendingUp||_FB,Tags=_LR.Tags||_FB,Settings=_LR.Settings||_FB,Menu=_LR.Menu||_FB,X=_LR.X||_FB,Plus=_LR.Plus||_FB,Search=_LR.Search||_FB,ChevronRight=_LR.ChevronRight||_FB,ChevronDown=_LR.ChevronDown||_FB,Bell=_LR.Bell||_FB,Download=_LR.Download||_FB,Upload=_LR.Upload||_FB,Trash2=_LR.Trash2||_FB,Check=_LR.Check||_FB,Calendar=_LR.Calendar||_FB,AlertCircle=_LR.AlertCircle||_FB,Info=_LR.Info||_FB,Pencil=_LR.Pencil||_LR.Edit||_FB,ArrowLeft=_LR.ArrowLeft||_FB,CheckCircle2=_LR.CheckCircle2||_LR.CheckCircle||_FB;
+var useState=React.useState,useEffect=React.useEffect,useMemo=React.useMemo,useCallback=React.useCallback,useRef=React.useRef;
 function SvgBarChart({ data, height = 180 }) {
   if (!data || !data.length) return null;
   const maxVal = Math.max(1, ...data.flatMap((d) => [d.Inkomsten || 0, d.Uitgaven || 0]));
@@ -140,228 +126,982 @@ function SvgDonut({ data, size = 170, inner = 38, outer = 62 }) {
 const T = { navy: "#0F2942", teal: "#0D9488", tealBg: "#f0fdfa", amber: "#F59E0B", amberBg: "#fffbeb", green: "#059669", greenBg: "#ecfdf5", red: "#DC2626", redBg: "#fef2f2", blue: "#2563EB", blueBg: "#eff6ff", purple: "#7C3AED", slate50: "#f8fafc", slate100: "#f1f5f9", slate200: "#e2e8f0", slate400: "#94a3b8", slate600: "#475569", slate800: "#1e293b" };
 const OV_COLORS = { "Voeding": "#F59E0B", "Drank": "#0D9488", "Woning en vaste lasten": "#7C3AED", "Vervoer en Mobiliteit": "#2563EB", "Apotheek en gezondheid": "#DC2626", "Vrije Tijd en Lifestyle": "#059669", "Kinderen en Gezin": "#F97316", "Kledij en Schoenen": "#DB2777", "Belastingen en Offici\xEBle Kosten": "#64748B", "Sparen en Investeren": "#2563EB", "Inkomsten": "#059669" };
 const INITIAL_CATEGORIES = [
-  { id: "ov-voeding", name: "Voeding", hoofdtype: "Variabele Uitgaven", color: "#F59E0B", icon: "\u{1F6D2}", categories: [
-    { id: "cat-broodwaren", name: "Broodwaren", items: [
-      { id: "i-brood-wit", name: "Brood (wit)", synonyms: ["witbrood", "witte boterham"], unit: "stuks" },
-      { id: "i-brood-bruin", name: "Brood (bruin)", synonyms: ["bruinbrood", "volkoren"], unit: "stuks" },
-      { id: "i-pistolets", name: "Pistolets", synonyms: ["bolletjes", "broodjes"], unit: "stuks" },
-      { id: "i-sandwiches", name: "Sandwiches", synonyms: [], unit: "stuks" },
-      { id: "i-koffiekoeken", name: "Koffiekoeken", synonyms: ["croissant"], unit: "stuks" }
-    ] },
-    { id: "cat-zuivel", name: "Zuivel en Kaas", items: [
-      { id: "i-melk", name: "Melk", synonyms: ["lait"], unit: "L" },
-      { id: "i-yoghurt", name: "Yoghurt", synonyms: [], unit: "kg" },
-      { id: "i-kaas", name: "Kaas", synonyms: ["gouda", "brie", "fromage"], unit: "kg" },
-      { id: "i-eieren", name: "Eieren", synonyms: ["oeufs"], unit: "stuks" },
-      { id: "i-boter", name: "Boter", synonyms: ["beurre"], unit: "kg" }
-    ] },
-    { id: "cat-vlees", name: "Vlees en Vis", items: [
-      { id: "i-kip", name: "Kipfilet", synonyms: ["kip"], unit: "kg" },
-      { id: "i-gehakt", name: "Gehakt", synonyms: [], unit: "kg" },
-      { id: "i-varken", name: "Varkensvlees", synonyms: [], unit: "kg" },
-      { id: "i-zalm", name: "Zalm", synonyms: ["vis"], unit: "kg" }
-    ] },
-    { id: "cat-groenten", name: "Groenten en Fruit", items: [
-      { id: "i-tomaten", name: "Tomaten", synonyms: [], unit: "kg" },
-      { id: "i-aardappelen", name: "Aardappelen", synonyms: ["frieten"], unit: "kg" },
-      { id: "i-appels", name: "Appels", synonyms: [], unit: "kg" },
-      { id: "i-bananen", name: "Bananen", synonyms: [], unit: "stuks" }
-    ] },
-    { id: "cat-droogvoeding", name: "Droogvoeding en Divers", items: [
-      { id: "i-pasta", name: "Pasta", synonyms: ["spaghetti"], unit: "kg" },
-      { id: "i-rijst", name: "Rijst", synonyms: [], unit: "kg" },
-      { id: "i-olie", name: "Olie / Azijn", synonyms: [], unit: "L" },
-      { id: "i-sauzen", name: "Sauzen en kruiden", synonyms: ["mayonaise", "ketchup"], unit: "stuks" },
-      { id: "i-koek", name: "Koek en chips", synonyms: ["snoep"], unit: "stuks" }
-    ] }
-  ] },
-  { id: "ov-drank", name: "Drank", hoofdtype: "Variabele Uitgaven", color: "#0D9488", icon: "\u{1F37A}", categories: [
-    { id: "cat-frisdrank", name: "Frisdrank en Water", items: [
-      { id: "i-water", name: "Water (fles)", synonyms: ["bronwater"], unit: "L" },
-      { id: "i-cola", name: "Cola / Frisdrank", synonyms: ["fris", "limonade"], unit: "L" },
-      { id: "i-fruitsap", name: "Fruitsap", synonyms: ["appelsap", "sinaasappelsap"], unit: "L" }
-    ] },
-    { id: "cat-alcohol", name: "Alcoholische dranken", items: [
-      { id: "i-bier", name: "Bier", synonyms: ["jupiler", "stella", "leffe"], unit: "L" },
-      { id: "i-wijn", name: "Wijn", synonyms: ["rode wijn", "witte wijn"], unit: "L" },
-      { id: "i-sterke-drank", name: "Sterke dranken", synonyms: ["jenever", "whisky"], unit: "L" }
-    ] },
-    { id: "cat-koffie", name: "Koffie en thee", items: [
-      { id: "i-koffie", name: "Koffie", synonyms: ["espresso", "nespresso"], unit: "stuks" },
-      { id: "i-thee", name: "Thee", synonyms: [], unit: "stuks" }
-    ] }
-  ] },
-  { id: "ov-woning", name: "Woning en vaste lasten", hoofdtype: "Vaste Uitgaven", color: "#7C3AED", icon: "\u{1F3E0}", categories: [
-    { id: "cat-huur", name: "Huur en Hypotheek", items: [
-      { id: "i-huur", name: "Huur", synonyms: ["huurgeld", "rent"], unit: null },
-      { id: "i-hypotheek", name: "Hypotheek", synonyms: ["woonkrediet"], unit: null },
-      { id: "i-onroerend", name: "Onroerende voorheffing", synonyms: ["KI"], unit: null }
-    ] },
-    { id: "cat-energie", name: "Energie en nutsvoorzieningen", items: [
-      { id: "i-elektriciteit", name: "Elektriciteit", synonyms: ["stroom"], unit: "kWh" },
-      { id: "i-gas", name: "Aardgas", synonyms: ["gas"], unit: "m\xB3" },
-      { id: "i-water-nut", name: "Water (factuur)", synonyms: [], unit: "m\xB3" },
-      { id: "i-stookolie", name: "Stookolie / Pellets", synonyms: ["mazout"], unit: "L" }
-    ] },
-    { id: "cat-telecom", name: "Telecom en internet", items: [
-      { id: "i-internet", name: "Internet + TV", synonyms: ["proximus", "telenet", "wifi"], unit: null },
-      { id: "i-gsm", name: "GSM-abonnement", synonyms: ["smartphone", "telefoon", "orange"], unit: null }
-    ] },
-    { id: "cat-verzekering-woning", name: "Verzekeringen", items: [
-      { id: "i-brandverzekering", name: "Brandverzekering", synonyms: [], unit: null },
-      { id: "i-autoverzekering", name: "Autoverzekering", synonyms: [], unit: null },
-      { id: "i-familiale", name: "Familiale verzekering", synonyms: [], unit: null },
-      { id: "i-hospitalisatie", name: "Hospitalisatieverzekering", synonyms: [], unit: null }
-    ] },
-    { id: "cat-onderhoud", name: "Onderhoud en herstellingen", items: [
-      { id: "i-herstelling", name: "Herstellingen woning", synonyms: [], unit: null },
-      { id: "i-tuinonderhoud", name: "Tuinonderhoud", synonyms: [], unit: null }
-    ] }
-  ] },
-  { id: "ov-vervoer", name: "Vervoer en Mobiliteit", hoofdtype: "Vaste Uitgaven", color: "#2563EB", icon: "\u{1F697}", categories: [
-    { id: "cat-auto", name: "Auto", items: [
-      { id: "i-brandstof", name: "Brandstof", synonyms: ["benzine", "diesel", "tanken"], unit: "L" },
-      { id: "i-carwash", name: "Carwash", synonyms: ["autowas"], unit: null },
-      { id: "i-onderhoud-auto", name: "Onderhoud en herstellingen", synonyms: [], unit: null },
-      { id: "i-keuring", name: "Keuring", synonyms: ["autokeuring"], unit: null }
-    ] },
-    { id: "cat-ov", name: "Openbaar Vervoer", items: [
-      { id: "i-trein", name: "Treinabonnement", synonyms: ["nmbs", "trein"], unit: null },
-      { id: "i-delijn", name: "De Lijn", synonyms: ["bus", "tram"], unit: null }
-    ] },
-    { id: "cat-fiets", name: "Fiets", items: [
-      { id: "i-fiets-onderhoud", name: "Fietsonderhoud", synonyms: [], unit: null },
-      { id: "i-fiets-aankoop", name: "Aankoop fiets", synonyms: ["velo"], unit: null }
-    ] },
-    { id: "cat-parking", name: "Parking en tolwegen", items: [
-      { id: "i-parking", name: "Parking", synonyms: [], unit: null },
-      { id: "i-tol", name: "Tol / Vignetten", synonyms: [], unit: null }
-    ] }
-  ] },
-  { id: "ov-gezondheid", name: "Apotheek en gezondheid", hoofdtype: "Variabele Uitgaven", color: "#DC2626", icon: "\u2764\uFE0F", categories: [
-    { id: "cat-medisch", name: "Medische zorg", items: [
-      { id: "i-huisarts", name: "Huisarts", synonyms: ["dokter", "geneesheer"], unit: null },
-      { id: "i-tandarts", name: "Tandarts", synonyms: ["tandartsbezoek"], unit: null },
-      { id: "i-specialist", name: "Specialist", synonyms: [], unit: null },
-      { id: "i-kinesist", name: "Kinesist", synonyms: ["fysio", "kine"], unit: null }
-    ] },
-    { id: "cat-apotheek", name: "Apotheek", items: [
-      { id: "i-medicatie", name: "Medicatie", synonyms: ["pillen", "medicijnen"], unit: "stuks" },
-      { id: "i-zelfzorg", name: "Zelfzorgproducten", synonyms: ["vitamines"], unit: null }
-    ] },
-    { id: "cat-persoonlijke-verzorging", name: "Persoonlijke verzorging", items: [
-      { id: "i-kapper", name: "Kapper", synonyms: ["schoonheidssalon"], unit: null },
-      { id: "i-hygieneproducten", name: "Hygi\xEBneproducten", synonyms: ["shampoo", "zeep"], unit: null }
-    ] }
-  ] },
-  { id: "ov-vrije-tijd", name: "Vrije Tijd en Lifestyle", hoofdtype: "Variabele Uitgaven", color: "#059669", icon: "\u{1F3AD}", categories: [
-    { id: "cat-cultuur", name: "Cultuur en entertainment", items: [
-      { id: "i-cinema", name: "Cinema / Theater", synonyms: ["bioscoop", "film"], unit: null },
-      { id: "i-museum", name: "Museum", synonyms: [], unit: null },
-      { id: "i-concert", name: "Concert / Festival", synonyms: [], unit: null }
-    ] },
-    { id: "cat-abonnementen", name: "Streaming en abonnementen", items: [
-      { id: "i-netflix", name: "Netflix", synonyms: ["streaming", "film"], unit: null },
-      { id: "i-spotify", name: "Spotify / Muziek", synonyms: [], unit: null },
-      { id: "i-disney", name: "Disney+ / Videoland", synonyms: [], unit: null }
-    ] },
-    { id: "cat-sport", name: "Sport en fitness", items: [
-      { id: "i-fitness", name: "Fitnessabonnement", synonyms: ["gym"], unit: null },
-      { id: "i-sport-overig", name: "Sportclub", synonyms: ["voetbal", "tennis"], unit: null },
-      { id: "i-sport-materiaal", name: "Sportmateriaal", synonyms: [], unit: null }
-    ] },
-    { id: "cat-restaurant", name: "Restaurants en caf\xE9s", items: [
-      { id: "i-restaurant", name: "Restaurant", synonyms: ["eten buiten"], unit: null },
-      { id: "i-cafe", name: "Caf\xE9 / Bar", synonyms: ["kroeg"], unit: null },
-      { id: "i-takeaway", name: "Takeaway / Deliveroo", synonyms: ["afhaalmaaltijd", "uber eats"], unit: null }
-    ] },
-    { id: "cat-vakantie", name: "Vakantie en reizen", items: [
-      { id: "i-vliegtuig", name: "Vliegtuigtickets", synonyms: ["ryanair", "vluchten"], unit: null },
-      { id: "i-hotel", name: "Hotel / Verblijf", synonyms: ["booking", "airbnb"], unit: null },
-      { id: "i-auto-vakantie", name: "Autohuur", synonyms: [], unit: null }
-    ] },
-    { id: "cat-hobbys", name: "Hobby's en vrije tijd", items: [
-      { id: "i-boeken", name: "Boeken / Tijdschriften", synonyms: [], unit: "stuks" },
-      { id: "i-spelletjes", name: "Spelletjes / Games", synonyms: [], unit: null },
-      { id: "i-kunst-hobby", name: "Kunst en handwerk", synonyms: [], unit: null }
-    ] }
-  ] },
-  { id: "ov-kinderen", name: "Kinderen en Gezin", hoofdtype: "Variabele Uitgaven", color: "#F97316", icon: "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}", categories: [
-    { id: "cat-school", name: "School en opleiding", items: [
-      { id: "i-schoolgeld", name: "Schoolgeld", synonyms: [], unit: null },
-      { id: "i-schoolboeken", name: "Schoolboeken / materiaal", synonyms: [], unit: null },
-      { id: "i-buitenschools", name: "Buitenschoolse opvang", synonyms: ["naschools"], unit: null }
-    ] },
-    { id: "cat-kinderkleding", name: "Kinderkleding", items: [
-      { id: "i-kleding-jasper", name: "Kleding Jasper", synonyms: [], unit: null },
-      { id: "i-kleding-hanne", name: "Kleding Hanne", synonyms: [], unit: null },
-      { id: "i-kleding-milo", name: "Kleding Milo", synonyms: [], unit: null }
-    ] },
-    { id: "cat-activiteiten", name: "Activiteiten en hobby", items: [
-      { id: "i-hobby-jasper", name: "Hobbykosten Jasper", synonyms: [], unit: null },
-      { id: "i-hobby-hanne", name: "Hobbykosten Hanne", synonyms: [], unit: null },
-      { id: "i-hobby-milo", name: "Hobbykosten Milo", synonyms: [], unit: null },
-      { id: "i-kampgeld", name: "Vakantiekampen", synonyms: ["kamp"], unit: null }
-    ] },
-    { id: "cat-speelgoed", name: "Speelgoed en cadeaus", items: [
-      { id: "i-speelgoed", name: "Speelgoed", synonyms: [], unit: null },
-      { id: "i-cadeau", name: "Cadeaus kinderen", synonyms: [], unit: null }
-    ] }
-  ] },
-  { id: "ov-kledij", name: "Kledij en Schoenen", hoofdtype: "Variabele Uitgaven", color: "#DB2777", icon: "\u{1F457}", categories: [
-    { id: "cat-kleding-volw", name: "Kledij volwassenen", items: [
-      { id: "i-bovenkleding", name: "Bovenkleding", synonyms: ["kleren", "t-shirt", "trui"], unit: null },
-      { id: "i-ondergoed", name: "Ondergoed", synonyms: [], unit: null },
-      { id: "i-sportkleding", name: "Sportkledij", synonyms: [], unit: null }
-    ] },
-    { id: "cat-schoenen", name: "Schoenen", items: [
-      { id: "i-schoenen-dag", name: "Dagelijkse schoenen", synonyms: ["sneakers", "schoenen"], unit: "stuks" },
-      { id: "i-sportschoenen", name: "Sportschoenen", synonyms: [], unit: "stuks" },
-      { id: "i-laarzen", name: "Laarzen", synonyms: [], unit: "stuks" }
-    ] }
-  ] },
-  { id: "ov-belastingen", name: "Belastingen en Offici\xEBle Kosten", hoofdtype: "Vaste Uitgaven", color: "#64748B", icon: "\u{1F4CB}", categories: [
-    { id: "cat-belastingen", name: "Belastingen", items: [
-      { id: "i-personenbelasting", name: "Aanslagbiljet personenbelasting", synonyms: ["belastingen", "fiscus"], unit: null },
-      { id: "i-gemeentebelasting", name: "Gemeentebelasting", synonyms: [], unit: null },
-      { id: "i-voorafbetaling", name: "Voorafbetalingen belastingen", synonyms: [], unit: null }
-    ] },
-    { id: "cat-juridisch", name: "Juridisch en notaris", items: [
-      { id: "i-notaris", name: "Notariskosten", synonyms: ["notaris"], unit: null },
-      { id: "i-advocaat", name: "Advocaat", synonyms: [], unit: null }
-    ] }
-  ] },
-  { id: "ov-huisdieren", name: "Huisdieren", hoofdtype: "Variabele Uitgaven", color: "#92400E", icon: "\u{1F43E}", categories: [
-    { id: "cat-dierenverzorging", name: "Dierenverzorging", items: [
-      { id: "i-dierenvoeding", name: "Dierenvoeding", synonyms: ["hondenbrokken", "kattenvoer"], unit: "kg" },
-      { id: "i-dierenarts", name: "Dierenarts", synonyms: [], unit: null },
-      { id: "i-dierenverzorging", name: "Trimsalon / Verzorging", synonyms: [], unit: null }
-    ] }
-  ] },
-  { id: "ov-sparen", name: "Sparen en Investeren", hoofdtype: "Sparen", color: "#2563EB", icon: "\u{1F4B0}", categories: [
-    { id: "cat-sparen", name: "Spaartransacties", items: [
-      { id: "i-buffer-persoonlijk", name: "Storting buffer persoonlijk", synonyms: ["buffer"], unit: null },
-      { id: "i-buffer-kinderen", name: "Storting buffer kinderen", synonyms: [], unit: null },
-      { id: "i-extra-aflossing", name: "Extra aflossing schuld", synonyms: ["schuldaflossing"], unit: null },
-      { id: "i-spaar-doel", name: "Sparen voor doel", synonyms: [], unit: null }
-    ] },
-    { id: "cat-beleggen", name: "Beleggingen", items: [
-      { id: "i-aandelen", name: "Aandelen / ETF", synonyms: ["beurs", "beleggen"], unit: null },
-      { id: "i-pensioensparen", name: "Pensioensparen", synonyms: [], unit: null }
-    ] }
-  ] },
-  { id: "ov-inkomsten", name: "Inkomsten", hoofdtype: "Inkomsten", color: "#059669", icon: "\u{1F4B5}", categories: [
-    { id: "cat-loon", name: "Beroepsinkomen", items: [
-      { id: "i-loon-netto", name: "Vast Loon (netto)", synonyms: ["salaris", "loon", "inkomen"], unit: null },
-      { id: "i-variabele-verloning", name: "Variabele verloning", synonyms: ["bonus", "premie"], unit: null }
-    ] },
-    { id: "cat-andere-inkomsten", name: "Andere inkomsten", items: [
-      { id: "i-huurinkomsten", name: "Huurinkomsten", synonyms: ["huur ontvangen"], unit: null },
-      { id: "i-kindergeld", name: "Kindergeld", synonyms: [], unit: null },
-      { id: "i-terugbetaling", name: "Terugbetalingen / Premies", synonyms: [], unit: null }
-    ] }
-  ] }
+  {
+    id: "ov-voeding",
+    name: "Voeding",
+    hoofdtype: "Variabele Uitgaven",
+    color: "#F59E0B",
+    icon: "\u{1F6D2}",
+    categories: [
+      { id: "cat-broodwaren", name: "Broodwaren", items: [
+        { id: "i-brood--wit-9238", name: "Brood (wit)", synonyms: ["witbrood"], unit: "stuks" },
+        { id: "i-brood--bruin-6023", name: "Brood (bruin)", synonyms: ["bruinbrood", "volkoren brood"], unit: "stuks" },
+        { id: "i-sandwiches-1736", name: "Sandwiches", synonyms: [], unit: "stuks" },
+        { id: "i-pistolets-9968", name: "Pistolets", synonyms: [], unit: "stuks" },
+        { id: "i-wraps-2928", name: "Wraps", synonyms: [], unit: "stuks" },
+        { id: "i-pitabroodjes-1623", name: "Pitabroodjes", synonyms: [], unit: "stuks" },
+        { id: "i-knakbrood-3482", name: "Knakbrood", synonyms: [], unit: "stuks" },
+        { id: "i-crackers-2702", name: "Crackers", synonyms: [], unit: "stuks" },
+        { id: "i-rijstwafels-171", name: "Rijstwafels", synonyms: [], unit: "stuks" },
+        { id: "i-belegde-broodjes-2217", name: "Belegde broodjes", synonyms: [], unit: "stuks" },
+        { id: "i-worstenbrood--curryrol-5080", name: "Worstenbrood (curryrol)", synonyms: [], unit: "stuks" },
+        { id: "i-worstenbrood-speciaal--curryro-8286", name: "Worstenbrood speciaal (curryrol)", synonyms: [], unit: "stuks" },
+        { id: "i-worstenbrood--klassiek-6316", name: "Worstenbrood (klassiek)", synonyms: [], unit: "stuks" },
+        { id: "i-appelbol-5409", name: "Appelbol", synonyms: [], unit: "stuks" }
+      ] },
+      { id: "cat-broodwaren--zoet", name: "Broodwaren (zoet)", items: [
+        { id: "i-koffiekoeken-200", name: "Koffiekoeken", synonyms: [], unit: "stuks" },
+        { id: "i-croissants-2945", name: "Croissants", synonyms: [], unit: "stuks" },
+        { id: "i-taart-5981", name: "Taart", synonyms: [], unit: "stuks" },
+        { id: "i-gebak-9917", name: "Gebak", synonyms: [], unit: "stuks" }
+      ] },
+      { id: "cat-zuivel-en-kaas", name: "Zuivel en Kaas", items: [
+        { id: "i-kaas--jong-7320", name: "Kaas (jong)", synonyms: ["jonge kaas", "gouda"], unit: "kg" },
+        { id: "i-kaas--belegen-6167", name: "Kaas (belegen)", synonyms: [], unit: "kg" },
+        { id: "i-kaas--geraspt-emmentaler-7652", name: "Kaas (geraspt Emmentaler)", synonyms: [], unit: "kg" },
+        { id: "i-kaas--geraspt-gruy-re-3885", name: "Kaas (geraspt Gruy\xE8re)", synonyms: [], unit: "kg" },
+        { id: "i-kaas--geraspt-parmezaans-8632", name: "Kaas (geraspt Parmezaans)", synonyms: [], unit: "kg" },
+        { id: "i-kruidenkaas--boursin-etc-1749", name: "Kruidenkaas (Boursin,etc)", synonyms: [], unit: "kg" },
+        { id: "i-feta-2686", name: "Feta", synonyms: [], unit: "kg" },
+        { id: "i-halloumi-5332", name: "Halloumi", synonyms: [], unit: "kg" },
+        { id: "i-platte-kaas-kwark--natuur-7808", name: "Platte kaas/kwark (natuur)", synonyms: [], unit: "kg" },
+        { id: "i-platte-kaas-kwark--fruit-8421", name: "Platte kaas/kwark (fruit)", synonyms: [], unit: "kg" },
+        { id: "i-pudding-4120", name: "Pudding", synonyms: [], unit: "kg" },
+        { id: "i-rijstpap-8182", name: "Rijstpap", synonyms: [], unit: "kg" },
+        { id: "i-roomijs-5240", name: "Roomijs", synonyms: [], unit: "kg" },
+        { id: "i-eieren-4688", name: "Eieren", synonyms: [], unit: "kg" },
+        { id: "i-smeerkaas-2467", name: "Smeerkaas", synonyms: [], unit: "kg" },
+        { id: "i-melk--mager-247", name: "Melk (mager)", synonyms: [], unit: "kg" },
+        { id: "i-melk--halfvol-3583", name: "Melk (halfvol)", synonyms: [], unit: "kg" },
+        { id: "i-melk--vol-7674", name: "Melk (vol)", synonyms: [], unit: "kg" },
+        { id: "i-room--kookroom-6460", name: "Room (kookroom)", synonyms: [], unit: "kg" },
+        { id: "i-room--slagroom-3333", name: "Room (slagroom)", synonyms: [], unit: "kg" },
+        { id: "i-room--zure-room-4720", name: "Room (zure room)", synonyms: [], unit: "kg" },
+        { id: "i-yoghurt--mager-4807", name: "Yoghurt (mager)", synonyms: [], unit: "kg" },
+        { id: "i-yoghurt--halfvol-7930", name: "Yoghurt (halfvol)", synonyms: [], unit: "kg" },
+        { id: "i-yoghurt--vol-7784", name: "Yoghurt (vol)", synonyms: [], unit: "kg" },
+        { id: "i-yoghurt--grieks-mager-7648", name: "Yoghurt (Grieks mager)", synonyms: [], unit: "kg" },
+        { id: "i-yoghurt--grieks-halfvol-3760", name: "Yoghurt (Grieks halfvol)", synonyms: [], unit: "kg" },
+        { id: "i-yoghurt--grieks-vol-153", name: "Yoghurt (Grieks vol)", synonyms: [], unit: "kg" },
+        { id: "i-boter--bakken-7411", name: "Boter (bakken)", synonyms: [], unit: "kg" },
+        { id: "i-boter--smeren-3907", name: "Boter (smeren)", synonyms: [], unit: "kg" }
+      ] },
+      { id: "cat-vlees--bereid", name: "Vlees (bereid)", items: [
+        { id: "i-gehakt--rund-2904", name: "Gehakt (rund)", synonyms: [], unit: "kg" },
+        { id: "i-gehakt--varken-529", name: "Gehakt (varken)", synonyms: [], unit: "kg" },
+        { id: "i-gehakt--kalf-1607", name: "Gehakt (kalf)", synonyms: [], unit: "kg" },
+        { id: "i-gehakt--kip-8751", name: "Gehakt (kip)", synonyms: [], unit: "kg" },
+        { id: "i-gehakt--lam-9396", name: "Gehakt (lam)", synonyms: [], unit: "kg" },
+        { id: "i-gehakt--gemengd-6926", name: "Gehakt (gemengd)", synonyms: [], unit: "kg" },
+        { id: "i-kipfilet-3546", name: "Kipfilet", synonyms: [], unit: "kg" },
+        { id: "i-kip--aan-het-spit-4612", name: "Kip (aan het spit)", synonyms: [], unit: "kg" },
+        { id: "i-kip-gepaneerd-306", name: "Kip gepaneerd", synonyms: [], unit: "kg" },
+        { id: "i-kipschnitzel-9997", name: "Kipschnitzel", synonyms: [], unit: "kg" },
+        { id: "i-kalkoen-1844", name: "Kalkoen", synonyms: [], unit: "kg" },
+        { id: "i-rundvlees--biefstuk--etc-9342", name: "Rundvlees (biefstuk, etc)", synonyms: [], unit: "kg" },
+        { id: "i-soepvlees-4029", name: "Soepvlees", synonyms: [], unit: "kg" },
+        { id: "i-varkensvlees--kotelet--etc-66", name: "Varkensvlees (kotelet, etc)", synonyms: [], unit: "kg" },
+        { id: "i-spek--varken-8708", name: "Spek (varken)", synonyms: [], unit: "kg" },
+        { id: "i-lamsvlees--kotelet--etc-9289", name: "Lamsvlees (kotelet, etc)", synonyms: [], unit: "kg" },
+        { id: "i-kalfsvlees--kotelet--etc-2162", name: "Kalfsvlees (kotelet, etc)", synonyms: [], unit: "kg" },
+        { id: "i-kalf-gepaneerd-2982", name: "Kalf gepaneerd", synonyms: [], unit: "kg" },
+        { id: "i-rund-gepaneerd-5332", name: "Rund gepaneerd", synonyms: [], unit: "kg" },
+        { id: "i-wild-549", name: "Wild", synonyms: [], unit: "kg" },
+        { id: "i-bbq-7980", name: "BBQ", synonyms: [], unit: "kg" }
+      ] },
+      { id: "cat-vlees--beleg", name: "Vlees (beleg)", items: [
+        { id: "i-hesp--gekookt-3327", name: "Hesp (gekookt)", synonyms: [], unit: "kg" },
+        { id: "i-hesp--gegrild-4621", name: "Hesp (gegrild)", synonyms: [], unit: "kg" },
+        { id: "i-salami--zonder-look-8293", name: "Salami (zonder look)", synonyms: [], unit: "kg" },
+        { id: "i-salami--met-look-5297", name: "Salami (met look)", synonyms: [], unit: "kg" },
+        { id: "i-salami--gekruid-9651", name: "Salami (gekruid)", synonyms: [], unit: "kg" },
+        { id: "i-hespeworst-646", name: "Hespeworst", synonyms: [], unit: "kg" },
+        { id: "i-strassbourg-8703", name: "Strassbourg", synonyms: [], unit: "kg" },
+        { id: "i-pat-3169", name: "Pat\xE9", synonyms: [], unit: "kg" },
+        { id: "i-pat--veenbessen-7850", name: "Pat\xE9 veenbessen", synonyms: [], unit: "kg" },
+        { id: "i-pat--appel-3383", name: "Pat\xE9 appel", synonyms: [], unit: "kg" },
+        { id: "i-pat--eend-1949", name: "Pat\xE9 eend", synonyms: [], unit: "kg" },
+        { id: "i-pat--wild-1055", name: "Pat\xE9 wild", synonyms: [], unit: "kg" },
+        { id: "i-pat--peper-1139", name: "Pat\xE9 peper", synonyms: [], unit: "kg" },
+        { id: "i-pat--divers-5175", name: "Pat\xE9 divers", synonyms: [], unit: "kg" },
+        { id: "i-spek--kalkoen-9249", name: "Spek (kalkoen)", synonyms: [], unit: "kg" },
+        { id: "i-mortadella-3823", name: "Mortadella", synonyms: [], unit: "kg" },
+        { id: "i-mosterdgebraad-1203", name: "Mosterdgebraad", synonyms: [], unit: "kg" },
+        { id: "i-droge-worsten-826", name: "Droge worsten", synonyms: [], unit: "kg" },
+        { id: "i-grillworst-6300", name: "Grillworst", synonyms: [], unit: "kg" },
+        { id: "i-rookworst-4187", name: "Rookworst", synonyms: [], unit: "kg" },
+        { id: "i-kipfilet-natuur-8588", name: "Kipfilet natuur", synonyms: [], unit: "kg" },
+        { id: "i-kipfilet-gekruid-164", name: "Kipfilet gekruid", synonyms: [], unit: "kg" },
+        { id: "i-prosciutto-1898", name: "Prosciutto", synonyms: [], unit: "kg" },
+        { id: "i-serrano-5191", name: "Serrano", synonyms: [], unit: "kg" },
+        { id: "i-paardenfilet-5872", name: "Paardenfilet", synonyms: [], unit: "kg" },
+        { id: "i-kalkoenfilet-natuur-4614", name: "Kalkoenfilet natuur", synonyms: [], unit: "kg" },
+        { id: "i-kalkoenfilet-gekruid-3856", name: "Kalkoenfilet gekruid", synonyms: [], unit: "kg" },
+        { id: "i-kalkoenham-5346", name: "Kalkoenham", synonyms: [], unit: "kg" },
+        { id: "i-gebraden-gehakt-1468", name: "Gebraden gehakt", synonyms: [], unit: "kg" },
+        { id: "i-filet-de-saxe-8821", name: "Filet de Saxe", synonyms: [], unit: "kg" },
+        { id: "i-filet-d-anvers-9887", name: "Filet d'Anvers", synonyms: [], unit: "kg" }
+      ] },
+      { id: "cat-smeersalades--vlees-en-vis", name: "Smeersalades (Vlees en Vis)", items: [
+        { id: "i-prepar-2192", name: "Prepar\xE9", synonyms: [], unit: null },
+        { id: "i-prepar---martino-1734", name: "Prepar\xE9 (martino)", synonyms: [], unit: null },
+        { id: "i-kip-curry-6699", name: "Kip Curry", synonyms: [], unit: null },
+        { id: "i-vleessalade-3239", name: "Vleessalade", synonyms: [], unit: null },
+        { id: "i-boullie-salade-7799", name: "Boullie salade", synonyms: [], unit: null },
+        { id: "i-kipsalade-andalouse-1221", name: "Kipsalade andalouse", synonyms: [], unit: null },
+        { id: "i-pitasalade-5239", name: "Pitasalade", synonyms: [], unit: null },
+        { id: "i-balletjes-in-tomatensaus-4461", name: "Balletjes in tomatensaus", synonyms: [], unit: null },
+        { id: "i-balletjes-in-bbq-saus-633", name: "Balletjes in BBQ saus", synonyms: [], unit: null },
+        { id: "i-kip-samourai-5155", name: "Kip samourai", synonyms: [], unit: null },
+        { id: "i-vitello-tonato-2821", name: "Vitello tonato", synonyms: [], unit: null },
+        { id: "i-kipsalade-ananas-8410", name: "Kipsalade ananas", synonyms: [], unit: null },
+        { id: "i-surimisalade-7019", name: "Surimisalade", synonyms: [], unit: null },
+        { id: "i-krabsalade-9192", name: "Krabsalade", synonyms: [], unit: null },
+        { id: "i-tonijnsalade-6516", name: "Tonijnsalade", synonyms: [], unit: null },
+        { id: "i-tonijn-cocktailsalade-3636", name: "Tonijn cocktailsalade", synonyms: [], unit: null },
+        { id: "i-garnaalsalade-2511", name: "Garnaalsalade", synonyms: [], unit: null },
+        { id: "i-zalmsalade-6956", name: "Zalmsalade", synonyms: [], unit: null }
+      ] },
+      { id: "cat-vis--bereid", name: "Vis (bereid)", items: [
+        { id: "i-zalmfilet-6661", name: "Zalmfilet", synonyms: [], unit: null },
+        { id: "i-kabeljauwfilet-9340", name: "Kabeljauwfilet", synonyms: [], unit: null },
+        { id: "i-schelvisfilet-2637", name: "Schelvisfilet", synonyms: [], unit: null },
+        { id: "i-roodbaarsfilet-1153", name: "Roodbaarsfilet", synonyms: [], unit: null },
+        { id: "i-sint-jacobsnoten-8397", name: "Sint-Jacobsnoten", synonyms: [], unit: null },
+        { id: "i-tongfilet-9682", name: "Tongfilet", synonyms: [], unit: null },
+        { id: "i-mosselen-5271", name: "Mosselen", synonyms: [], unit: null },
+        { id: "i-scampi-9777", name: "Scampi", synonyms: [], unit: null },
+        { id: "i-forelfilet-4306", name: "Forelfilet", synonyms: [], unit: null },
+        { id: "i-zeewolffilet-742", name: "Zeewolffilet", synonyms: [], unit: null },
+        { id: "i-zeebaarsfilet-7763", name: "Zeebaarsfilet", synonyms: [], unit: null },
+        { id: "i-pladijsfilet-6926", name: "Pladijsfilet", synonyms: [], unit: null },
+        { id: "i-wijtingfilet-6134", name: "Wijtingfilet", synonyms: [], unit: null },
+        { id: "i-kibbeling-45", name: "Kibbeling", synonyms: [], unit: null },
+        { id: "i-heilbotfilet-6057", name: "Heilbotfilet", synonyms: [], unit: null },
+        { id: "i-makreelfilet-1016", name: "Makreelfilet", synonyms: [], unit: null }
+      ] },
+      { id: "cat-vis--beleg", name: "Vis (beleg)", items: [
+        { id: "i-zalm-gerookt-983", name: "Zalm gerookt", synonyms: [], unit: null },
+        { id: "i-surimistaafjes-6780", name: "Surimistaafjes", synonyms: [], unit: null },
+        { id: "i-makreel-gerookt-8510", name: "Makreel gerookt", synonyms: [], unit: null },
+        { id: "i-ansjovis-2061", name: "Ansjovis", synonyms: [], unit: null },
+        { id: "i-rolmops-3648", name: "Rolmops", synonyms: [], unit: null }
+      ] },
+      { id: "cat-groenten--vers", name: "Groenten (vers)", items: [
+        { id: "i-champignons--wit-4131", name: "Champignons (wit)", synonyms: [], unit: null },
+        { id: "i-champignons--bruin-5136", name: "Champignons (bruin)", synonyms: [], unit: null },
+        { id: "i-oesterzwammen-681", name: "Oesterzwammen", synonyms: [], unit: null },
+        { id: "i-shitake-372", name: "Shitake", synonyms: [], unit: null },
+        { id: "i-portobello-4752", name: "Portobello", synonyms: [], unit: null },
+        { id: "i-paddestoelen--divers-2409", name: "Paddestoelen (divers)", synonyms: [], unit: null },
+        { id: "i-prei-1379", name: "Prei", synonyms: [], unit: null },
+        { id: "i-aubergine-824", name: "Aubergine", synonyms: [], unit: null },
+        { id: "i-courgette-5534", name: "Courgette", synonyms: [], unit: null },
+        { id: "i-paprika-816", name: "Paprika", synonyms: [], unit: null },
+        { id: "i-kerstomaten-9639", name: "Kerstomaten", synonyms: [], unit: null },
+        { id: "i-aardappelen-4371", name: "Aardappelen", synonyms: [], unit: null },
+        { id: "i-pijpajuin-4137", name: "Pijpajuin", synonyms: [], unit: null },
+        { id: "i-wortelen-3620", name: "Wortelen", synonyms: [], unit: null },
+        { id: "i-witloof-5448", name: "Witloof", synonyms: [], unit: null },
+        { id: "i-broccoli-8358", name: "Broccoli", synonyms: [], unit: null },
+        { id: "i-prinsessenbonen-2967", name: "prinsessenbonen", synonyms: [], unit: null },
+        { id: "i-bloemkool-8429", name: "Bloemkool", synonyms: [], unit: null },
+        { id: "i-snackgroenten-1972", name: "Snackgroenten", synonyms: [], unit: null },
+        { id: "i-radijzen-7904", name: "Radijzen", synonyms: [], unit: null },
+        { id: "i-sla--krop-2047", name: "Sla (krop)", synonyms: [], unit: null },
+        { id: "i-sla--rucola-2765", name: "Sla (rucola)", synonyms: [], unit: null },
+        { id: "i-sla--ijsberg-9533", name: "Sla (ijsberg)", synonyms: [], unit: null },
+        { id: "i-sla--spitskool-3235", name: "Sla (spitskool)", synonyms: [], unit: null },
+        { id: "i-sla--romeinse-5767", name: "Sla (romeinse)", synonyms: [], unit: null },
+        { id: "i-knolselder-2247", name: "Knolselder", synonyms: [], unit: null },
+        { id: "i-spinazie-1684", name: "Spinazie", synonyms: [], unit: null },
+        { id: "i-venkel-5563", name: "Venkel", synonyms: [], unit: null },
+        { id: "i-ui--wit-8951", name: "Ui (wit)", synonyms: [], unit: null },
+        { id: "i-ui--geel-793", name: "Ui (geel)", synonyms: [], unit: null },
+        { id: "i-ui--rood-1327", name: "Ui (rood)", synonyms: [], unit: null },
+        { id: "i-look-4333", name: "Look", synonyms: [], unit: null },
+        { id: "i-bieslook-4252", name: "Bieslook", synonyms: [], unit: null },
+        { id: "i-sjalotten-7950", name: "Sjalotten", synonyms: [], unit: null },
+        { id: "i-pastinaak-6690", name: "Pastinaak", synonyms: [], unit: null },
+        { id: "i-puntpaprika-7589", name: "Puntpaprika", synonyms: [], unit: null },
+        { id: "i-dille-7158", name: "Dille", synonyms: [], unit: null },
+        { id: "i-peterselie-6957", name: "Peterselie", synonyms: [], unit: null },
+        { id: "i-bladpeterselie-1533", name: "Bladpeterselie", synonyms: [], unit: null },
+        { id: "i-rode-pepers-9254", name: "Rode pepers", synonyms: [], unit: null },
+        { id: "i-aardappelen--krieltjes-7751", name: "Aardappelen (krieltjes)", synonyms: [], unit: null },
+        { id: "i-snijbonen-9064", name: "Snijbonen", synonyms: [], unit: null },
+        { id: "i-rapen-2026", name: "Rapen", synonyms: [], unit: null },
+        { id: "i-munt-6117", name: "Munt", synonyms: [], unit: null },
+        { id: "i-tuinkers-884", name: "Tuinkers", synonyms: [], unit: null },
+        { id: "i-kervel-8830", name: "Kervel", synonyms: [], unit: null },
+        { id: "i-rozemarijn-8333", name: "Rozemarijn", synonyms: [], unit: null },
+        { id: "i-paksoi-9307", name: "Paksoi", synonyms: [], unit: null },
+        { id: "i-witte-kool-3168", name: "Witte kool", synonyms: [], unit: null },
+        { id: "i-rode-kool-8311", name: "Rode kool", synonyms: [], unit: null },
+        { id: "i-dragon-2521", name: "Dragon", synonyms: [], unit: null },
+        { id: "i-ma-s-5249", name: "Ma\xEFs", synonyms: [], unit: null },
+        { id: "i-salie-8450", name: "Salie", synonyms: [], unit: null },
+        { id: "i-chinese-kool-3553", name: "Chinese kool", synonyms: [], unit: null },
+        { id: "i-pompoen-6964", name: "Pompoen", synonyms: [], unit: null },
+        { id: "i-artisjok-4050", name: "Artisjok", synonyms: [], unit: null },
+        { id: "i-andijvie-1665", name: "Andijvie", synonyms: [], unit: null },
+        { id: "i-rabarber-6508", name: "Rabarber", synonyms: [], unit: null },
+        { id: "i-butternutpompoen-1845", name: "Butternutpompoen", synonyms: [], unit: null },
+        { id: "i-basilicum-3122", name: "Basilicum", synonyms: [], unit: null },
+        { id: "i-koolrabi-632", name: "Koolrabi", synonyms: [], unit: null },
+        { id: "i-slamix-8216", name: "Slamix", synonyms: [], unit: null },
+        { id: "i-geraspte-wortelen-8148", name: "Geraspte wortelen", synonyms: [], unit: null },
+        { id: "i-wokmix-7907", name: "Wokmix", synonyms: [], unit: null },
+        { id: "i-soepgroenten-6059", name: "Soepgroenten", synonyms: [], unit: null },
+        { id: "i-ovengroenten-7906", name: "Ovengroenten", synonyms: [], unit: null },
+        { id: "i-schorseneren-3451", name: "Schorseneren", synonyms: [], unit: null }
+      ] },
+      { id: "cat-groenten--diepvries", name: "Groenten (diepvries)", items: [
+        { id: "i-broccoli--diepvries-3504", name: "Broccoli (diepvries)", synonyms: [], unit: null },
+        { id: "i-wortelen--diepvries-9759", name: "Wortelen (diepvries)", synonyms: [], unit: null },
+        { id: "i-bloemkool--diepvries-5383", name: "Bloemkool (diepvries)", synonyms: [], unit: null },
+        { id: "i-soepgroenten--diepvries-9533", name: "Soepgroenten (diepvries)", synonyms: [], unit: null },
+        { id: "i-edamame--diepvries-1893", name: "Edamame (diepvries)", synonyms: [], unit: null },
+        { id: "i-prei--diepvries-2523", name: "Prei (diepvries)", synonyms: [], unit: null },
+        { id: "i-pompoen--diepvries-8644", name: "Pompoen (diepvries)", synonyms: [], unit: null },
+        { id: "i-butternutpompoen--diepvries-1624", name: "Butternutpompoen (diepvries)", synonyms: [], unit: null },
+        { id: "i-ovengroenten--diepvries-1485", name: "Ovengroenten (diepvries)", synonyms: [], unit: null },
+        { id: "i-puree--diepvries-1400", name: "Puree (diepvries)", synonyms: [], unit: null },
+        { id: "i-groentenmix--diepvries-8131", name: "Groentenmix (diepvries)", synonyms: [], unit: null },
+        { id: "i-ratatouille--diepvries-447", name: "Ratatouille (diepvries)", synonyms: [], unit: null },
+        { id: "i-spinazie--diepvries-9982", name: "Spinazie (diepvries)", synonyms: [], unit: null },
+        { id: "i-rode-kool--diepvries-9240", name: "Rode kool (diepvries)", synonyms: [], unit: null },
+        { id: "i-wokmix--diepvries-4717", name: "Wokmix (diepvries)", synonyms: [], unit: null },
+        { id: "i-chinese-mix--diepvries-5724", name: "Chinese mix (diepvries)", synonyms: [], unit: null },
+        { id: "i-aubergines--diepvries-9951", name: "Aubergines (diepvries)", synonyms: [], unit: null },
+        { id: "i-knolselder--diepvries-2842", name: "Knolselder (diepvries)", synonyms: [], unit: null },
+        { id: "i-schorseneren--diepvries-4304", name: "Schorseneren (diepvries)", synonyms: [], unit: null }
+      ] },
+      { id: "cat-fruit", name: "Fruit", items: [
+        { id: "i-aardbei-8138", name: "Aardbei", synonyms: [], unit: "kg" },
+        { id: "i-aardbei--diepvries-5843", name: "Aardbei (diepvries)", synonyms: [], unit: "kg" },
+        { id: "i-citroen-8657", name: "Citroen", synonyms: [], unit: "kg" },
+        { id: "i-avocado-4507", name: "Avocado", synonyms: [], unit: "kg" },
+        { id: "i-bananen-711", name: "Bananen", synonyms: [], unit: "kg" },
+        { id: "i-mandarijnen-2046", name: "Mandarijnen", synonyms: [], unit: "kg" },
+        { id: "i-druiven-wit-403", name: "Druiven wit", synonyms: [], unit: "kg" },
+        { id: "i-druiven-rood-1318", name: "Druiven rood", synonyms: [], unit: "kg" },
+        { id: "i-appelsien-457", name: "Appelsien", synonyms: [], unit: "kg" },
+        { id: "i-appelen-jonagold-3381", name: "Appelen Jonagold", synonyms: [], unit: "kg" },
+        { id: "i-appelen-royal-gala-594", name: "Appelen Royal Gala", synonyms: [], unit: "kg" },
+        { id: "i-appelen-kanzi-8985", name: "Appelen Kanzi", synonyms: [], unit: "kg" },
+        { id: "i-appelen-pink-lady-1275", name: "Appelen Pink Lady", synonyms: [], unit: "kg" },
+        { id: "i-appelen-morgana-4364", name: "Appelen Morgana", synonyms: [], unit: "kg" },
+        { id: "i-kiwi-geel-8283", name: "Kiwi geel", synonyms: [], unit: "kg" },
+        { id: "i-kiwi-groen-5930", name: "Kiwi groen", synonyms: [], unit: "kg" },
+        { id: "i-blauwe-bessen-7210", name: "Blauwe bessen", synonyms: [], unit: "kg" },
+        { id: "i-blauwe-bessen--diepvries-1323", name: "Blauwe bessen (diepvries)", synonyms: [], unit: "kg" },
+        { id: "i-meloen-charentais-9987", name: "Meloen Charentais", synonyms: [], unit: "kg" },
+        { id: "i-meloen-cantaloupe-8927", name: "Meloen Cantaloupe", synonyms: [], unit: "kg" },
+        { id: "i-meloen-galia-984", name: "Meloen Galia", synonyms: [], unit: "kg" },
+        { id: "i-meloen-honing-4961", name: "Meloen Honing", synonyms: [], unit: "kg" },
+        { id: "i-meloen-water-1634", name: "Meloen Water", synonyms: [], unit: "kg" },
+        { id: "i-pompelmoes-9155", name: "Pompelmoes", synonyms: [], unit: "kg" },
+        { id: "i-pomelo-8402", name: "Pomelo", synonyms: [], unit: "kg" },
+        { id: "i-peren-conf-rence-5754", name: "Peren Conf\xE9rence", synonyms: [], unit: "kg" },
+        { id: "i-peren-doyenne-6111", name: "Peren Doyenne", synonyms: [], unit: "kg" },
+        { id: "i-limoen-2752", name: "Limoen", synonyms: [], unit: "kg" },
+        { id: "i-ananas-5334", name: "Ananas", synonyms: [], unit: "kg" },
+        { id: "i-kersen-381", name: "Kersen", synonyms: [], unit: "kg" },
+        { id: "i-passievrucht-1847", name: "Passievrucht", synonyms: [], unit: "kg" },
+        { id: "i-braambes-9743", name: "Braambes", synonyms: [], unit: "kg" },
+        { id: "i-abrikozen-652", name: "Abrikozen", synonyms: [], unit: "kg" },
+        { id: "i-granaatappel-4132", name: "Granaatappel", synonyms: [], unit: "kg" },
+        { id: "i-vijgen-3116", name: "Vijgen", synonyms: [], unit: "kg" },
+        { id: "i-nectarines-3401", name: "Nectarines", synonyms: [], unit: "kg" },
+        { id: "i-physalis-4765", name: "Physalis", synonyms: [], unit: "kg" },
+        { id: "i-rode-bessen-3965", name: "Rode bessen", synonyms: [], unit: "kg" },
+        { id: "i-mango-4990", name: "Mango", synonyms: [], unit: "kg" },
+        { id: "i-mango--diepvries-2826", name: "Mango (diepvries)", synonyms: [], unit: "kg" },
+        { id: "i-kokosnoot-6739", name: "Kokosnoot", synonyms: [], unit: "kg" },
+        { id: "i-rode-vruchtenmix--diepvries-9174", name: "Rode vruchtenmix (diepvries)", synonyms: [], unit: "kg" },
+        { id: "i-fruitsalades-3340", name: "Fruitsalades", synonyms: [], unit: "kg" },
+        { id: "i-perzik-9540", name: "Perzik", synonyms: [], unit: "kg" },
+        { id: "i-stekelbes-4492", name: "Stekelbes", synonyms: [], unit: "kg" }
+      ] },
+      { id: "cat-droogvoeding", name: "Droogvoeding", items: [
+        { id: "i-cashewnoten-999", name: "Cashewnoten", synonyms: [], unit: "kg" },
+        { id: "i-pijnboompitnoten-7906", name: "Pijnboompitnoten", synonyms: [], unit: "kg" },
+        { id: "i-pistachenoten-9292", name: "Pistachenoten", synonyms: [], unit: "kg" },
+        { id: "i-pecannoten-365", name: "Pecannoten", synonyms: [], unit: "kg" },
+        { id: "i-notenmix-8731", name: "Notenmix", synonyms: [], unit: "kg" },
+        { id: "i-dadels-3028", name: "Dadels", synonyms: [], unit: "kg" },
+        { id: "i-walnoten-3430", name: "Walnoten", synonyms: [], unit: "kg" },
+        { id: "i-granolamix-1730", name: "Granolamix", synonyms: [], unit: "kg" },
+        { id: "i-gekonfijt-fruit-1697", name: "gekonfijt fruit", synonyms: [], unit: "kg" },
+        { id: "i-gezouten-nootjes-3958", name: "Gezouten nootjes", synonyms: [], unit: "kg" },
+        { id: "i-popcorn-2524", name: "Popcorn", synonyms: [], unit: "kg" },
+        { id: "i-spaghetti-4392", name: "Spaghetti", synonyms: [], unit: "kg" },
+        { id: "i-fusilli-7887", name: "Fusilli", synonyms: [], unit: "kg" },
+        { id: "i-linguini-8290", name: "Linguini", synonyms: [], unit: "kg" },
+        { id: "i-penne-313", name: "Penne", synonyms: [], unit: "kg" },
+        { id: "i-capellini-8555", name: "Capellini", synonyms: [], unit: "kg" },
+        { id: "i-macaroni-5864", name: "Macaroni", synonyms: [], unit: "kg" },
+        { id: "i-farfalle-5430", name: "Farfalle", synonyms: [], unit: "kg" },
+        { id: "i-gnocchi-7257", name: "Gnocchi", synonyms: [], unit: "kg" },
+        { id: "i-tagliatelle-9320", name: "Tagliatelle", synonyms: [], unit: "kg" },
+        { id: "i-rijst-basmati-3637", name: "Rijst Basmati", synonyms: [], unit: "kg" },
+        { id: "i-rijst-jasmijn-6703", name: "Rijst Jasmijn", synonyms: [], unit: "kg" },
+        { id: "i-noodles-2382", name: "Noodles", synonyms: [], unit: "kg" },
+        { id: "i-tortelloni-3477", name: "Tortelloni", synonyms: [], unit: "kg" },
+        { id: "i-cappeletti-6374", name: "Cappeletti", synonyms: [], unit: "kg" },
+        { id: "i-bouillonblokjes-3887", name: "Bouillonblokjes", synonyms: [], unit: "kg" },
+        { id: "i-vermicelli-6865", name: "Vermicelli", synonyms: [], unit: "kg" },
+        { id: "i-couscous-2852", name: "Couscous", synonyms: [], unit: "kg" },
+        { id: "i-parelcouscous-9543", name: "Parelcouscous", synonyms: [], unit: "kg" },
+        { id: "i-soep-in-brik-3020", name: "Soep in brik", synonyms: [], unit: "kg" },
+        { id: "i-soep-instant-5979", name: "Soep instant", synonyms: [], unit: "kg" },
+        { id: "i-azijn-natuur-8894", name: "Azijn natuur", synonyms: [], unit: "kg" },
+        { id: "i-olie-olijf-1767", name: "Olie olijf", synonyms: [], unit: "kg" },
+        { id: "i-olie-zonnebloem-2596", name: "Olie zonnebloem", synonyms: [], unit: "kg" },
+        { id: "i-olie-frituur-5031", name: "Olie Frituur", synonyms: [], unit: "kg" },
+        { id: "i-olie-balsamico-3965", name: "Olie balsamico", synonyms: [], unit: "kg" },
+        { id: "i-azijn-appel-2043", name: "Azijn appel", synonyms: [], unit: "kg" },
+        { id: "i-azijn-witte-wijn-9028", name: "Azijn witte wijn", synonyms: [], unit: "kg" },
+        { id: "i-olie-arachide-5693", name: "Olie arachide", synonyms: [], unit: "kg" },
+        { id: "i-olie-fondue-9852", name: "Olie fondue", synonyms: [], unit: "kg" },
+        { id: "i-olie-koolzaadolie-7075", name: "Olie koolzaadolie", synonyms: [], unit: "kg" },
+        { id: "i-azijn-rode-wijn-2002", name: "Azijn rode wijn", synonyms: [], unit: "kg" },
+        { id: "i-olie-wok-784", name: "Olie wok", synonyms: [], unit: "kg" },
+        { id: "i-azijn-framboos-4356", name: "Azijn framboos", synonyms: [], unit: "kg" },
+        { id: "i-paprikapoeder-8060", name: "Paprikapoeder", synonyms: [], unit: "kg" },
+        { id: "i-knoflookpoeder-9177", name: "Knoflookpoeder", synonyms: [], unit: "kg" },
+        { id: "i-uienpoeder-1693", name: "Uienpoeder", synonyms: [], unit: "kg" },
+        { id: "i-oreganopoeder-5580", name: "Oreganopoeder", synonyms: [], unit: "kg" },
+        { id: "i-kurkumapoeder-706", name: "Kurkumapoeder", synonyms: [], unit: "kg" },
+        { id: "i-kaneelpoeder-1230", name: "Kaneelpoeder", synonyms: [], unit: "kg" },
+        { id: "i-nootmuskaatpoeder-4645", name: "Nootmuskaatpoeder", synonyms: [], unit: "kg" },
+        { id: "i-chilipoeder-1283", name: "Chilipoeder", synonyms: [], unit: "kg" },
+        { id: "i-chilivlokken-4526", name: "Chilivlokken", synonyms: [], unit: "kg" },
+        { id: "i-komijnzaadpoeder-2979", name: "Komijnzaadpoeder", synonyms: [], unit: "kg" },
+        { id: "i-gemberpoeder-5144", name: "Gemberpoeder", synonyms: [], unit: "kg" },
+        { id: "i-cayennepeperpoeder-9774", name: "Cayennepeperpoeder", synonyms: [], unit: "kg" },
+        { id: "i-basilicumpoeder-4370", name: "Basilicumpoeder", synonyms: [], unit: "kg" },
+        { id: "i-zout-9873", name: "Zout", synonyms: [], unit: "kg" },
+        { id: "i-peper-zwart-6851", name: "Peper zwart", synonyms: [], unit: "kg" },
+        { id: "i-zout-himalaya-7598", name: "Zout himalaya", synonyms: [], unit: "kg" },
+        { id: "i-tijmpoeder-2280", name: "Tijmpoeder", synonyms: [], unit: "kg" },
+        { id: "i-peper-wit-2170", name: "Peper wit", synonyms: [], unit: "kg" },
+        { id: "i-peper-mix-2868", name: "Peper mix", synonyms: [], unit: "kg" },
+        { id: "i-peper-rood-102", name: "Peper rood", synonyms: [], unit: "kg" },
+        { id: "i-rozemarijnpoeder-9946", name: "Rozemarijnpoeder", synonyms: [], unit: "kg" },
+        { id: "i-kruidnagel-6029", name: "Kruidnagel", synonyms: [], unit: "kg" },
+        { id: "i-kerriepoeder-4726", name: "Kerriepoeder", synonyms: [], unit: "kg" },
+        { id: "i-sat-kruiden-2684", name: "Sat\xE9kruiden", synonyms: [], unit: "kg" },
+        { id: "i-kipkruiden-2849", name: "Kipkruiden", synonyms: [], unit: "kg" },
+        { id: "i-kruidenmix-5180", name: "Kruidenmix", synonyms: [], unit: "kg" },
+        { id: "i-laurierblaadjes-246", name: "Laurierblaadjes", synonyms: [], unit: "kg" },
+        { id: "i-proven-aalse-kruiden-2467", name: "Proven\xE7aalse kruiden", synonyms: [], unit: "kg" },
+        { id: "i-korianderpoeder-8961", name: "Korianderpoeder", synonyms: [], unit: "kg" },
+        { id: "i-kappertjes-3099", name: "Kappertjes", synonyms: [], unit: "kg" },
+        { id: "i-augurken-8870", name: "Augurken", synonyms: [], unit: "kg" },
+        { id: "i-zilveruitjes-3283", name: "Zilveruitjes", synonyms: [], unit: "kg" },
+        { id: "i-tabasco-8255", name: "Tabasco", synonyms: [], unit: "kg" },
+        { id: "i-paneermeel-7070", name: "Paneermeel", synonyms: [], unit: "kg" },
+        { id: "i-maizena-3646", name: "Maizena", synonyms: [], unit: "kg" },
+        { id: "i-roux-wit-2342", name: "Roux wit", synonyms: [], unit: "kg" },
+        { id: "i-rouw-bruin-7954", name: "Rouw bruin", synonyms: [], unit: "kg" },
+        { id: "i-gevogeltefond-4064", name: "Gevogeltefond", synonyms: [], unit: "kg" },
+        { id: "i-vleesfond-540", name: "Vleesfond", synonyms: [], unit: "kg" },
+        { id: "i-visbouillon-1474", name: "Visbouillon", synonyms: [], unit: "kg" },
+        { id: "i-pesto-8668", name: "Pesto", synonyms: [], unit: "kg" },
+        { id: "i-ontbijtgranen-cornflakes-3592", name: "Ontbijtgranen/Cornflakes", synonyms: [], unit: "kg" },
+        { id: "i-havermout-7034", name: "Havermout", synonyms: [], unit: "kg" }
+      ] },
+      { id: "cat-droogvoeding--snoep", name: "Droogvoeding (snoep)", items: [
+        { id: "i-chips-848", name: "Chips", synonyms: [], unit: null },
+        { id: "i-crackers-1978", name: "Crackers", synonyms: [], unit: null },
+        { id: "i-cocktailnootjes-1836", name: "Cocktailnootjes", synonyms: [], unit: null },
+        { id: "i-leo-6554", name: "Leo", synonyms: [], unit: null },
+        { id: "i-koeken-divers-809", name: "Koeken divers", synonyms: [], unit: null },
+        { id: "i-chocolade-420", name: "Chocolade", synonyms: [], unit: null },
+        { id: "i-wafels-9042", name: "wafels", synonyms: [], unit: null },
+        { id: "i-peperkoek-5434", name: "Peperkoek", synonyms: [], unit: null },
+        { id: "i-madeleines-6338", name: "Madeleines", synonyms: [], unit: null },
+        { id: "i-frangipanes-6985", name: "Frangipanes", synonyms: [], unit: null },
+        { id: "i-koeken-prince-8251", name: "Koeken Prince", synonyms: [], unit: null },
+        { id: "i-chocoladerepen-1048", name: "Chocoladerepen", synonyms: [], unit: null },
+        { id: "i-mergpijpjes-6778", name: "Mergpijpjes", synonyms: [], unit: null },
+        { id: "i-gevulde-wafels-9068", name: "Gevulde wafels", synonyms: [], unit: null },
+        { id: "i-snoepjes-divers-8408", name: "Snoepjes divers", synonyms: [], unit: null },
+        { id: "i-muffins-1135", name: "Muffins", synonyms: [], unit: null }
+      ] },
+      { id: "cat-sauzen", name: "Sauzen", items: [
+        { id: "i-dipsaus-kaas-4122", name: "Dipsaus Kaas", synonyms: [], unit: null },
+        { id: "i-dipsaus-guacamole-1007", name: "Dipsaus Guacamole", synonyms: [], unit: null },
+        { id: "i-dipsaus-salsa-5025", name: "Dipsaus Salsa", synonyms: [], unit: null },
+        { id: "i-sojasaus-9832", name: "Sojasaus", synonyms: [], unit: null },
+        { id: "i-worcestersaus-135", name: "Worcestersaus", synonyms: [], unit: null },
+        { id: "i-cockailsaus-6867", name: "Cockailsaus", synonyms: [], unit: null },
+        { id: "i-andalouse-1979", name: "Andalouse", synonyms: [], unit: null },
+        { id: "i-mayonaise-1697", name: "Mayonaise", synonyms: [], unit: null },
+        { id: "i-tomatensaus-4713", name: "Tomatensaus", synonyms: [], unit: null },
+        { id: "i-bolognaisesaus-7360", name: "Bolognaisesaus", synonyms: [], unit: null },
+        { id: "i-mosterd-9260", name: "Mosterd", synonyms: [], unit: null },
+        { id: "i-currysaus-1550", name: "Currysaus", synonyms: [], unit: null },
+        { id: "i-tartaar-9210", name: "Tartaar", synonyms: [], unit: null },
+        { id: "i-ketchup-1456", name: "Ketchup", synonyms: [], unit: null },
+        { id: "i-ketchup-curry-4446", name: "Ketchup curry", synonyms: [], unit: null },
+        { id: "i-zoetzure-saus-7795", name: "Zoetzure saus", synonyms: [], unit: null },
+        { id: "i-samourai-841", name: "Samourai", synonyms: [], unit: null },
+        { id: "i-brazil-7964", name: "Brazil", synonyms: [], unit: null },
+        { id: "i-bearnaise-9070", name: "Bearnaise", synonyms: [], unit: null },
+        { id: "i-pitasaus-2064", name: "Pitasaus", synonyms: [], unit: null },
+        { id: "i-pickles-5577", name: "Pickles", synonyms: [], unit: null },
+        { id: "i-looksaus-156", name: "Looksaus", synonyms: [], unit: null },
+        { id: "i-vinaigrette-599", name: "Vinaigrette", synonyms: [], unit: null },
+        { id: "i-joppiesaus-9780", name: "Joppiesaus", synonyms: [], unit: null },
+        { id: "i-am-ricainesaus-2055", name: "Am\xE9ricainesaus", synonyms: [], unit: null }
+      ] },
+      { id: "cat-zoet-beleg", name: "Zoet beleg", items: [
+        { id: "i-nutella-2937", name: "Nutella", synonyms: [], unit: null },
+        { id: "i-chocopasta-puur-8968", name: "Chocopasta puur", synonyms: [], unit: null },
+        { id: "i-chocopasta-melk-6516", name: "Chocopasta melk", synonyms: [], unit: null },
+        { id: "i-chocopasta-wit-5658", name: "Chocopasta wit", synonyms: [], unit: null },
+        { id: "i-speculoospasta-5452", name: "Speculoospasta", synonyms: [], unit: null },
+        { id: "i-hagelslag-1972", name: "Hagelslag", synonyms: [], unit: null },
+        { id: "i-confituur-3179", name: "Confituur", synonyms: [], unit: null },
+        { id: "i-luikse-siroop-8054", name: "Luikse siroop", synonyms: [], unit: null },
+        { id: "i-honing-6459", name: "Honing", synonyms: [], unit: null }
+      ] },
+      { id: "cat-bereide-maaltijden", name: "Bereide maaltijden", items: [
+        { id: "i-soep-vers-2466", name: "Soep vers", synonyms: [], unit: null },
+        { id: "i-macaroni-kaas-hesp-9860", name: "Macaroni kaas hesp", synonyms: [], unit: null },
+        { id: "i-lasagne-4146", name: "Lasagne", synonyms: [], unit: null },
+        { id: "i-pizza-5328", name: "Pizza", synonyms: [], unit: null },
+        { id: "i-stoofvlees-9487", name: "Stoofvlees", synonyms: [], unit: null },
+        { id: "i-gehaktballen-in-saus-3753", name: "Gehaktballen in saus", synonyms: [], unit: null },
+        { id: "i-vogelnestjes-3550", name: "Vogelnestjes", synonyms: [], unit: null },
+        { id: "i-quiche-1367", name: "Quiche", synonyms: [], unit: null },
+        { id: "i-puree-ovenschotel-7911", name: "Puree ovenschotel", synonyms: [], unit: null }
+      ] },
+      { id: "cat-fastfood", name: "Fastfood", items: [
+        { id: "i-hamburger-9468", name: "Hamburger", synonyms: [], unit: null },
+        { id: "i-hot-dog-7741", name: "Hot dog", synonyms: [], unit: null },
+        { id: "i-macdonalds-9764", name: "Macdonalds", synonyms: [], unit: null },
+        { id: "i-frituur-9032", name: "Frituur", synonyms: [], unit: null },
+        { id: "i-burger-king-3246", name: "Burger King", synonyms: [], unit: null },
+        { id: "i-quick-4297", name: "Quick", synonyms: [], unit: null },
+        { id: "i-pizza-hut-5673", name: "Pizza Hut", synonyms: [], unit: null },
+        { id: "i-restaurant-6497", name: "Restaurant", synonyms: [], unit: null }
+      ] }
+    ]
+  },
+  {
+    id: "ov-drank",
+    name: "Drank",
+    hoofdtype: "Variabele Uitgaven",
+    color: "#0D9488",
+    icon: "\u{1F37A}",
+    categories: [
+      { id: "cat-water", name: "Water", items: [
+        { id: "i-bruisend-water-6465", name: "Bruisend water", synonyms: [], unit: "L" },
+        { id: "i-plat-water-4319", name: "Plat water", synonyms: [], unit: "L" }
+      ] },
+      { id: "cat-frisdrank", name: "Frisdrank", items: [
+        { id: "i-cola-4554", name: "Cola", synonyms: [], unit: "L" },
+        { id: "i-sprite-119", name: "Sprite", synonyms: [], unit: "L" },
+        { id: "i-7up-4591", name: "7Up", synonyms: [], unit: "L" },
+        { id: "i-ice-tea-6117", name: "Ice Tea", synonyms: [], unit: "L" },
+        { id: "i-spa-limonade-4580", name: "Spa Limonade", synonyms: [], unit: "L" },
+        { id: "i-gingerale-1804", name: "Gingerale", synonyms: [], unit: "L" },
+        { id: "i-schweppes-675", name: "Schweppes", synonyms: [], unit: "L" },
+        { id: "i-schweppes-agrumes-1333", name: "Schweppes Agrumes", synonyms: [], unit: "L" },
+        { id: "i-fristi-842", name: "Fristi", synonyms: [], unit: "L" },
+        { id: "i-fanta-2150", name: "Fanta", synonyms: [], unit: "L" },
+        { id: "i-aa-drink-7116", name: "AA drink", synonyms: [], unit: "L" },
+        { id: "i-nalu-5006", name: "Nalu", synonyms: [], unit: "L" },
+        { id: "i-t-nissteiner-1100", name: "T\xF6nissteiner", synonyms: [], unit: "L" },
+        { id: "i-taksi-1136", name: "Taksi", synonyms: [], unit: "L" },
+        { id: "i-kidibul-2213", name: "Kidibul", synonyms: [], unit: "L" },
+        { id: "i-gingerbeer-4508", name: "Gingerbeer", synonyms: [], unit: "L" },
+        { id: "i-dubbelfriss-8118", name: "DubbelFriss", synonyms: [], unit: "L" },
+        { id: "i-orangina-2393", name: "Orangina", synonyms: [], unit: "L" },
+        { id: "i-aquarius-5745", name: "Aquarius", synonyms: [], unit: "L" },
+        { id: "i-ah-licht---zonder-prik-8744", name: "AH Licht & zonder prik", synonyms: [], unit: "L" },
+        { id: "i-mogu-mogu-1930", name: "Mogu Mogu", synonyms: [], unit: "L" },
+        { id: "i-bundaberg-846", name: "Bundaberg", synonyms: [], unit: "L" },
+        { id: "i-tropical-aloe-vera-1749", name: "Tropical Aloe Vera", synonyms: [], unit: "L" }
+      ] },
+      { id: "cat-energiedrank", name: "Energiedrank", items: [
+        { id: "i-red-bull-304", name: "Red Bull", synonyms: [], unit: "L" },
+        { id: "i-monster-9732", name: "Monster", synonyms: [], unit: "L" }
+      ] },
+      { id: "cat-alcoholische-dranken", name: "Alcoholische dranken", items: [
+        { id: "i-bier-6061", name: "Bier", synonyms: [], unit: "L" },
+        { id: "i-wijn-8363", name: "Wijn", synonyms: [], unit: "L" },
+        { id: "i-champagne-schuimwijn-4195", name: "Champagne/schuimwijn", synonyms: [], unit: "L" },
+        { id: "i-whisky-5528", name: "Whisky", synonyms: [], unit: "L" },
+        { id: "i-jenever-3068", name: "Jenever", synonyms: [], unit: "L" },
+        { id: "i-vodka-3126", name: "Vodka", synonyms: [], unit: "L" },
+        { id: "i-rum-4949", name: "Rum", synonyms: [], unit: "L" },
+        { id: "i-baileys-5951", name: "Baileys", synonyms: [], unit: "L" }
+      ] },
+      { id: "cat-fruitsap", name: "Fruitsap", items: [
+        { id: "i-appelsap-3235", name: "Appelsap", synonyms: [], unit: "L" },
+        { id: "i-sinaasappelsap-2101", name: "Sinaasappelsap", synonyms: [], unit: "L" },
+        { id: "i-druivensap-2781", name: "Druivensap", synonyms: [], unit: "L" },
+        { id: "i-multivitaminesap-3863", name: "Multivitaminesap", synonyms: [], unit: "L" },
+        { id: "i-smoothies-2016", name: "Smoothies", synonyms: [], unit: "L" },
+        { id: "i-limonadesiroop-8947", name: "Limonadesiroop", synonyms: [], unit: "L" }
+      ] }
+    ]
+  },
+  {
+    id: "ov-huishouden-en-verzorging",
+    name: "Huishouden en Verzorging",
+    hoofdtype: "Variabele Uitgaven",
+    color: "#6B7280",
+    icon: "\u{1F9F9}",
+    categories: [
+      { id: "cat-huishoudproducten", name: "Huishoudproducten", items: [
+        { id: "i-wasmiddel-kledij-3152", name: "Wasmiddel kledij", synonyms: [], unit: "stuks" },
+        { id: "i-wasverzachter-2723", name: "Wasverzachter", synonyms: [], unit: "stuks" },
+        { id: "i-afwasmiddel-327", name: "Afwasmiddel", synonyms: ["vaatwasmiddel", "spoelmiddel afwas"], unit: "stuks" },
+        { id: "i-vaatwastabletten-7025", name: "Vaatwastabletten", synonyms: [], unit: "stuks" },
+        { id: "i-allesreiniger-4989", name: "Allesreiniger", synonyms: [], unit: "stuks" },
+        { id: "i-antikal-2214", name: "Antikal", synonyms: [], unit: "stuks" },
+        { id: "i-mr-proper-spray-3079", name: "Mr Proper spray", synonyms: [], unit: "stuks" },
+        { id: "i-dettolspray-8925", name: "Dettolspray", synonyms: [], unit: "stuks" },
+        { id: "i-keukenrol-8372", name: "Keukenrol", synonyms: [], unit: "stuks" },
+        { id: "i-sponsjes-195", name: "Sponsjes", synonyms: [], unit: "stuks" },
+        { id: "i-vuilniszakken-2810", name: "Vuilniszakken", synonyms: [], unit: "stuks" },
+        { id: "i-vlekkenverwijderaar-1822", name: "Vlekkenverwijderaar", synonyms: [], unit: "stuks" },
+        { id: "i-allesreiniger-4989", name: "Allesreiniger", synonyms: [], unit: "stuks" },
+        { id: "i-toiletreiniging-7469", name: "Toiletreiniging", synonyms: [], unit: "stuks" },
+        { id: "i-glas-en-ruitenreiniger-7253", name: "Glas en ruitenreiniger", synonyms: [], unit: "stuks" },
+        { id: "i-poetsdoeken-8346", name: "Poetsdoeken", synonyms: [], unit: "stuks" },
+        { id: "i-luchtverfrissers-2885", name: "Luchtverfrissers", synonyms: [], unit: "stuks" },
+        { id: "i-tabak-en-rookwaren-9539", name: "Tabak en rookwaren", synonyms: [], unit: "stuks" },
+        { id: "i-vapevloeistof-en-e-sigaret-3671", name: "Vapevloeistof en e-sigaret", synonyms: [], unit: "stuks" }
+      ] },
+      { id: "cat-persoonlijke-verzorging", name: "Persoonlijke verzorging", items: [
+        { id: "i-haarverzorging-3500", name: "Haarverzorging", synonyms: [], unit: "stuks" },
+        { id: "i-haarstyling-9573", name: "Haarstyling", synonyms: [], unit: "stuks" },
+        { id: "i-kapper-8096", name: "Kapper", synonyms: ["haarsnit", "kapsalon"], unit: "stuks" },
+        { id: "i-mondverzorging-4071", name: "Mondverzorging", synonyms: [], unit: "stuks" },
+        { id: "i-lichaamsverzorging--douche-zee-8778", name: "Lichaamsverzorging (Douche/zeep)", synonyms: [], unit: "stuks" },
+        { id: "i-huidverzorging--gezicht-bodylo-8947", name: "Huidverzorging (gezicht/bodylotion)", synonyms: [], unit: "stuks" },
+        { id: "i-deodorant-en-parfum-2057", name: "Deodorant en parfum", synonyms: [], unit: "stuks" },
+        { id: "i-zonnebescherming-3479", name: "Zonnebescherming", synonyms: [], unit: "stuks" },
+        { id: "i-scheren-en-ontharen-7673", name: "Scheren en ontharen", synonyms: [], unit: "stuks" },
+        { id: "i-dameshygi-ne-8789", name: "Dameshygi\xEBne", synonyms: [], unit: "stuks" },
+        { id: "i-nagelverzorging-3686", name: "Nagelverzorging", synonyms: [], unit: "stuks" },
+        { id: "i-toiletpapier-6360", name: "Toiletpapier", synonyms: [], unit: "stuks" },
+        { id: "i-vochtige-doekjes-3135", name: "Vochtige doekjes", synonyms: [], unit: "stuks" },
+        { id: "i-tandenborstel-677", name: "Tandenborstel", synonyms: [], unit: "stuks" },
+        { id: "i-tandpasta-5571", name: "Tandpasta", synonyms: [], unit: "stuks" }
+      ] }
+    ]
+  },
+  {
+    id: "ov-apotheek-en-gezondheid",
+    name: "Apotheek en gezondheid",
+    hoofdtype: "Variabele Uitgaven",
+    color: "#DC2626",
+    icon: "\u2764\uFE0F",
+    categories: [
+      { id: "cat-medicatie", name: "Medicatie", items: [
+        { id: "i-pijn-en-koorts-7283", name: "Pijn en koorts", synonyms: [], unit: "stuks" },
+        { id: "i-pleisters-4459", name: "Pleisters", synonyms: [], unit: "stuks" },
+        { id: "i-verband-9951", name: "Verband", synonyms: [], unit: "stuks" },
+        { id: "i-ontsmettingsmiddel-5013", name: "Ontsmettingsmiddel", synonyms: [], unit: "stuks" },
+        { id: "i-wondverzorging-6732", name: "Wondverzorging", synonyms: [], unit: "stuks" },
+        { id: "i-hoestsiroop-257", name: "Hoestsiroop", synonyms: [], unit: "stuks" },
+        { id: "i-keelpastilles-8537", name: "Keelpastilles", synonyms: [], unit: "stuks" },
+        { id: "i-neusspray-459", name: "Neusspray", synonyms: [], unit: "stuks" },
+        { id: "i-maagmedicatie-6493", name: "Maagmedicatie", synonyms: [], unit: "stuks" },
+        { id: "i-darmmedicatie-6742", name: "Darmmedicatie", synonyms: [], unit: "stuks" },
+        { id: "i-muggenspray-895", name: "Muggenspray", synonyms: [], unit: "stuks" },
+        { id: "i-allergie-medicatie-8488", name: "Allergie medicatie", synonyms: [], unit: "stuks" },
+        { id: "i-vitaminen-en-supplementen-9328", name: "Vitaminen en supplementen", synonyms: [], unit: "stuks" },
+        { id: "i-rilatine-jasper-5184", name: "Rilatine Jasper", synonyms: [], unit: "stuks" },
+        { id: "i-rilatine-milo-6025", name: "Rilatine Milo", synonyms: [], unit: "stuks" },
+        { id: "i-cold-hot-packs-5920", name: "Cold/hot packs", synonyms: [], unit: "stuks" },
+        { id: "i-bloeddrukmeter-7046", name: "Bloeddrukmeter", synonyms: [], unit: "stuks" },
+        { id: "i-thermometer-7519", name: "Thermometer", synonyms: [], unit: "stuks" }
+      ] },
+      { id: "cat-medische-zorg-en-facturen", name: "Medische zorg en facturen", items: [
+        { id: "i-huisarts-8922", name: "Huisarts", synonyms: ["dokter", "geneesheer"], unit: null },
+        { id: "i-specialisten-3458", name: "Specialisten", synonyms: [], unit: null },
+        { id: "i-tandarts-en-orthodontie-6414", name: "Tandarts en orthodontie", synonyms: ["tandarts", "orthodontist", "beugel"], unit: null },
+        { id: "i-ziekenhuisfacturen-6531", name: "Ziekenhuisfacturen", synonyms: [], unit: null },
+        { id: "i-kinesist-5419", name: "Kinesist", synonyms: [], unit: null },
+        { id: "i-psycholoog-1237", name: "Psycholoog", synonyms: [], unit: null },
+        { id: "i-brillen-en-lenzen-6413", name: "Brillen en lenzen", synonyms: ["opticien", "contactlenzen", "oogarts bril"], unit: null },
+        { id: "i-gynaecoloog-5087", name: "Gynaecoloog", synonyms: [], unit: null },
+        { id: "i-dermatoloog-4899", name: "Dermatoloog", synonyms: [], unit: null },
+        { id: "i-ziekenfonds-terugbetalingen-5629", name: "Ziekenfonds terugbetalingen", synonyms: [], unit: null },
+        { id: "i-tandverzekering-terugbetalinge-7926", name: "Tandverzekering terugbetalingen", synonyms: [], unit: null },
+        { id: "i-dkv-terugbetalingen-990", name: "DKV terugbetalingen", synonyms: [], unit: null }
+      ] }
+    ]
+  },
+  {
+    id: "ov-kinderen-en-gezin",
+    name: "Kinderen en Gezin",
+    hoofdtype: "Variabele Uitgaven",
+    color: "#F97316",
+    icon: "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}",
+    categories: [
+      { id: "cat-kinderen-school", name: "Kinderen school", items: [
+        { id: "i-schoolfactuur-jasper-95", name: "Schoolfactuur Jasper", synonyms: [], unit: null },
+        { id: "i-schoolfactuur-hanne-6123", name: "Schoolfactuur Hanne", synonyms: [], unit: null },
+        { id: "i-schoolfactuur-milo-9966", name: "Schoolfactuur Milo", synonyms: [], unit: null },
+        { id: "i-schoolboeken-jasper-46", name: "Schoolboeken Jasper", synonyms: [], unit: null },
+        { id: "i-schoolboeken-hanne-3901", name: "Schoolboeken Hanne", synonyms: [], unit: null },
+        { id: "i-schoolboeken-milo-8693", name: "Schoolboeken Milo", synonyms: [], unit: null },
+        { id: "i-laptop-jasper-185", name: "Laptop Jasper", synonyms: [], unit: null },
+        { id: "i-laptop-hanne-4647", name: "Laptop Hanne", synonyms: [], unit: null },
+        { id: "i-laptop-milo-8590", name: "Laptop Milo", synonyms: [], unit: null },
+        { id: "i-schoolmateriaal-3503", name: "Schoolmateriaal", synonyms: [], unit: null },
+        { id: "i-boekentassen-6177", name: "Boekentassen", synonyms: [], unit: null },
+        { id: "i-zakgeld-uitstappen-lunchgeld-8341", name: "Zakgeld uitstappen/lunchgeld", synonyms: [], unit: null },
+        { id: "i-schooluitstappen-jasper-6697", name: "Schooluitstappen Jasper", synonyms: [], unit: null },
+        { id: "i-schooluitstappen-hanne-9401", name: "Schooluitstappen Hanne", synonyms: [], unit: null },
+        { id: "i-schooluitstappen-milo-4464", name: "Schooluitstappen Milo", synonyms: [], unit: null }
+      ] },
+      { id: "cat-kinderen-kleding", name: "Kinderen Kleding", items: [
+        { id: "i-kleding-jasper-9943", name: "Kleding Jasper", synonyms: [], unit: null },
+        { id: "i-kleding-hanne-1781", name: "Kleding Hanne", synonyms: [], unit: null },
+        { id: "i-kleding-milo-1004", name: "Kleding Milo", synonyms: [], unit: null },
+        { id: "i-schoenen-jasper-3772", name: "Schoenen Jasper", synonyms: [], unit: null },
+        { id: "i-schoenen-hanne-9312", name: "Schoenen Hanne", synonyms: [], unit: null },
+        { id: "i-schoenen-milo-6932", name: "Schoenen Milo", synonyms: [], unit: null }
+      ] },
+      { id: "cat-kinderen-hobby", name: "Kinderen Hobby", items: [
+        { id: "i-hobbykosten-jasper-5011", name: "Hobbykosten Jasper", synonyms: [], unit: null },
+        { id: "i-hobbykosten-hanne-4644", name: "Hobbykosten Hanne", synonyms: [], unit: null },
+        { id: "i-hobbykosten-milo-2946", name: "Hobbykosten Milo", synonyms: [], unit: null }
+      ] },
+      { id: "cat-kinderen-varia", name: "Kinderen Varia", items: [
+        { id: "i-zakgeld-jasper-9805", name: "Zakgeld Jasper", synonyms: [], unit: null },
+        { id: "i-zakgeld-hanne-6347", name: "Zakgeld Hanne", synonyms: [], unit: null },
+        { id: "i-zakgeld-milo-4328", name: "Zakgeld Milo", synonyms: [], unit: null },
+        { id: "i-verjaardagscadeaus-vrienden-2118", name: "Verjaardagscadeaus vrienden", synonyms: [], unit: null },
+        { id: "i-verjaardag-jasper-4240", name: "Verjaardag Jasper", synonyms: [], unit: null },
+        { id: "i-verjaardag-hanne-9130", name: "Verjaardag Hanne", synonyms: [], unit: null },
+        { id: "i-verjaardag-milo-7195", name: "Verjaardag Milo", synonyms: [], unit: null }
+      ] }
+    ]
+  },
+  {
+    id: "ov-woning-en-vaste-lasten",
+    name: "Woning en vaste lasten",
+    hoofdtype: "Vaste Uitgaven",
+    color: "#7C3AED",
+    icon: "\u{1F3E0}",
+    categories: [
+      { id: "cat-abonnementen-en-multimedia", name: "Abonnementen en multimedia", items: [
+        { id: "i-leasingkosten-gsm--cafetariapl-9339", name: "Leasingkosten GSM (cafetariaplan)", synonyms: [], unit: null },
+        { id: "i-leasingkosten-ipad--cafetariap-2206", name: "Leasingkosten Ipad (cafetariaplan)", synonyms: [], unit: null },
+        { id: "i-leasingkosten-laptop--cafetari-1683", name: "Leasingkosten laptop (cafetariaplan)", synonyms: [], unit: null },
+        { id: "i-internet--tv---gsm-4253", name: "Internet, TV & GSM", synonyms: ["telecom", "telenet", "proximus", "orange", "wifi"], unit: null },
+        { id: "i-streaming-video-5157", name: "Streaming Video", synonyms: ["netflix", "disney plus", "videoland"], unit: null },
+        { id: "i-streaming-video-aankopen-5539", name: "Streaming Video aankopen", synonyms: [], unit: null },
+        { id: "i-gaming-aankopen-7263", name: "Gaming aankopen", synonyms: [], unit: null },
+        { id: "i-gaming-abonnementen-126", name: "Gaming abonnementen", synonyms: [], unit: null },
+        { id: "i-software-en-licenties-1950", name: "Software en licenties", synonyms: [], unit: null },
+        { id: "i-krant-en-nieuws-abonnement-1659", name: "Krant en nieuws abonnement", synonyms: [], unit: null },
+        { id: "i-cloudopslag--icloud-google-dri-9335", name: "Cloudopslag (iCloud/Google Drive)", synonyms: [], unit: null }
+      ] },
+      { id: "cat-huisvesting", name: "Huisvesting", items: [
+        { id: "i-huur-4062", name: "Huur", synonyms: ["huurgeld", "rent", "huurgeld", "rent", "huishuur"], unit: null },
+        { id: "i-hypotheek-8607", name: "Hypotheek", synonyms: ["lening woning", "krediet woning", "lening woning", "krediet woning", "woonkrediet"], unit: null },
+        { id: "i-onroerende-voorheffing-1420", name: "Onroerende voorheffing", synonyms: ["kadastraal inkomen", "KI"], unit: null }
+      ] },
+      { id: "cat-energie-en-nutsvoorzieningen", name: "Energie en nutsvoorzieningen", items: [
+        { id: "i-elektriciteit-gas-voorschotten-7574", name: "Elektriciteit/Gas voorschotten", synonyms: [], unit: null },
+        { id: "i-elektriciteit-gas-jaarafrekeni-14", name: "Elektriciteit/Gas jaarafrekening", synonyms: [], unit: null },
+        { id: "i-water-voorschotten-8977", name: "Water voorschotten", synonyms: [], unit: null },
+        { id: "i-water-jaarafrekening-9197", name: "Water jaarafrekening", synonyms: [], unit: null },
+        { id: "i-stookolie---pellets---hout-3303", name: "Stookolie / Pellets / Hout", synonyms: [], unit: "L" }
+      ] },
+      { id: "cat-verzekeringen", name: "Verzekeringen", items: [
+        { id: "i-brand-en-familiale-verzekering-2328", name: "Brand en Familiale verzekering", synonyms: [], unit: null },
+        { id: "i-schuldsaldoverzekering-6890", name: "Schuldsaldoverzekering", synonyms: [], unit: null },
+        { id: "i-rechtsbijstand-8519", name: "Rechtsbijstand", synonyms: [], unit: null },
+        { id: "i-hospitalisatieverzekering-prem-4163", name: "Hospitalisatieverzekering premie", synonyms: [], unit: null },
+        { id: "i-levensverzekering-5771", name: "Levensverzekering", synonyms: [], unit: null },
+        { id: "i-reisverzekering-1791", name: "Reisverzekering", synonyms: [], unit: null }
+      ] },
+      { id: "cat-onderhoud-en-inrichting", name: "Onderhoud en inrichting", items: [
+        { id: "i-klusmateriaal-7597", name: "Klusmateriaal", synonyms: ["gereedschap", "doe-het-zelf", "bouwmarkt", "hubo", "gamma", "brico"], unit: null },
+        { id: "i-meubels-8685", name: "Meubels", synonyms: ["meubilair", "ikea", "interieur"], unit: null },
+        { id: "i-decoratie-360", name: "Decoratie", synonyms: ["deco", "interieurdecoratie"], unit: null },
+        { id: "i-verplichte-keuringen-2406", name: "Verplichte keuringen", synonyms: [], unit: null },
+        { id: "i-huishoudelijke-apparaten-4304", name: "Huishoudelijke apparaten", synonyms: ["wasmachine", "droogkast", "koelkast", "frigo", "gsm-toestel nee", "toestellen"], unit: null },
+        { id: "i-tuinmateriaal-en-planten-7296", name: "Tuinmateriaal en planten", synonyms: [], unit: null },
+        { id: "i-tuinmeubelen-6621", name: "Tuinmeubelen", synonyms: [], unit: null }
+      ] },
+      { id: "cat-bankkosten", name: "Bankkosten", items: [
+        { id: "i-bijdrage-zichtrekening-9225", name: "Bijdrage Zichtrekening", synonyms: [], unit: null },
+        { id: "i-interesten-zichtrekening-712", name: "Interesten Zichtrekening", synonyms: [], unit: null },
+        { id: "i-roerende-voorheffing-4087", name: "Roerende voorheffing", synonyms: [], unit: null },
+        { id: "i-meerwaardebelasting-9532", name: "Meerwaardebelasting", synonyms: [], unit: null },
+        { id: "i-taks-op-beursverrichtingen-2249", name: "Taks op Beursverrichtingen", synonyms: [], unit: null },
+        { id: "i-bewaarloon-en-beheerskosten-4572", name: "Bewaarloon en beheerskosten", synonyms: [], unit: null }
+      ] },
+      { id: "cat-kredieten", name: "Kredieten", items: [
+        { id: "i-budgetline-455", name: "Budgetline", synonyms: [], unit: null },
+        { id: "i-budgetkrediet-hoofdrekening-7947", name: "Budgetkrediet Hoofdrekening", synonyms: [], unit: null },
+        { id: "i-budgetkrediet-kindrekening-8933", name: "Budgetkrediet Kindrekening", synonyms: [], unit: null },
+        { id: "i-aflossingsplan-belastingen-1034", name: "Aflossingsplan Belastingen", synonyms: [], unit: null },
+        { id: "i-aflossingsplan-elektriciteit-g-7906", name: "Aflossingsplan Elektriciteit/Gas", synonyms: [], unit: null },
+        { id: "i-aflossingsplan-water-3159", name: "Aflossingsplan Water", synonyms: [], unit: null }
+      ] }
+    ]
+  },
+  {
+    id: "ov-vervoer-en-mobiliteit",
+    name: "Vervoer en Mobiliteit",
+    hoofdtype: "Vaste Uitgaven",
+    color: "#2563EB",
+    icon: "\u{1F697}",
+    categories: [
+      { id: "cat-auto", name: "Auto", items: [
+        { id: "i-leasingkosten-wagen--cafetaria-697", name: "Leasingkosten wagen (cafetariaplan)", synonyms: [], unit: "L" },
+        { id: "i-brandstof-2808", name: "Brandstof", synonyms: ["benzine", "diesel", "tanken", "fuel", "benzine", "diesel", "tanken", "fuel", "lpg"], unit: "L" },
+        { id: "i-elektriciteit-5578", name: "Elektriciteit", synonyms: [], unit: "L" },
+        { id: "i-autoverzekering-8001", name: "Autoverzekering", synonyms: [], unit: "L" },
+        { id: "i-verkeersbelasting-2649", name: "Verkeersbelasting", synonyms: [], unit: "L" },
+        { id: "i-biv-8646", name: "BIV", synonyms: [], unit: "L" },
+        { id: "i-groot-onderhoud-4205", name: "Groot onderhoud", synonyms: [], unit: "L" },
+        { id: "i-klein-onderhoud-4917", name: "Klein onderhoud", synonyms: [], unit: "L" },
+        { id: "i-banden-en-bandenwissel-7465", name: "Banden en bandenwissel", synonyms: [], unit: "L" },
+        { id: "i-autokeuring-2314", name: "Autokeuring", synonyms: [], unit: "L" },
+        { id: "i-carwash-456", name: "Carwash", synonyms: ["autowas", "wasstraat"], unit: "L" },
+        { id: "i-parkeerkosten-8857", name: "Parkeerkosten", synonyms: [], unit: "L" },
+        { id: "i-tol-7737", name: "Tol", synonyms: [], unit: "L" },
+        { id: "i-pechverhelping-3394", name: "Pechverhelping", synonyms: [], unit: "L" },
+        { id: "i-aankoop---afbetaling-wagen-8108", name: "Aankoop / afbetaling wagen", synonyms: ["autolening", "nieuwe wagen", "tweedehands auto"], unit: "L" }
+      ] },
+      { id: "cat-openbaar-vervoer", name: "Openbaar Vervoer", items: [
+        { id: "i-treintickets-en-abonnementen-6220", name: "Treintickets en abonnementen", synonyms: [], unit: null },
+        { id: "i-de-lijn-6666", name: "De Lijn", synonyms: [], unit: null },
+        { id: "i-deelfietsen---e-steps-7237", name: "Deelfietsen & e-steps", synonyms: [], unit: null }
+      ] },
+      { id: "cat-fietsen-en-andere-vervoermidde", name: "Fietsen en andere vervoermiddelen", items: [
+        { id: "i-leasingkosten-fiets--cafetaria-5911", name: "Leasingkosten fiets (cafetariaplan)", synonyms: [], unit: "stuks" },
+        { id: "i-aankoop-fietsen-en-steps-2035", name: "Aankoop Fietsen en steps", synonyms: [], unit: "stuks" },
+        { id: "i-onderhouden-en-herstellingen-9154", name: "Onderhouden en herstellingen", synonyms: [], unit: "stuks" },
+        { id: "i-accessoires-en-kleding-5256", name: "Accessoires en kleding", synonyms: [], unit: "stuks" },
+        { id: "i-fietsverzekering-3864", name: "Fietsverzekering", synonyms: [], unit: "stuks" }
+      ] }
+    ]
+  },
+  {
+    id: "ov-vrije-tijd-en-lifestyle",
+    name: "Vrije Tijd en Lifestyle",
+    hoofdtype: "Variabele Uitgaven",
+    color: "#059669",
+    icon: "\u{1F3AD}",
+    categories: [
+      { id: "cat-ontspanning", name: "Ontspanning", items: [
+        { id: "i-horeca-9295", name: "Horeca", synonyms: [], unit: null },
+        { id: "i-cultuur--cinema--theater-772", name: "Cultuur, Cinema, Theater", synonyms: ["bioscoop", "film", "concert", "museum"], unit: null },
+        { id: "i-hobby-6407", name: "Hobby", synonyms: [], unit: null },
+        { id: "i-sport-2474", name: "Sport", synonyms: ["sportclub", "lidgeld sport", "voetbal", "tennis"], unit: null },
+        { id: "i-wellness-1508", name: "Wellness", synonyms: ["spa", "massage"], unit: null },
+        { id: "i-boeken-474", name: "Boeken", synonyms: [], unit: null },
+        { id: "i-strips-5896", name: "Strips", synonyms: [], unit: null },
+        { id: "i-dvd-s-en-blu-ray-s-2860", name: "DVD's en Blu Ray's", synonyms: [], unit: null },
+        { id: "i-tijdschriften-8700", name: "Tijdschriften", synonyms: [], unit: null },
+        { id: "i-events-1651", name: "Events", synonyms: [], unit: null },
+        { id: "i-loterij-en-kansspelen-1291", name: "Loterij en kansspelen", synonyms: [], unit: null },
+        { id: "i-fitnessabonnement-3929", name: "Fitnessabonnement", synonyms: [], unit: null }
+      ] },
+      { id: "cat-cadeaus-en-feest", name: "Cadeaus en feest", items: [
+        { id: "i-verjaardagen--gezin-en-familie-1426", name: "Verjaardagen (Gezin en familie)", synonyms: ["verjaardag", "jarig"], unit: null },
+        { id: "i-cadeaus-vrienden-en-gelegenhed-9970", name: "Cadeaus vrienden en gelegenheden", synonyms: [], unit: null },
+        { id: "i-kerst-en-nieuwjaar-8781", name: "Kerst en nieuwjaar", synonyms: [], unit: null },
+        { id: "i-feestinrichting-7310", name: "Feestinrichting", synonyms: [], unit: null },
+        { id: "i-tractaties-6514", name: "Tractaties", synonyms: [], unit: null },
+        { id: "i-giften-aan-goede-doelen-3720", name: "Giften aan goede doelen", synonyms: [], unit: null }
+      ] },
+      { id: "cat-vakantie-en-reizen", name: "Vakantie en reizen", items: [
+        { id: "i-boeking-vliegtuig-1519", name: "Boeking Vliegtuig", synonyms: ["vliegtickets", "vliegtuigticket", "ryanair", "brussels airlines"], unit: null },
+        { id: "i-boeking-trein-1150", name: "Boeking Trein", synonyms: [], unit: null },
+        { id: "i-boeking-bus-274", name: "Boeking Bus", synonyms: [], unit: null },
+        { id: "i-boeking-taxi-8777", name: "Boeking Taxi", synonyms: [], unit: null },
+        { id: "i-boeking-hotel-5322", name: "Boeking Hotel", synonyms: ["overnachting", "booking.com", "airbnb"], unit: null },
+        { id: "i-uitgaven-op-reis-varia-9082", name: "Uitgaven op Reis varia", synonyms: [], unit: null },
+        { id: "i-pretparken-29", name: "Pretparken", synonyms: [], unit: null },
+        { id: "i-daguitstappen-8327", name: "Daguitstappen", synonyms: [], unit: null }
+      ] }
+    ]
+  },
+  {
+    id: "ov-inkomsten",
+    name: "Inkomsten",
+    hoofdtype: "Inkomsten",
+    color: "#059669",
+    icon: "\u{1F4B5}",
+    categories: [
+      { id: "cat-beroepsinkomen", name: "Beroepsinkomen", items: [
+        { id: "i-vast-loon--netto-4025", name: "Vast Loon (netto)", synonyms: [], unit: null },
+        { id: "i-variabele-verloning-3012", name: "Variabele verloning", synonyms: [], unit: null }
+      ] },
+      { id: "cat-cafetariaplan-en-voordelen", name: "Cafetariaplan en Voordelen", items: [
+        { id: "i-cafetariaplan-budget-1351", name: "Cafetariaplan budget", synonyms: [], unit: null },
+        { id: "i-tank-laadkaart-5112", name: "Tank/Laadkaart", synonyms: [], unit: null }
+      ] },
+      { id: "cat-schenkingen-en-extra-s", name: "Schenkingen en Extra's", items: [
+        { id: "i-familiale-steun-mama-en-papa-1282", name: "Familiale steun mama en papa", synonyms: [], unit: null },
+        { id: "i-onvoorziene-meevallers-931", name: "Onvoorziene meevallers", synonyms: [], unit: null }
+      ] },
+      { id: "cat-rendement-en-vermogen", name: "Rendement en Vermogen", items: [
+        { id: "i-spaarrekening-interesten-308", name: "Spaarrekening interesten", synonyms: [], unit: null },
+        { id: "i-dividenden-1629", name: "Dividenden", synonyms: [], unit: null },
+        { id: "i-gerealiseerde-meerwaarden-6260", name: "Gerealiseerde Meerwaarden", synonyms: [], unit: null },
+        { id: "i-aankoop-beleggingen-5427", name: "Aankoop Beleggingen", synonyms: [], unit: null },
+        { id: "i-verkoop-beleggingen-9831", name: "Verkoop Beleggingen", synonyms: [], unit: null },
+        { id: "i-kapitaalverhogingen-2634", name: "Kapitaalverhogingen", synonyms: [], unit: null },
+        { id: "i-pensioensparen-6807", name: "Pensioensparen", synonyms: [], unit: null },
+        { id: "i-langetermijnsparen-3706", name: "Langetermijnsparen", synonyms: [], unit: null },
+        { id: "i-buffer-persoonlijk-7888", name: "Buffer persoonlijk", synonyms: [], unit: null },
+        { id: "i-buffer-kinderen-9338", name: "Buffer kinderen", synonyms: [], unit: null },
+        { id: "i-invest-persoonlijk-3628", name: "Invest persoonlijk", synonyms: [], unit: null }
+      ] }
+    ]
+  },
+  {
+    id: "ov-sparen---investeren",
+    name: "Sparen & Investeren",
+    hoofdtype: "Sparen",
+    color: "#2563EB",
+    icon: "\u{1F4B0}",
+    categories: [
+      { id: "cat-schuldaflossing-extra", name: "Schuldaflossing extra", items: [
+        { id: "i-extra-aflossing-lening-2126", name: "Extra aflossing lening", synonyms: [], unit: null }
+      ] },
+      { id: "cat-buffer-persoonlijk", name: "Buffer persoonlijk", items: [
+        { id: "i-storting-buffer-persoonlijk-5899", name: "Storting buffer persoonlijk", synonyms: [], unit: null }
+      ] },
+      { id: "cat-buffer-kinderen", name: "Buffer kinderen", items: [
+        { id: "i-storting-buffer-kinderen-9841", name: "Storting buffer kinderen", synonyms: [], unit: null }
+      ] },
+      { id: "cat-invest-persoonlijk", name: "Invest persoonlijk", items: [
+        { id: "i-storting-beleggingsrekening-2890", name: "Storting beleggingsrekening", synonyms: [], unit: null }
+      ] }
+    ]
+  },
+  {
+    id: "ov-kledij-en-schoenen",
+    name: "Kledij en Schoenen",
+    hoofdtype: "Variabele Uitgaven",
+    color: "#DB2777",
+    icon: "\u{1F457}",
+    categories: [
+      { id: "cat-kledij-volwassenen", name: "Kledij volwassenen", items: [
+        { id: "i-bovenkleding-8990", name: "Bovenkleding", synonyms: ["kleren", "kledij", "t-shirt", "trui", "hemd"], unit: null },
+        { id: "i-onderkleding---ondergoed-1325", name: "Onderkleding / ondergoed", synonyms: [], unit: null },
+        { id: "i-nachtkledij-9923", name: "Nachtkledij", synonyms: [], unit: null },
+        { id: "i-sportkledij-564", name: "Sportkledij", synonyms: [], unit: null },
+        { id: "i-werkkledij-5966", name: "Werkkledij", synonyms: [], unit: null },
+        { id: "i-winterjas-en-regenkledij-2390", name: "Winterjas en regenkledij", synonyms: [], unit: null }
+      ] },
+      { id: "cat-schoenen-volwassenen", name: "Schoenen volwassenen", items: [
+        { id: "i-dagelijkse-schoenen-9466", name: "Dagelijkse schoenen", synonyms: ["sneakers", "casual schoenen"], unit: null },
+        { id: "i-sportschoenen-2486", name: "Sportschoenen", synonyms: [], unit: null },
+        { id: "i-feestschoenen-1539", name: "Feestschoenen", synonyms: [], unit: null },
+        { id: "i-laarzen-en-winterschoenen-2454", name: "Laarzen en winterschoenen", synonyms: [], unit: null }
+      ] },
+      { id: "cat-accessoires", name: "Accessoires", items: [
+        { id: "i-tassen-en-rugzakken-6286", name: "Tassen en rugzakken", synonyms: [], unit: null },
+        { id: "i-riemen-en-sjaals-9989", name: "Riemen en sjaals", synonyms: [], unit: null },
+        { id: "i-sieraden-en-horloges-9182", name: "Sieraden en horloges", synonyms: [], unit: null },
+        { id: "i-zonnebrillen-2652", name: "Zonnebrillen", synonyms: [], unit: null }
+      ] }
+    ]
+  },
+  {
+    id: "ov-belastingen-en-offici-le-koste",
+    name: "Belastingen en Offici\xEBle Kosten",
+    hoofdtype: "Vaste Uitgaven",
+    color: "#64748B",
+    icon: "\u{1F4CB}",
+    categories: [
+      { id: "cat-personenbelasting", name: "Personenbelasting", items: [
+        { id: "i-aanslagbiljet-personenbelastin-454", name: "Aanslagbiljet personenbelasting", synonyms: ["belastingbrief", "belastingen betalen", "fiscus"], unit: null },
+        { id: "i-voorafbetalingen-belastingen-2138", name: "Voorafbetalingen belastingen", synonyms: [], unit: null },
+        { id: "i-successierechten-2395", name: "Successierechten", synonyms: [], unit: null },
+        { id: "i-registratierechten-4289", name: "Registratierechten", synonyms: [], unit: null }
+      ] },
+      { id: "cat-andere-taksen-en-boetes", name: "Andere taksen en boetes", items: [
+        { id: "i-gemeentebelasting-4332", name: "Gemeentebelasting", synonyms: [], unit: null },
+        { id: "i-milieutaks-1557", name: "Milieutaks", synonyms: [], unit: null },
+        { id: "i-verkeersboetes-en-gas-boetes-6632", name: "Verkeersboetes en GAS-boetes", synonyms: [], unit: null },
+        { id: "i-leges-en-attesten-7685", name: "Leges en attesten", synonyms: [], unit: null }
+      ] },
+      { id: "cat-notaris-en-juridisch-advies", name: "Notaris en juridisch advies", items: [
+        { id: "i-notariskosten-2235", name: "Notariskosten", synonyms: ["notaris"], unit: null },
+        { id: "i-advocaatkosten-2700", name: "Advocaatkosten", synonyms: [], unit: null },
+        { id: "i-gerechtskosten-6178", name: "Gerechtskosten", synonyms: [], unit: null }
+      ] }
+    ]
+  },
+  {
+    id: "ov-huisdieren",
+    name: "Huisdieren",
+    hoofdtype: "Variabele Uitgaven",
+    color: "#92400E",
+    icon: "\u{1F43E}",
+    categories: [
+      { id: "cat-huisdier-verzorging", name: "Huisdier verzorging", items: [
+        { id: "i-hondenvoeding-5777", name: "Hondenvoeding", synonyms: ["hondenbrokken", "hondeneten"], unit: null },
+        { id: "i-kattenvoeding-8979", name: "Kattenvoeding", synonyms: ["kattenbrokken", "kattenkorrels"], unit: null },
+        { id: "i-ander-dierenvoeding-6879", name: "Ander dierenvoeding", synonyms: [], unit: null },
+        { id: "i-dierenarts-1590", name: "Dierenarts", synonyms: ["veearts", "dierenkliniek"], unit: null },
+        { id: "i-verzekering-huisdier-5443", name: "Verzekering huisdier", synonyms: [], unit: null },
+        { id: "i-accessoires-en-speelgoed-huisd-7357", name: "Accessoires en speelgoed huisdier", synonyms: [], unit: null },
+        { id: "i-trimsalon-7196", name: "Trimsalon", synonyms: [], unit: null },
+        { id: "i-hondenschool-4649", name: "Hondenschool", synonyms: [], unit: null },
+        { id: "i-dierenoppas---pension-4240", name: "Dierenoppas / pension", synonyms: [], unit: null }
+      ] }
+    ]
+  },
+  {
+    id: "ov-diensten-en-ontwikkeling",
+    name: "Diensten en Ontwikkeling",
+    hoofdtype: "Vaste Uitgaven",
+    color: "#0891B2",
+    icon: "\u{1F6E0}\uFE0F",
+    categories: [
+      { id: "cat-huishoudhulp", name: "Huishoudhulp", items: [
+        { id: "i-dienstencheques-9094", name: "Dienstencheques", synonyms: ["dienstencheque", "poetsvrouw", "huishoudhulp cheques"], unit: null },
+        { id: "i-poetshulp-4801", name: "Poetshulp", synonyms: [], unit: null },
+        { id: "i-strijkdienst-9614", name: "Strijkdienst", synonyms: [], unit: null },
+        { id: "i-tuinonderhoud--extern-405", name: "Tuinonderhoud (extern)", synonyms: [], unit: null }
+      ] },
+      { id: "cat-kinderopvang", name: "Kinderopvang", items: [
+        { id: "i-cr-che-9817", name: "Cr\xE8che", synonyms: ["kinderdagverblijf", "kribbe"], unit: null },
+        { id: "i-onthaalouder-1836", name: "Onthaalouder", synonyms: [], unit: null },
+        { id: "i-babysit-6707", name: "Babysit", synonyms: ["oppas", "kinderoppas"], unit: null },
+        { id: "i-buitenschoolse-opvang-3170", name: "Buitenschoolse opvang", synonyms: [], unit: null },
+        { id: "i-vakantiekampen-1693", name: "Vakantiekampen", synonyms: [], unit: null }
+      ] },
+      { id: "cat-vorming-en-opleiding", name: "Vorming en opleiding", items: [
+        { id: "i-cursussen-en-opleidingen-8133", name: "Cursussen en opleidingen", synonyms: [], unit: null },
+        { id: "i-taalcursussen-1201", name: "Taalcursussen", synonyms: [], unit: null },
+        { id: "i-coaching-en-therapie--niet-med-4506", name: "Coaching en therapie (niet-medisch)", synonyms: [], unit: null },
+        { id: "i-boeken-voor-opleiding-3422", name: "Boeken voor opleiding", synonyms: [], unit: null }
+      ] },
+      { id: "cat-lidgelden-en-vakliteratuur", name: "Lidgelden en vakliteratuur", items: [
+        { id: "i-vakbond-lidgeld-7932", name: "Vakbond lidgeld", synonyms: [], unit: null },
+        { id: "i-beroepsverenigingen-5215", name: "Beroepsverenigingen", synonyms: [], unit: null },
+        { id: "i-abonnementen-vakliteratuur-9762", name: "Abonnementen vakliteratuur", synonyms: [], unit: null }
+      ] }
+    ]
+  }
 ];
+;
+;
 const buildFlatItems = (cats) => {
   const flat = [];
   cats.forEach((ov) => ov.categories.forEach((cat) => cat.items.forEach(
@@ -517,13 +1257,14 @@ const Sidebar = ({ current, onNav, open, onToggle, profile }) => /* @__PURE__ */
   },
   /* @__PURE__ */ React.createElement(Icon, { size: 18, style: { color: current === id ? T.teal : void 0 } }),
   label
-))), /* @__PURE__ */ React.createElement("div", { className: "px-4 py-4 border-t border-white/10" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 p-2 rounded-lg", style: { backgroundColor: "rgba(255,255,255,0.06)" } }, /* @__PURE__ */ React.createElement("div", { className: "w-7 h-7 rounded-full bg-teal-500 flex items-center justify-center text-xs text-white font-bold" }, (profile?.firstName || "?")[0]), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-white text-xs font-medium" }, profile?.firstName || "", " ", profile?.lastName || ""), /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: "#7ba7c2" } }, "Financieel Kompas"))))));
+))), /* @__PURE__ */ React.createElement("div", { className: "px-4 py-4 border-t border-white/10" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 p-2 rounded-lg", style: { backgroundColor: "rgba(255,255,255,0.06)" } }, /* @__PURE__ */ React.createElement("div", { className: "w-7 h-7 rounded-full bg-teal-500 flex items-center justify-center text-xs text-white font-bold" }, ((profile == null ? void 0 : profile.firstName) || "?")[0]), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-white text-xs font-medium" }, (profile == null ? void 0 : profile.firstName) || "", " ", (profile == null ? void 0 : profile.lastName) || ""), /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: "#7ba7c2" } }, "Financieel Kompas"))))));
 const TxForm = ({ data, initial, onSave, onClose, title = "Nieuwe transactie" }) => {
-  const blank = { date: fmt(today), description: "", amount: "", type: "expense", hoofdtype: "Variabele Uitgaven", overkoepelend: "", category: "", itemName: "", itemId: "", accountId: data.accounts[0]?.id || "", brand: "", quantity: "", unit: "", notes: "", isPromo: false, grossPrice: "" };
+  var _a;
+  const blank = { date: fmt(today), description: "", amount: "", type: "expense", hoofdtype: "Variabele Uitgaven", overkoepelend: "", category: "", itemName: "", itemId: "", accountId: ((_a = data.accounts[0]) == null ? void 0 : _a.id) || "", brand: "", quantity: "", unit: "", notes: "", isPromo: false, grossPrice: "" };
   const [form, setForm] = useState(initial || blank);
-  const [search, setSearch] = useState(initial?.itemName || "");
+  const [search, setSearch] = useState((initial == null ? void 0 : initial.itemName) || "");
   const [showRes, setShowRes] = useState(false);
-  const [showOpt, setShowOpt] = useState(!!(initial?.brand || initial?.quantity || initial?.isPromo));
+  const [showOpt, setShowOpt] = useState(!!((initial == null ? void 0 : initial.brand) || (initial == null ? void 0 : initial.quantity) || (initial == null ? void 0 : initial.isPromo)));
   const searchRef = useRef(null);
   const flatItems = useMemo(() => buildFlatItems(data.categories), [data.categories]);
   useEffect(() => {
@@ -554,7 +1295,7 @@ const TxForm = ({ data, initial, onSave, onClose, title = "Nieuwe transactie" })
   };
   const handleSubmit = () => {
     if (!form.date || !form.amount || !form.description) return;
-    onSave({ ...form, id: initial?.id || generateId(), amount: parseFloat(form.amount), quantity: form.quantity ? parseFloat(form.quantity) : void 0, grossPrice: form.grossPrice ? parseFloat(form.grossPrice) : void 0 });
+    onSave({ ...form, id: (initial == null ? void 0 : initial.id) || generateId(), amount: parseFloat(form.amount), quantity: form.quantity ? parseFloat(form.quantity) : void 0, grossPrice: form.grossPrice ? parseFloat(form.grossPrice) : void 0 });
     onClose();
   };
   return /* @__PURE__ */ React.createElement(Modal, { title, onClose }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 gap-2 mb-5" }, Object.entries(typeConfig).map(([key, cfg]) => /* @__PURE__ */ React.createElement("button", { key, onClick: () => handleTypeChange(key), className: "flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium border-2 transition-all", style: { borderColor: form.type === key ? cfg.color : "#e2e8f0", backgroundColor: form.type === key ? cfg.color + "15" : "white", color: form.type === key ? cfg.color : "#64748b" } }, /* @__PURE__ */ React.createElement("span", { className: "text-base" }, cfg.icon), cfg.label))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Datum" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: form.date, onChange: (e) => setForm((f) => ({ ...f, date: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Bedrag (\u20AC)", hint: "Altijd positief" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", placeholder: "0,00", value: form.amount, onChange: (e) => setForm((f) => ({ ...f, amount: e.target.value })) }))), /* @__PURE__ */ React.createElement(FormField, { label: "Beschrijving" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Colruyt boodschappen", value: form.description, onChange: (e) => setForm((f) => ({ ...f, description: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Categorie", hint: "Zoek op naam of synoniem \u2014 bv. 'brood', 'tanken', 'netflix'" }, /* @__PURE__ */ React.createElement("div", { className: "relative", ref: searchRef }, /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(Search, { size: 14, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }), /* @__PURE__ */ React.createElement(Input, { className: "pl-8", placeholder: "Typ om te zoeken...", value: search, onChange: (e) => {
@@ -604,7 +1345,7 @@ const Dashboard = ({ data, onQuickAdd, profile }) => {
     return { ...b, spent, pct: b.amount > 0 ? spent / b.amount * 100 : 0 };
   }).filter((b) => b.pct > 85).sort((a, z) => z.pct - a.pct), [data.budgets, thisMonth]);
   const recentTxs = useMemo(() => [...txs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5), [txs]);
-  const firstName = profile?.firstName || "";
+  const firstName = (profile == null ? void 0 : profile.firstName) || "";
   return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-7xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, getGreeting(), firstName ? `, ${firstName}` : "", " \u{1F44B}"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, today.toLocaleDateString("nl-BE", { weekday: "long", day: "numeric", month: "long" }))), /* @__PURE__ */ React.createElement(Btn, { onClick: onQuickAdd, size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Transactie")), budgetAlerts.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-5 p-4 rounded-xl border border-amber-200 bg-amber-50 flex items-start gap-3" }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 18, className: "text-amber-600 mt-0.5 flex-shrink-0" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-semibold text-amber-800 mb-1" }, "Budgetwaarschuwing"), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-amber-700 space-y-0.5" }, budgetAlerts.map((b) => /* @__PURE__ */ React.createElement("div", { key: b.id }, b.overkoepelend, ": ", fmtEUR(b.spent), " van ", fmtEUR(b.amount), " (", b.pct.toFixed(0), "%)", b.pct >= 100 ? " \u2014 OVER BUDGET" : ""))))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" }, [
     { label: "Netto Vermogen", value: fmtEUR(netWorth), sub: `Schulden: ${fmtEUR(totalDebts)}`, icon: "\u{1F48E}", accent: T.teal, bg: "#f0fdfa" },
     { label: "Inkomsten (maand)", value: fmtEUR(income), sub: "Deze maand", icon: "\u{1F4C8}", accent: T.green, bg: "#ecfdf5" },
@@ -635,11 +1376,11 @@ const TransactiesPage = ({ data, onAdd, onUpdate, onDelete, toast }) => {
   const totalOut = filtered.filter((t) => isExpense(t)).reduce((s, t) => s + t.amount, 0);
   return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-5xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Transacties"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Toevoegen")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-4 mb-4" }, /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.green } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Inkomsten"), /* @__PURE__ */ React.createElement("div", { className: "font-bold text-emerald-600" }, fmtEUR(totalIn))), /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.red } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Uitgaven"), /* @__PURE__ */ React.createElement("div", { className: "font-bold text-red-500" }, fmtEUR(totalOut))), /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.teal } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Saldo"), /* @__PURE__ */ React.createElement("div", { className: `font-bold ${totalIn - totalOut >= 0 ? "text-emerald-600" : "text-red-500"}` }, fmtEUR(totalIn - totalOut)))), /* @__PURE__ */ React.createElement(Card, { className: "mb-4 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "relative flex-1" }, /* @__PURE__ */ React.createElement(Search, { size: 14, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }), /* @__PURE__ */ React.createElement(Input, { className: "pl-8", placeholder: "Zoeken...", value: search, onChange: (e) => setSearch(e.target.value) })), /* @__PURE__ */ React.createElement(Sel, { value: monthFilter, onChange: (e) => setMonthFilter(e.target.value), className: "w-36" }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Alle maanden"), months.map((m) => /* @__PURE__ */ React.createElement("option", { key: m, value: m }, (/* @__PURE__ */ new Date(m + "-01")).toLocaleDateString("nl-BE", { month: "long", year: "numeric" })))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [["all", "Alle"], ["income", "Inkomsten"], ["expense", "Uitgaven"]].map(([k, l]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setFilter(k), className: `px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === k ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}` }, l))))), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-slate-50" }, filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "py-12 text-center text-slate-400 text-sm" }, "Geen transacties gevonden"), filtered.map((t) => {
     const acc = accMap[t.accountId];
-    return /* @__PURE__ */ React.createElement("div", { key: t.id, className: "flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/70 group transition-colors" }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 w-14 flex-shrink-0 font-mono" }, fmtDateShort(t.date)), /* @__PURE__ */ React.createElement("div", { className: "w-1.5 h-1.5 rounded-full flex-shrink-0", style: { backgroundColor: OV_COLORS[t.overkoepelend] || "#cbd5e1" } }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "font-medium text-slate-800 text-sm truncate" }, t.description, t.brand && /* @__PURE__ */ React.createElement("span", { className: "text-slate-400 font-normal ml-1" }, "\xB7 ", t.brand)), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 flex items-center gap-1 mt-0.5" }, /* @__PURE__ */ React.createElement("span", null, t.overkoepelend || "\u2014"), t.category && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(ChevronRight, { size: 10 }), /* @__PURE__ */ React.createElement("span", null, t.category)))), acc && /* @__PURE__ */ React.createElement(Badge, { color: acc.color, small: true }, acc.name), /* @__PURE__ */ React.createElement("div", { className: `text-sm font-semibold flex-shrink-0 ${isExpense(t) ? "text-red-500" : "text-emerald-600"}` }, isExpense(t) ? "-" : "+", fmtEUR(t.amount)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 transition-all" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setEditTx(t), className: "p-1.5 rounded-lg text-slate-300 hover:text-teal-600 hover:bg-teal-50" }, /* @__PURE__ */ React.createElement("span", {style:{fontSize:Math.max(13,13),lineHeight:1}}, "✏️")), confirmDel === t.id ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
+    return /* @__PURE__ */ React.createElement("div", { key: t.id, className: "flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/70 group transition-colors" }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 w-14 flex-shrink-0 font-mono" }, fmtDateShort(t.date)), /* @__PURE__ */ React.createElement("div", { className: "w-1.5 h-1.5 rounded-full flex-shrink-0", style: { backgroundColor: OV_COLORS[t.overkoepelend] || "#cbd5e1" } }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "font-medium text-slate-800 text-sm truncate" }, t.description, t.brand && /* @__PURE__ */ React.createElement("span", { className: "text-slate-400 font-normal ml-1" }, "\xB7 ", t.brand)), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 flex items-center gap-1 mt-0.5" }, /* @__PURE__ */ React.createElement("span", null, t.overkoepelend || "\u2014"), t.category && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(ChevronRight, { size: 10 }), /* @__PURE__ */ React.createElement("span", null, t.category)))), acc && /* @__PURE__ */ React.createElement(Badge, { color: acc.color, small: true }, acc.name), /* @__PURE__ */ React.createElement("div", { className: `text-sm font-semibold flex-shrink-0 ${isExpense(t) ? "text-red-500" : "text-emerald-600"}` }, isExpense(t) ? "-" : "+", fmtEUR(t.amount)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 transition-all" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setEditTx(t), className: "p-1.5 rounded-lg text-slate-300 hover:text-teal-600 hover:bg-teal-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u270F\uFE0F")), confirmDel === t.id ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
       onDelete(t.id);
       setConfirmDel(null);
       toast("Transactie verwijderd");
-    }, className: "px-2 py-1 bg-red-600 text-white text-xs rounded-lg" }, "Ja"), /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDel(null), className: "px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg" }, "Nee")) : /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDel(t.id), className: "p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50" }, /* @__PURE__ */ React.createElement("span", {style:{fontSize:Math.max(13,13),lineHeight:1}}, "🗑"))));
+    }, className: "px-2 py-1 bg-red-600 text-white text-xs rounded-lg" }, "Ja"), /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDel(null), className: "px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg" }, "Nee")) : /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDel(t.id), className: "p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u{1F5D1}"))));
   }))), showForm && /* @__PURE__ */ React.createElement(TxForm, { data, onSave: (tx) => {
     onAdd(tx);
     toast("Transactie opgeslagen \u2713");
@@ -683,26 +1424,42 @@ const RekeningenPage = ({ data, onUpdate, toast }) => {
     { label: "Schulden", val: fmtEUR(totalDebts), color: T.red, icon: "\u{1F4C9}" },
     { label: "Netto vermogen", val: fmtEUR(totalAssets - totalDebts), color: T.teal, icon: "\u{1F48E}" }
   ].map((k, i) => /* @__PURE__ */ React.createElement(Card, { key: i, className: "p-4 border-l-4", style: { borderLeftColor: k.color } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1 flex items-center gap-1" }, /* @__PURE__ */ React.createElement("span", null, k.icon), k.label), /* @__PURE__ */ React.createElement("div", { className: "text-xl font-bold", style: { color: k.color } }, k.val)))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3" }, data.accounts.map((acc) => {
+    var _a;
     const latest = latestByAcc[acc.id];
-    const bal = latest?.amount ?? null;
+    const bal = (_a = latest == null ? void 0 : latest.amount) != null ? _a : null;
     const isDebt = bal !== null && bal < 0;
-    return /* @__PURE__ */ React.createElement(Card, { key: acc.id, className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0", style: { backgroundColor: acc.color + "22" } }, acc.type === "savings" ? "\u{1F4B0}" : acc.type === "loan" ? "\u{1F4CB}" : acc.type === "investment" ? "\u{1F4CA}" : "\u{1F3E6}"), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "font-semibold text-slate-800" }, acc.name), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, TYPES[acc.type], acc.institution && ` \xB7 ${acc.institution}`, acc.iban && ` \xB7 ${acc.iban}`)), /* @__PURE__ */ React.createElement("div", { className: "text-right" }, /* @__PURE__ */ React.createElement("div", { className: `text-xl font-bold ${bal === null ? "text-slate-300" : isDebt ? "text-red-500" : "text-slate-800"}` }, bal === null ? "\u2014" : fmtEUR(bal)), latest && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, "Bijgewerkt ", fmtDateShort(latest.date))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 flex-shrink-0" },
+    return /* @__PURE__ */ React.createElement(Card, { key: acc.id, className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0", style: { backgroundColor: acc.color + "22" } }, acc.type === "savings" ? "\u{1F4B0}" : acc.type === "loan" ? "\u{1F4CB}" : acc.type === "investment" ? "\u{1F4CA}" : "\u{1F3E6}"), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "font-semibold text-slate-800" }, acc.name), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, TYPES[acc.type], acc.institution && ` \xB7 ${acc.institution}`, acc.iban && ` \xB7 ${acc.iban}`)), /* @__PURE__ */ React.createElement("div", { className: "text-right" }, /* @__PURE__ */ React.createElement("div", { className: `text-xl font-bold ${bal === null ? "text-slate-300" : isDebt ? "text-red-500" : "text-slate-800"}` }, bal === null ? "\u2014" : fmtEUR(bal)), latest && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, "Bijgewerkt ", fmtDateShort(latest.date))), /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "flex items-center gap-2 flex-shrink-0" },
       /* @__PURE__ */ React.createElement(Btn, { size: "xs", variant: "secondary", onClick: () => {
         setShowBal(acc.id);
-        setBalForm({ date: fmt(today), amount: bal ?? 0, notes: "" });
+        setBalForm({ date: fmt(today), amount: bal != null ? bal : 0, notes: "" });
       } }, "Saldo"),
       /* @__PURE__ */ React.createElement("button", {
-        onClick: () => { if(window.confirm("Rekening '" + acc.name + "' verwijderen?")) { onUpdate(d => ({ ...d, accounts: d.accounts.filter(a => a.id !== acc.id), balances: d.balances.filter(b => b.accountId !== acc.id) })); toast("Rekening verwijderd"); } },
+        onClick: () => {
+          if (window.confirm("Rekening '" + acc.name + "' verwijderen?")) {
+            onUpdate((d) => ({ ...d, accounts: d.accounts.filter((a) => a.id !== acc.id), balances: d.balances.filter((b) => b.accountId !== acc.id) }));
+            toast("Rekening verwijderd");
+          }
+        },
         title: "Rekening verwijderen",
         className: "px-2 py-1 text-xs text-red-500 border border-red-200 rounded-lg hover:bg-red-50 font-medium"
-      }, "🗑")
+      }, "\u{1F5D1}")
     )));
-  })), showBal && /* @__PURE__ */ React.createElement(Modal, { title: "Saldo bijwerken", onClose: () => setShowBal(null) }, /* @__PURE__ */ React.createElement("div", { className: "mb-4 p-3 rounded-xl text-sm", style: { backgroundColor: T.tealBg, color: T.teal } }, /* @__PURE__ */ React.createElement(Info, { size: 14, className: "inline mr-1.5" }), "Voer de actuele stand in. Negatief voor schulden."), /* @__PURE__ */ React.createElement(FormField, { label: "Datum" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: balForm.date, onChange: (e) => setBalForm((f) => ({ ...f, date: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Huidig saldo (\u20AC)", hint: "Negatief voor schulden (bv. -6200)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", placeholder: "0,00", value: balForm.amount, onChange: (e) => setBalForm((f) => ({ ...f, amount: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Notities" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Optioneel", value: balForm.notes, onChange: (e) => setBalForm((f) => ({ ...f, notes: e.target.value })) })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowBal(null) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: addBal, disabled: !balForm.amount }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan"),
-      /* @__PURE__ */ React.createElement("button", {
-        onClick: () => { onUpdate(d => ({ ...d, balances: d.balances.filter(b => b.accountId !== showBal) })); setShowBal(null); toast("Saldo gewist"); },
-        className: "px-3 py-1.5 text-xs text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50"
-      }, "Saldo wissen")
-    )), showAcc && /* @__PURE__ */ React.createElement(Modal, { title: "Rekening / Activa toevoegen", onClose: () => setShowAcc(false) }, /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. ING Spaarrekening", value: accForm.name, onChange: (e) => setAccForm((f) => ({ ...f, name: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Type" }, /* @__PURE__ */ React.createElement(Sel, { value: accForm.type, onChange: (e) => setAccForm((f) => ({ ...f, type: e.target.value })) }, Object.entries(TYPES).map(([k, v]) => /* @__PURE__ */ React.createElement("option", { key: k, value: k }, v)))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Bank / Instelling" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "ING", value: accForm.institution, onChange: (e) => setAccForm((f) => ({ ...f, institution: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "IBAN (optioneel)" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "BE68...", value: accForm.iban, onChange: (e) => setAccForm((f) => ({ ...f, iban: e.target.value })) }))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowAcc(false) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: addAcc, disabled: !accForm.name }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Toevoegen"))));
+  })), showBal && /* @__PURE__ */ React.createElement(Modal, { title: "Saldo bijwerken", onClose: () => setShowBal(null) }, /* @__PURE__ */ React.createElement("div", { className: "mb-4 p-3 rounded-xl text-sm", style: { backgroundColor: T.tealBg, color: T.teal } }, /* @__PURE__ */ React.createElement(Info, { size: 14, className: "inline mr-1.5" }), "Voer de actuele stand in. Negatief voor schulden."), /* @__PURE__ */ React.createElement(FormField, { label: "Datum" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: balForm.date, onChange: (e) => setBalForm((f) => ({ ...f, date: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Huidig saldo (\u20AC)", hint: "Negatief voor schulden (bv. -6200)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", placeholder: "0,00", value: balForm.amount, onChange: (e) => setBalForm((f) => ({ ...f, amount: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Notities" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Optioneel", value: balForm.notes, onChange: (e) => setBalForm((f) => ({ ...f, notes: e.target.value })) })), /* @__PURE__ */ React.createElement(
+    "div",
+    { className: "flex gap-3 justify-end mt-2" },
+    /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowBal(null) }, "Annuleren"),
+    /* @__PURE__ */ React.createElement(Btn, { onClick: addBal, disabled: !balForm.amount }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan"),
+    /* @__PURE__ */ React.createElement("button", {
+      onClick: () => {
+        onUpdate((d) => ({ ...d, balances: d.balances.filter((b) => b.accountId !== showBal) }));
+        setShowBal(null);
+        toast("Saldo gewist");
+      },
+      className: "px-3 py-1.5 text-xs text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50"
+    }, "Saldo wissen")
+  )), showAcc && /* @__PURE__ */ React.createElement(Modal, { title: "Rekening / Activa toevoegen", onClose: () => setShowAcc(false) }, /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. ING Spaarrekening", value: accForm.name, onChange: (e) => setAccForm((f) => ({ ...f, name: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Type" }, /* @__PURE__ */ React.createElement(Sel, { value: accForm.type, onChange: (e) => setAccForm((f) => ({ ...f, type: e.target.value })) }, Object.entries(TYPES).map(([k, v]) => /* @__PURE__ */ React.createElement("option", { key: k, value: k }, v)))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Bank / Instelling" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "ING", value: accForm.institution, onChange: (e) => setAccForm((f) => ({ ...f, institution: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "IBAN (optioneel)" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "BE68...", value: accForm.iban, onChange: (e) => setAccForm((f) => ({ ...f, iban: e.target.value })) }))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowAcc(false) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: addAcc, disabled: !accForm.name }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Toevoegen"))));
 };
 const SpaardoelenPage = ({ data, onUpdate, toast }) => {
   const [showForm, setShowForm] = useState(false);
@@ -756,7 +1513,7 @@ const SpaardoelenPage = ({ data, onUpdate, toast }) => {
   };
   return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-4xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Spaardoelen"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, "Langetermijndoelen \u2014 schuldenvrij, grote aankopen, buffers")), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Doel toevoegen")), /* @__PURE__ */ React.createElement("div", { className: "grid gap-4" }, goalsWithProgress.map((g) => /* @__PURE__ */ React.createElement(Card, { key: g.id, className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0", style: { backgroundColor: g.color + "22" } }, g.pct >= 100 ? "\u2705" : "\u{1F3AF}"), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-1" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-slate-800" }, g.name), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setEditGoal(g);
-  }, className: "p-1.5 text-slate-300 hover:text-teal-600" }, /* @__PURE__ */ React.createElement("span", {style:{fontSize:Math.max(13,13),lineHeight:1}}, "✏️")), /* @__PURE__ */ React.createElement("button", { onClick: () => delGoal(g.id), className: "p-1.5 text-slate-300 hover:text-red-500" }, /* @__PURE__ */ React.createElement("span", {style:{fontSize:Math.max(13,13),lineHeight:1}}, "🗑")))), g.notes && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400 mb-2" }, g.notes), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between text-sm mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold", style: { color: g.pct >= 100 ? T.green : g.color } }, fmtEUR(g.current)), /* @__PURE__ */ React.createElement("span", { className: "text-slate-400" }, "van ", fmtEUR(g.targetAmount))), /* @__PURE__ */ React.createElement(Progress, { value: g.current, max: g.targetAmount, color: g.color, h: 10 }), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mt-2 text-xs text-slate-400" }, /* @__PURE__ */ React.createElement("span", null, g.pct.toFixed(0), "% \xB7 nog ", fmtEUR(g.remaining)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, g.monthlyTarget > 0 && /* @__PURE__ */ React.createElement("span", null, "\u20AC", g.monthlyTarget, "/mnd"), g.monthsLeft && /* @__PURE__ */ React.createElement("span", { className: "bg-slate-100 px-2 py-0.5 rounded-full" }, "~", g.monthsLeft, " maanden"), g.targetDate && /* @__PURE__ */ React.createElement("span", null, "\u{1F4C5} ", fmtDate(g.targetDate)), !g.linkedAccountId && /* @__PURE__ */ React.createElement("button", { onClick: () => {
+  }, className: "p-1.5 text-slate-300 hover:text-teal-600" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u270F\uFE0F")), /* @__PURE__ */ React.createElement("button", { onClick: () => delGoal(g.id), className: "p-1.5 text-slate-300 hover:text-red-500" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u{1F5D1}")))), g.notes && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400 mb-2" }, g.notes), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between text-sm mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold", style: { color: g.pct >= 100 ? T.green : g.color } }, fmtEUR(g.current)), /* @__PURE__ */ React.createElement("span", { className: "text-slate-400" }, "van ", fmtEUR(g.targetAmount))), /* @__PURE__ */ React.createElement(Progress, { value: g.current, max: g.targetAmount, color: g.color, h: 10 }), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mt-2 text-xs text-slate-400" }, /* @__PURE__ */ React.createElement("span", null, g.pct.toFixed(0), "% \xB7 nog ", fmtEUR(g.remaining)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, g.monthlyTarget > 0 && /* @__PURE__ */ React.createElement("span", null, "\u20AC", g.monthlyTarget, "/mnd"), g.monthsLeft && /* @__PURE__ */ React.createElement("span", { className: "bg-slate-100 px-2 py-0.5 rounded-full" }, "~", g.monthsLeft, " maanden"), g.targetDate && /* @__PURE__ */ React.createElement("span", null, "\u{1F4C5} ", fmtDate(g.targetDate)), !g.linkedAccountId && /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setQuickUpdate(g.id);
     setQAmt(g.currentAmount || 0);
   }, className: "text-teal-600 hover:text-teal-700 font-medium" }, "Bedrag bijwerken"))), quickUpdate === g.id && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mt-3 p-3 bg-slate-50 rounded-xl" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "1", value: qAmt, onChange: (e) => setQAmt(e.target.value), className: "flex-1", placeholder: "Huidig bedrag" }), /* @__PURE__ */ React.createElement(Btn, { size: "xs", onClick: doQuickUpdate }, /* @__PURE__ */ React.createElement(Check, { size: 12 }), "OK"), /* @__PURE__ */ React.createElement(Btn, { size: "xs", variant: "secondary", onClick: () => setQuickUpdate(null) }, "\u2715")))))), goalsWithProgress.length === 0 && /* @__PURE__ */ React.createElement(Card, { className: "py-12 text-center" }, /* @__PURE__ */ React.createElement(Target, { size: 32, className: "mx-auto text-slate-200 mb-3" }), /* @__PURE__ */ React.createElement("p", { className: "text-slate-400 text-sm" }, "Nog geen doelen. Voeg je eerste doel toe!"))), showForm && /* @__PURE__ */ React.createElement(GoalForm, { onSave: saveGoal, onClose: () => setShowForm(false) }), editGoal && /* @__PURE__ */ React.createElement(GoalForm, { init: { ...editGoal, targetAmount: String(editGoal.targetAmount), monthlyTarget: String(editGoal.monthlyTarget || "") }, onSave: (g) => saveGoal({ ...g, id: editGoal.id }), onClose: () => setEditGoal(null) }));
@@ -787,7 +1544,7 @@ const BudgettenPage = ({ data, onUpdate, toast }) => {
     return /* @__PURE__ */ React.createElement(Card, { key: b.id, className: "p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-800" }, b.overkoepelend), /* @__PURE__ */ React.createElement(Badge, { color: b.period === "monthly" ? T.blue : T.purple }, b.period === "monthly" ? "Maandelijks" : "Jaarlijks"), over && /* @__PURE__ */ React.createElement(Badge, { color: T.red }, "Over budget"), warn && /* @__PURE__ */ React.createElement(Badge, { color: T.amber }, "Let op")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-semibold", style: { color: over ? T.red : warn ? T.amber : T.green } }, fmtEUR(b.spent)), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, "/ ", fmtEUR(b.amount)), /* @__PURE__ */ React.createElement("button", { onClick: () => {
       onUpdate((d) => ({ ...d, budgets: d.budgets.filter((x) => x.id !== b.id) }));
       toast("Budget verwijderd");
-    }, className: "text-slate-200 hover:text-red-500" }, /* @__PURE__ */ React.createElement("span", {style:{fontSize:Math.max(13,13),lineHeight:1}}, "🗑")))), /* @__PURE__ */ React.createElement(Progress, { value: b.spent, max: b.amount, h: 8 }), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 mt-1" }, b.pct.toFixed(0), "% van budget"));
+    }, className: "text-slate-200 hover:text-red-500" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u{1F5D1}")))), /* @__PURE__ */ React.createElement(Progress, { value: b.spent, max: b.amount, h: 8 }), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 mt-1" }, b.pct.toFixed(0), "% van budget"));
   }), budgetsWithSpent.length === 0 && /* @__PURE__ */ React.createElement(Card, { className: "py-12 text-center" }, /* @__PURE__ */ React.createElement(PiggyBank, { size: 32, className: "mx-auto text-slate-200 mb-3" }), /* @__PURE__ */ React.createElement("p", { className: "text-slate-400 text-sm" }, "Geen budgetten ingesteld."))), showForm && /* @__PURE__ */ React.createElement(Modal, { title: "Budget toevoegen", onClose: () => setShowForm(false) }, /* @__PURE__ */ React.createElement(FormField, { label: "Categorie" }, /* @__PURE__ */ React.createElement(Sel, { value: form.overkoepelend, onChange: (e) => setForm((f) => ({ ...f, overkoepelend: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Kies..."), ovList.map((o) => /* @__PURE__ */ React.createElement("option", { key: o, value: o }, o)))), /* @__PURE__ */ React.createElement(FormField, { label: "Maximumbedrag (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "1", min: "0", placeholder: "400", value: form.amount, onChange: (e) => setForm((f) => ({ ...f, amount: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Periode" }, /* @__PURE__ */ React.createElement(Sel, { value: form.period, onChange: (e) => setForm((f) => ({ ...f, period: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "monthly" }, "Maandelijks"), /* @__PURE__ */ React.createElement("option", { value: "yearly" }, "Jaarlijks"))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowForm(false) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: addBudget, disabled: !form.overkoepelend || !form.amount }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Opslaan"))));
 };
 const AnalysePage = ({ data }) => {
@@ -815,7 +1572,10 @@ const AnalysePage = ({ data }) => {
   }, [txs, drillOv]);
   const total = byOv.reduce((s, e) => s + e.value, 0);
   const COLORS2 = [T.teal, T.amber, "#7C3AED", "#2563EB", "#059669", "#DB2777", "#d97706", "#64748B"];
-  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-5xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, drillOv && /* @__PURE__ */ React.createElement("button", { onClick: () => setDrillOv(null), className: "flex items-center gap-1 text-teal-600 text-sm hover:text-teal-700" }, /* @__PURE__ */ React.createElement(ArrowLeft, { size: 14 }), "Terug"), /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, drillOv || "Analyse")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [["month", "Deze maand"], ["year", "Dit jaar"], ["all", "Alles"]].map(([k, l]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setPeriod(k), className: `px-3 py-1.5 rounded-lg text-xs font-medium ${period === k ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}` }, l)))), !drillOv ? /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" }, /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Verdeling uitgaven"), byOv.length > 0 ? /* @__PURE__ */ React.createElement(SvgDonut, { data: byOv, size: 200, inner: 55, outer: 90 }) : /* @__PURE__ */ React.createElement("div", { className: "py-16 text-center text-slate-400 text-sm" }, "Geen uitgaven in deze periode")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Ranglijst ", /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400 font-normal" }, "\u2014 klik voor detail")), /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, byOv.map((e, i) => /* @__PURE__ */ React.createElement("button", { key: e.name, onClick: () => setDrillOv(e.name), className: "w-full text-left hover:bg-slate-50 rounded-xl p-2 -mx-2 transition-colors group" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between text-sm mb-1" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-2.5 h-2.5 rounded-full", style: { backgroundColor: COLORS2[i % COLORS2.length] } }), /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-700" }, e.name)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, total > 0 ? (e.value / total * 100).toFixed(0) : 0, "%"), /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, fmtEUR(e.value)), /* @__PURE__ */ React.createElement(ChevronRight, { size: 12, className: "text-slate-300 group-hover:text-teal-500" }))), /* @__PURE__ */ React.createElement(Progress, { value: e.value, max: total, color: COLORS2[i % COLORS2.length], h: 5 }))), byOv.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-slate-400 text-sm text-center py-8" }, "Geen gegevens"), total > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold" }, /* @__PURE__ */ React.createElement("span", { className: "text-slate-600" }, "Totaal"), /* @__PURE__ */ React.createElement("span", null, fmtEUR(total)))))) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "grid gap-3" }, byCat.map((e, i) => /* @__PURE__ */ React.createElement(Card, { key: e.name, className: "p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-800" }, e.name), /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, fmtEUR(e.value))), /* @__PURE__ */ React.createElement(Progress, { value: e.value, max: byCat[0]?.value || 1, color: COLORS2[i % COLORS2.length], h: 6 }))), byCat.length === 0 && /* @__PURE__ */ React.createElement(Card, { className: "py-12 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "text-slate-400 text-sm" }, "Geen transacties voor deze categorie")))));
+  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-5xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, drillOv && /* @__PURE__ */ React.createElement("button", { onClick: () => setDrillOv(null), className: "flex items-center gap-1 text-teal-600 text-sm hover:text-teal-700" }, /* @__PURE__ */ React.createElement(ArrowLeft, { size: 14 }), "Terug"), /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, drillOv || "Analyse")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [["month", "Deze maand"], ["year", "Dit jaar"], ["all", "Alles"]].map(([k, l]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setPeriod(k), className: `px-3 py-1.5 rounded-lg text-xs font-medium ${period === k ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}` }, l)))), !drillOv ? /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" }, /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Verdeling uitgaven"), byOv.length > 0 ? /* @__PURE__ */ React.createElement(SvgDonut, { data: byOv, size: 200, inner: 55, outer: 90 }) : /* @__PURE__ */ React.createElement("div", { className: "py-16 text-center text-slate-400 text-sm" }, "Geen uitgaven in deze periode")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Ranglijst ", /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400 font-normal" }, "\u2014 klik voor detail")), /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, byOv.map((e, i) => /* @__PURE__ */ React.createElement("button", { key: e.name, onClick: () => setDrillOv(e.name), className: "w-full text-left hover:bg-slate-50 rounded-xl p-2 -mx-2 transition-colors group" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between text-sm mb-1" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-2.5 h-2.5 rounded-full", style: { backgroundColor: COLORS2[i % COLORS2.length] } }), /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-700" }, e.name)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, total > 0 ? (e.value / total * 100).toFixed(0) : 0, "%"), /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, fmtEUR(e.value)), /* @__PURE__ */ React.createElement(ChevronRight, { size: 12, className: "text-slate-300 group-hover:text-teal-500" }))), /* @__PURE__ */ React.createElement(Progress, { value: e.value, max: total, color: COLORS2[i % COLORS2.length], h: 5 }))), byOv.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-slate-400 text-sm text-center py-8" }, "Geen gegevens"), total > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold" }, /* @__PURE__ */ React.createElement("span", { className: "text-slate-600" }, "Totaal"), /* @__PURE__ */ React.createElement("span", null, fmtEUR(total)))))) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "grid gap-3" }, byCat.map((e, i) => {
+    var _a;
+    return /* @__PURE__ */ React.createElement(Card, { key: e.name, className: "p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-800" }, e.name), /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, fmtEUR(e.value))), /* @__PURE__ */ React.createElement(Progress, { value: e.value, max: ((_a = byCat[0]) == null ? void 0 : _a.value) || 1, color: COLORS2[i % COLORS2.length], h: 6 }));
+  }), byCat.length === 0 && /* @__PURE__ */ React.createElement(Card, { className: "py-12 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "text-slate-400 text-sm" }, "Geen transacties voor deze categorie")))));
 };
 const CategorieeenPage = ({ data, onUpdate, toast }) => {
   const [search, setSearch] = useState("");
@@ -886,10 +1646,11 @@ const CategorieeenPage = ({ data, onUpdate, toast }) => {
   } }, /* @__PURE__ */ React.createElement(Plus, { size: 12 }), "Cat."), /* @__PURE__ */ React.createElement(Btn, { size: "xs", variant: "ghost", onClick: (e) => {
     e.stopPropagation();
     delOv(ov.id);
-  }, className: "text-red-400 hover:text-red-600" }, /* @__PURE__ */ React.createElement("span", {style:{fontSize:Math.max(12,13),lineHeight:1}}, "🗑")), expanded[ov.id] ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 16, className: "text-slate-400" }) : /* @__PURE__ */ React.createElement(ChevronRight, { size: 16, className: "text-slate-400" }))), expanded[ov.id] && /* @__PURE__ */ React.createElement("div", { className: "border-t border-slate-50" }, ov.categories.map((cat) => /* @__PURE__ */ React.createElement("div", { key: cat.id, className: "border-b border-slate-50 last:border-0" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-6 py-2.5 bg-slate-50/50" }, /* @__PURE__ */ React.createElement(ChevronRight, { size: 12, className: "text-slate-300" }), /* @__PURE__ */ React.createElement("span", { className: "text-sm font-medium text-slate-700 flex-1" }, cat.name), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, cat.items.length, " items"), /* @__PURE__ */ React.createElement(Btn, { size: "xs", variant: "ghost", onClick: () => setShowAddItem({ ovId: ov.id, catId: cat.id }) }, /* @__PURE__ */ React.createElement(Plus, { size: 11 })), /* @__PURE__ */ React.createElement(Btn, { size: "xs", variant: "ghost", onClick: () => delCat(ov.id, cat.id), className: "text-red-400" }, /* @__PURE__ */ React.createElement("span", {style:{fontSize:Math.max(11,13),lineHeight:1}}, "🗑"))), /* @__PURE__ */ React.createElement("div", { className: "px-8 py-2 flex flex-wrap gap-1.5" }, cat.items.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.id, className: "flex items-center gap-1 bg-white border border-slate-100 rounded-full px-2.5 py-1 text-xs text-slate-600 group" }, item.name, item.unit && /* @__PURE__ */ React.createElement("span", { className: "text-slate-300" }, "\xB7", item.unit), /* @__PURE__ */ React.createElement("button", { onClick: () => delItem(ov.id, cat.id, item.id), className: "ml-1 text-red-400 hover:text-red-600" }, /* @__PURE__ */ React.createElement(X, { size: 10 }))))))))))), showAddOv && /* @__PURE__ */ React.createElement(Modal, { title: "Hoofdcategorie toevoegen", onClose: () => setShowAddOv(false) }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Huisdieren", value: ovForm.name, onChange: (e) => setOvForm((f) => ({ ...f, name: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Icoon (emoji)" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "\u{1F43E}", value: ovForm.icon, onChange: (e) => setOvForm((f) => ({ ...f, icon: e.target.value })) }))), /* @__PURE__ */ React.createElement(FormField, { label: "Hoofdtype" }, /* @__PURE__ */ React.createElement(Sel, { value: ovForm.hoofdtype, onChange: (e) => setOvForm((f) => ({ ...f, hoofdtype: e.target.value })) }, /* @__PURE__ */ React.createElement("option", null, "Variabele Uitgaven"), /* @__PURE__ */ React.createElement("option", null, "Vaste Uitgaven"), /* @__PURE__ */ React.createElement("option", null, "Sparen"), /* @__PURE__ */ React.createElement("option", null, "Inkomsten"))), /* @__PURE__ */ React.createElement(FormField, { label: "Kleur" }, /* @__PURE__ */ React.createElement(Input, { type: "color", value: ovForm.color, className: "h-10 px-1", onChange: (e) => setOvForm((f) => ({ ...f, color: e.target.value })) })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowAddOv(false) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: addOv, disabled: !ovForm.name }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Toevoegen"))), showAddCat && /* @__PURE__ */ React.createElement(Modal, { title: "Categorie toevoegen", onClose: () => setShowAddCat(null) }, /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Huisdierenverzorging", value: catForm.name, onChange: (e) => setCatForm((f) => ({ ...f, name: e.target.value })) })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowAddCat(null) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => addCat(showAddCat), disabled: !catForm.name }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Toevoegen"))), showAddItem && /* @__PURE__ */ React.createElement(Modal, { title: "Subcategorie toevoegen", onClose: () => setShowAddItem(null) }, /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Hondenvoeding", value: itemForm.name, onChange: (e) => setItemForm((f) => ({ ...f, name: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Synoniemen", hint: "Komma-gescheiden \u2014 bv. 'hondenbrokken, diereneten'" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "synoniem1, synoniem2", value: itemForm.synonyms, onChange: (e) => setItemForm((f) => ({ ...f, synonyms: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Standaard eenheid" }, /* @__PURE__ */ React.createElement(Sel, { value: itemForm.unit, onChange: (e) => setItemForm((f) => ({ ...f, unit: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Geen"), ["stuks", "g", "kg", "ml", "L", "kWh", "m\xB3", "m", "m\xB2", "verpakking"].map((u) => /* @__PURE__ */ React.createElement("option", { key: u, value: u }, u)))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowAddItem(null) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => addItem(showAddItem.ovId, showAddItem.catId), disabled: !itemForm.name }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Toevoegen"))));
+  }, className: "text-red-400 hover:text-red-600" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(12, 13), lineHeight: 1 } }, "\u{1F5D1}")), expanded[ov.id] ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 16, className: "text-slate-400" }) : /* @__PURE__ */ React.createElement(ChevronRight, { size: 16, className: "text-slate-400" }))), expanded[ov.id] && /* @__PURE__ */ React.createElement("div", { className: "border-t border-slate-50" }, ov.categories.map((cat) => /* @__PURE__ */ React.createElement("div", { key: cat.id, className: "border-b border-slate-50 last:border-0" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-6 py-2.5 bg-slate-50/50" }, /* @__PURE__ */ React.createElement(ChevronRight, { size: 12, className: "text-slate-300" }), /* @__PURE__ */ React.createElement("span", { className: "text-sm font-medium text-slate-700 flex-1" }, cat.name), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, cat.items.length, " items"), /* @__PURE__ */ React.createElement(Btn, { size: "xs", variant: "ghost", onClick: () => setShowAddItem({ ovId: ov.id, catId: cat.id }), title: "Subcategorie toevoegen" }, "+ item"), /* @__PURE__ */ React.createElement(Btn, { size: "xs", variant: "ghost", onClick: () => delCat(ov.id, cat.id), className: "text-red-400" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(11, 13), lineHeight: 1 } }, "\u{1F5D1}"))), /* @__PURE__ */ React.createElement("div", { className: "px-8 py-2 flex flex-wrap gap-1.5" }, cat.items.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.id, className: "flex items-center gap-1 bg-white border border-slate-100 rounded-full px-2.5 py-1 text-xs text-slate-600 group" }, item.name, item.unit && /* @__PURE__ */ React.createElement("span", { className: "text-slate-300" }, "\xB7", item.unit), /* @__PURE__ */ React.createElement("button", { onClick: () => delItem(ov.id, cat.id, item.id), className: "ml-1 text-red-400 hover:text-red-600" }, /* @__PURE__ */ React.createElement(X, { size: 10 }))))))))))), showAddOv && /* @__PURE__ */ React.createElement(Modal, { title: "Hoofdcategorie toevoegen", onClose: () => setShowAddOv(false) }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Huisdieren", value: ovForm.name, onChange: (e) => setOvForm((f) => ({ ...f, name: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Icoon (emoji)" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "\u{1F43E}", value: ovForm.icon, onChange: (e) => setOvForm((f) => ({ ...f, icon: e.target.value })) }))), /* @__PURE__ */ React.createElement(FormField, { label: "Hoofdtype" }, /* @__PURE__ */ React.createElement(Sel, { value: ovForm.hoofdtype, onChange: (e) => setOvForm((f) => ({ ...f, hoofdtype: e.target.value })) }, /* @__PURE__ */ React.createElement("option", null, "Variabele Uitgaven"), /* @__PURE__ */ React.createElement("option", null, "Vaste Uitgaven"), /* @__PURE__ */ React.createElement("option", null, "Sparen"), /* @__PURE__ */ React.createElement("option", null, "Inkomsten"))), /* @__PURE__ */ React.createElement(FormField, { label: "Kleur" }, /* @__PURE__ */ React.createElement(Input, { type: "color", value: ovForm.color, className: "h-10 px-1", onChange: (e) => setOvForm((f) => ({ ...f, color: e.target.value })) })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowAddOv(false) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: addOv, disabled: !ovForm.name }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Toevoegen"))), showAddCat && /* @__PURE__ */ React.createElement(Modal, { title: "Categorie toevoegen", onClose: () => setShowAddCat(null) }, /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Huisdierenverzorging", value: catForm.name, onChange: (e) => setCatForm((f) => ({ ...f, name: e.target.value })) })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowAddCat(null) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => addCat(showAddCat), disabled: !catForm.name }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Toevoegen"))), showAddItem && /* @__PURE__ */ React.createElement(Modal, { title: "Subcategorie toevoegen", onClose: () => setShowAddItem(null) }, /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Hondenvoeding", value: itemForm.name, onChange: (e) => setItemForm((f) => ({ ...f, name: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Synoniemen", hint: "Komma-gescheiden \u2014 bv. 'hondenbrokken, diereneten'" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "synoniem1, synoniem2", value: itemForm.synonyms, onChange: (e) => setItemForm((f) => ({ ...f, synonyms: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Standaard eenheid" }, /* @__PURE__ */ React.createElement(Sel, { value: itemForm.unit, onChange: (e) => setItemForm((f) => ({ ...f, unit: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Geen"), ["stuks", "g", "kg", "ml", "L", "kWh", "m\xB3", "m", "m\xB2", "verpakking"].map((u) => /* @__PURE__ */ React.createElement("option", { key: u, value: u }, u)))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowAddItem(null) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => addItem(showAddItem.ovId, showAddItem.catId), disabled: !itemForm.name }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Toevoegen"))));
 };
 const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
-  const [nameForm, setNameForm] = useState({ firstName: data.userProfile?.firstName || "", lastName: data.userProfile?.lastName || "" });
+  var _a, _b;
+  const [nameForm, setNameForm] = useState({ firstName: ((_a = data.userProfile) == null ? void 0 : _a.firstName) || "", lastName: ((_b = data.userProfile) == null ? void 0 : _b.lastName) || "" });
   const saveProfile = () => {
     onUpdate((d) => ({ ...d, userProfile: { ...d.userProfile, ...nameForm } }));
     toast("Profiel opgeslagen \u2713");
@@ -904,7 +1665,10 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
   };
   const exportCSV = () => {
     const h = ["Datum", "Beschrijving", "Merk", "Bedrag", "Type", "Overkoepelend", "Categorie", "Rekening"];
-    const rows = data.transactions.map((t) => [t.date, t.description, t.brand || "", isExpense(t) ? -t.amount : t.amount, t.hoofdtype, t.overkoepelend || "", t.category || "", data.accounts.find((a2) => a2.id === t.accountId)?.name || ""]);
+    const rows = data.transactions.map((t) => {
+      var _a2;
+      return [t.date, t.description, t.brand || "", isExpense(t) ? -t.amount : t.amount, t.hoofdtype, t.overkoepelend || "", t.category || "", ((_a2 = data.accounts.find((a2) => a2.id === t.accountId)) == null ? void 0 : _a2.name) || ""];
+    });
     const csv = [h, ...rows].map((r) => r.join(";")).join("\n");
     const b = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
@@ -961,68 +1725,18 @@ function App({ data, onUpdate }) {
   }, onClose: () => setShowTxForm(false) }), /* @__PURE__ */ React.createElement(Toast, { toasts }));
 }
 
-
-function LoginScreen(props) {
-  var ce = React.createElement;
-  return ce('div',{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",backgroundColor:"#0F2942"}},
-    ce('div',{style:{background:"white",borderRadius:"24px",boxShadow:"0 25px 50px rgba(0,0,0,0.4)",padding:"32px",maxWidth:"360px",width:"100%",textAlign:"center"}},
-      ce('div',{style:{width:64,height:64,borderRadius:16,backgroundColor:"#F59E0B",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 20px"}},"💎"),
-      ce('h1',{style:{fontSize:24,fontWeight:700,color:"#1e293b",margin:"0 0 4px"}},"Financieel Kompas"),
-      ce('p',{style:{color:"#94a3b8",fontSize:14,margin:"0 0 32px"}},"Jouw persoonlijke budgetplanner"),
-      props.clientIdMissing
-        ? ce('div',{style:{padding:16,background:"#fffbeb",borderRadius:12,fontSize:14,color:"#92400e"}},ce('strong',null,"⚙️ Setup nodig: "),"Vervang YOUR_GOOGLE_CLIENT_ID op regel 28.")
-        : ce(React.Fragment,null,
-            ce('button',{onClick:props.onSignIn,style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:12,padding:"12px 24px",borderRadius:12,fontWeight:600,color:"#374151",border:"2px solid #e2e8f0",background:"white",cursor:"pointer",fontSize:15,marginBottom:16}},
-              ce('svg',{width:20,height:20,viewBox:"0 0 24 24"},
-                ce('path',{fill:"#4285F4",d:"M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"}),
-                ce('path',{fill:"#34A853",d:"M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"}),
-                ce('path',{fill:"#FBBC05",d:"M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"}),
-                ce('path',{fill:"#EA4335",d:"M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"})
-              ),"Aanmelden met Google"
-            ),
-            ce('p',{style:{fontSize:12,color:"#94a3b8"}},"Je data wordt opgeslagen in jouw Google Drive.")
-          )
-    )
-  );
-}
-function Root() {
-  var s1=useState("init"),driveState=s1[0],setDriveState=s1[1];
-  var s2=useState(null),data=s2[0],setData=s2[1];
-  var saveTimer=useRef(null);
-  var clientId=window.GOOGLE_CLIENT_ID||"";
-  var clientIdMissing=!clientId||clientId==="YOUR_GOOGLE_CLIENT_ID";
-  useEffect(function(){
-    var t=setTimeout(function(){setDriveState(function(s){return s==="init"?"login":s;});},4000);
-    if(clientIdMissing){setDriveState("login");clearTimeout(t);return;}
-    _onDriveReady=function(){setDriveState("login");};
-    window._driveAuthenticated=async function(){
-      setDriveState("loading");
-      try{var loaded=await driveLoad();setData((loaded&&typeof loaded==='object'&&loaded.transactions)?loaded:SAMPLE_DATA);setDriveState("ready");}
-      catch(e){setData(SAMPLE_DATA);setDriveState("ready");}
-    };
-    window._driveError=function(){setDriveState("error");};
-    if(_gapiReady&&_gisReady)setDriveState("login");
-    return function(){clearTimeout(t);};
-  },[]);
-  var update=useCallback(function(fn){
-    setData(function(d){
-      var next=typeof fn==="function"?fn(d):fn;
-      clearTimeout(saveTimer.current);
-      saveTimer.current=setTimeout(function(){driveSave(next).catch(function(){});},2000);
-      return next;
-    });
-  },[]);
-  var navy="#0F2942";
-  var ls=function(t){return React.createElement('div',{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",backgroundColor:navy}},React.createElement('div',{style:{color:"white",textAlign:"center"}},React.createElement('div',{style:{fontSize:48,marginBottom:16}},"💎"),React.createElement('div',{style:{fontSize:16,opacity:0.7}},t)));};
-  if(driveState==="init")return ls("Laden...");
-  if(driveState==="login")return React.createElement(LoginScreen,{onSignIn:function(){driveSignIn();},clientIdMissing:clientIdMissing});
-  if(driveState==="loading")return ls("Data laden uit Google Drive...");
-  if(driveState==="error")return React.createElement('div',{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,backgroundColor:navy}},React.createElement('div',{style:{background:"white",borderRadius:16,padding:24,textAlign:"center",maxWidth:320}},React.createElement('div',{style:{fontSize:40,marginBottom:12}},"⚠️"),React.createElement('p',{style:{color:"#475569",marginBottom:16}},"Verbinding mislukt."),React.createElement('button',{onClick:function(){setDriveState("login");},style:{padding:"8px 20px",background:"#0D9488",color:"white",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer"}},"Opnieuw proberen")));
-  if(!data)return ls("Gegevens worden voorbereid...");
-  return React.createElement(App,{data:data,onUpdate:update});
-}
+function LoginScreen(props){var ce=React.createElement;return ce('div',{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",backgroundColor:"#0F2942"}},ce('div',{style:{background:"white",borderRadius:"24px",boxShadow:"0 25px 50px rgba(0,0,0,0.4)",padding:"32px",maxWidth:"360px",width:"100%",textAlign:"center"}},ce('div',{style:{width:64,height:64,borderRadius:16,backgroundColor:"#F59E0B",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 20px"}},"💎"),ce('h1',{style:{fontSize:24,fontWeight:700,color:"#1e293b",margin:"0 0 4px"}},"Financieel Kompas"),ce('p',{style:{color:"#94a3b8",fontSize:14,margin:"0 0 32px"}},"Jouw persoonlijke budgetplanner"),props.clientIdMissing?ce('div',{style:{padding:16,background:"#fffbeb",borderRadius:12,fontSize:14,color:"#92400e"}},ce('strong',null,"Setup: "),"Vervang YOUR_GOOGLE_CLIENT_ID op regel 23."):ce(React.Fragment,null,ce('button',{onClick:props.onSignIn,style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:12,padding:"12px 24px",borderRadius:12,fontWeight:600,color:"#374151",border:"2px solid #e2e8f0",background:"white",cursor:"pointer",fontSize:15,marginBottom:16}},ce('svg',{width:20,height:20,viewBox:"0 0 24 24"},ce('path',{fill:"#4285F4",d:"M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"}),ce('path',{fill:"#34A853",d:"M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"}),ce('path',{fill:"#FBBC05",d:"M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"}),ce('path',{fill:"#EA4335",d:"M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"})),"Aanmelden met Google"),ce('p',{style:{fontSize:12,color:"#94a3b8"}},"Je data wordt opgeslagen in jouw Google Drive."))));}
+function Root(){var s1=useState("init"),driveState=s1[0],setDriveState=s1[1];var s2=useState(null),data=s2[0],setData=s2[1];var saveTimer=useRef(null);var clientId=window.GOOGLE_CLIENT_ID||"";var clientIdMissing=!clientId||clientId==="YOUR_GOOGLE_CLIENT_ID";
+useEffect(function(){var t=setTimeout(function(){setDriveState(function(s){return s==="init"?"login":s;});},4000);if(clientIdMissing){setDriveState("login");clearTimeout(t);return;}_onDriveReady=function(){setDriveState("login");};window._driveAuthenticated=function(){setDriveState("loading");driveLoad().then(function(loaded){setData((loaded&&typeof loaded==="object"&&loaded.transactions)?loaded:SAMPLE_DATA);setDriveState("ready");}).catch(function(){setData(SAMPLE_DATA);setDriveState("ready");});};window._driveError=function(){setDriveState("error");};if(_gapiReady&&_gisReady)setDriveState("login");return function(){clearTimeout(t);};},[]);
+var update=useCallback(function(fn){setData(function(d){var next=typeof fn==="function"?fn(d):fn;clearTimeout(saveTimer.current);saveTimer.current=setTimeout(function(){driveSave(next).catch(function(e){console.error("Save:",e);});},300);return next;});},[]);
+var navy="#0F2942";var ls=function(t){return React.createElement('div',{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",backgroundColor:navy}},React.createElement('div',{style:{color:"white",textAlign:"center"}},React.createElement('div',{style:{fontSize:48,marginBottom:16}},"💎"),React.createElement('div',{style:{fontSize:16,opacity:0.7}},t)));};
+if(driveState==="init")return ls("Laden...");
+if(driveState==="login")return React.createElement(LoginScreen,{onSignIn:function(){driveSignIn();},clientIdMissing:clientIdMissing});
+if(driveState==="loading")return ls("Data laden uit Google Drive...");
+if(driveState==="error")return React.createElement('div',{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,backgroundColor:navy}},React.createElement('div',{style:{background:"white",borderRadius:16,padding:24,textAlign:"center",maxWidth:320}},React.createElement('div',{style:{fontSize:40,marginBottom:12}},"⚠️"),React.createElement('p',{style:{color:"#475569",marginBottom:16}},"Verbinding mislukt."),React.createElement('button',{onClick:function(){setDriveState("login");},style:{padding:"8px 20px",background:"#0D9488",color:"white",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer"}},"Opnieuw proberen")));
+if(!data)return ls("Gegevens worden voorbereid...");
+return React.createElement(App,{data:data,onUpdate:update});}
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Root));
-
   </script>
 </body>
 </html>
