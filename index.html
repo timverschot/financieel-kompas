@@ -1151,33 +1151,7 @@ const SAMPLE_DATA = {
     { id: "b5", accountId: "acc-5", date: fmt(today), amount: 3250, notes: "" },
     { id: "b6", accountId: "acc-6", date: fmt(today), amount: 650, notes: "" }
   ],
-  transactions: [
-    { id: generateId(), date: daysAgo(0), accountId: "acc-1", description: "Loon juni", brand: "", itemId: "i-loon-netto", category: "Beroepsinkomen", overkoepelend: "Inkomsten", hoofdtype: "Inkomsten", amount: 2850 },
-    { id: generateId(), date: daysAgo(1), accountId: "acc-1", description: "Colruyt boodschappen", brand: "Colruyt", itemId: "i-boter", category: "Zuivel en Kaas", overkoepelend: "Voeding", hoofdtype: "Variabele Uitgaven", amount: 89.5 },
-    { id: generateId(), date: daysAgo(2), accountId: "acc-1", description: "Huur juni", brand: "", itemId: "i-huur", category: "Huur en Hypotheek", overkoepelend: "Woning en vaste lasten", hoofdtype: "Vaste Uitgaven", amount: 950 },
-    { id: generateId(), date: daysAgo(3), accountId: "acc-1", description: "Proximus factuur", brand: "Proximus", itemId: "i-internet", category: "Telecom en internet", overkoepelend: "Woning en vaste lasten", hoofdtype: "Vaste Uitgaven", amount: 55 },
-    { id: generateId(), date: daysAgo(4), accountId: "acc-1", description: "Delhaize", brand: "Delhaize", itemId: "i-melk", category: "Zuivel en Kaas", overkoepelend: "Voeding", hoofdtype: "Variabele Uitgaven", amount: 67.2 },
-    { id: generateId(), date: daysAgo(5), accountId: "acc-1", description: "Total tankstation", brand: "Total", itemId: "i-brandstof", category: "Auto", overkoepelend: "Vervoer en Mobiliteit", hoofdtype: "Vaste Uitgaven", amount: 72.4, quantity: 40, unit: "L" },
-    { id: generateId(), date: daysAgo(6), accountId: "acc-1", description: "Netflix", brand: "Netflix", itemId: "i-netflix", category: "Streaming en abonnementen", overkoepelend: "Vrije Tijd en Lifestyle", hoofdtype: "Variabele Uitgaven", amount: 17.99 },
-    { id: generateId(), date: daysAgo(8), accountId: "acc-1", description: "Schoolboeken Jasper", brand: "", itemId: "i-schoolboeken", category: "School en opleiding", overkoepelend: "Kinderen en Gezin", hoofdtype: "Variabele Uitgaven", amount: 45 },
-    { id: generateId(), date: daysAgo(9), accountId: "acc-1", description: "Huisarts", brand: "", itemId: "i-huisarts", category: "Medische zorg", overkoepelend: "Apotheek en gezondheid", hoofdtype: "Variabele Uitgaven", amount: 25 },
-    { id: generateId(), date: daysAgo(10), accountId: "acc-5", description: "Storting buffer", brand: "", itemId: "i-buffer-persoonlijk", category: "Spaartransacties", overkoepelend: "Sparen en Investeren", hoofdtype: "Sparen", amount: 100 },
-    { id: generateId(), date: daysAgo(11), accountId: "acc-1", description: "Carrefour", brand: "Carrefour", itemId: "i-tomaten", category: "Groenten en Fruit", overkoepelend: "Voeding", hoofdtype: "Variabele Uitgaven", amount: 102.3 },
-    { id: generateId(), date: daysAgo(12), accountId: "acc-1", description: "Restaurant", brand: "", itemId: "i-restaurant", category: "Restaurants en caf\xE9s", overkoepelend: "Vrije Tijd en Lifestyle", hoofdtype: "Variabele Uitgaven", amount: 68 },
-    { id: generateId(), date: daysAgo(14), accountId: "acc-4", description: "ETF aankoop", brand: "", itemId: "i-aandelen", category: "Beleggingen", overkoepelend: "Sparen en Investeren", hoofdtype: "Sparen", amount: 200 },
-    { id: generateId(), date: daysAgo(15), accountId: "acc-1", description: "Kindergeld", brand: "FAMIFED", itemId: "i-kindergeld", category: "Andere inkomsten", overkoepelend: "Inkomsten", hoofdtype: "Inkomsten", amount: 520 },
-    { id: generateId(), date: daysAgo(18), accountId: "acc-1", description: "Sportclub Milo", brand: "", itemId: "i-hobby-milo", category: "Activiteiten en hobby", overkoepelend: "Kinderen en Gezin", hoofdtype: "Variabele Uitgaven", amount: 35 },
-    { id: generateId(), date: daysAgo(35), accountId: "acc-1", description: "Loon mei", brand: "", itemId: "i-loon-netto", category: "Beroepsinkomen", overkoepelend: "Inkomsten", hoofdtype: "Inkomsten", amount: 2850 },
-    { id: generateId(), date: daysAgo(36), accountId: "acc-1", description: "Huur mei", brand: "", itemId: "i-huur", category: "Huur en Hypotheek", overkoepelend: "Woning en vaste lasten", hoofdtype: "Vaste Uitgaven", amount: 950 },
-    { id: generateId(), date: daysAgo(38), accountId: "acc-1", description: "Aldi", brand: "Aldi", itemId: "i-melk", category: "Zuivel en Kaas", overkoepelend: "Voeding", hoofdtype: "Variabele Uitgaven", amount: 134.6 },
-    { id: generateId(), date: daysAgo(42), accountId: "acc-1", description: "Tankbeurt", brand: "Q8", itemId: "i-brandstof", category: "Auto", overkoepelend: "Vervoer en Mobiliteit", hoofdtype: "Vaste Uitgaven", amount: 68.5 },
-    { id: generateId(), date: daysAgo(65), accountId: "acc-1", description: "Loon april", brand: "", itemId: "i-loon-netto", category: "Beroepsinkomen", overkoepelend: "Inkomsten", hoofdtype: "Inkomsten", amount: 2850 },
-    { id: generateId(), date: daysAgo(66), accountId: "acc-1", description: "Huur april", brand: "", itemId: "i-huur", category: "Huur en Hypotheek", overkoepelend: "Woning en vaste lasten", hoofdtype: "Vaste Uitgaven", amount: 950 },
-    { id: generateId(), date: daysAgo(70), accountId: "acc-1", description: "Lidl boodschappen", brand: "Lidl", itemId: "i-melk", category: "Zuivel en Kaas", overkoepelend: "Voeding", hoofdtype: "Variabele Uitgaven", amount: 97.8 },
-    { id: generateId(), date: daysAgo(95), accountId: "acc-1", description: "Loon maart", brand: "", itemId: "i-loon-netto", category: "Beroepsinkomen", overkoepelend: "Inkomsten", hoofdtype: "Inkomsten", amount: 2850 },
-    { id: generateId(), date: daysAgo(96), accountId: "acc-1", description: "Huur maart", brand: "", itemId: "i-huur", category: "Huur en Hypotheek", overkoepelend: "Woning en vaste lasten", hoofdtype: "Vaste Uitgaven", amount: 950 },
-    { id: generateId(), date: daysAgo(100), accountId: "acc-1", description: "Colruyt", brand: "Colruyt", itemId: "i-tomaten", category: "Groenten en Fruit", overkoepelend: "Voeding", hoofdtype: "Variabele Uitgaven", amount: 115.4 }
-  ],
+  transactions: [],
   goals: [
     { id: "goal-1", name: "Buffer persoonlijk", targetAmount: 5e3, targetDate: "2027-12-31", linkedAccountId: "acc-5", monthlyTarget: 100, color: T.teal, notes: "Noodfonds voor onverwachte uitgaven" },
     { id: "goal-2", name: "Communie Jasper", targetAmount: 2500, targetDate: "2027-05-01", linkedAccountId: "acc-6", monthlyTarget: 150, color: "#d97706", notes: "Communie 2027" },
@@ -1265,7 +1239,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
   const [search, setSearch] = useState((initial == null ? void 0 : initial.itemName) || "");
   const [showRes, setShowRes] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [qaForm, setQaForm] = useState({ name: "", overkoepelend: "" });
+  const [qaForm, setQaForm] = useState({ name: "", overkoepelend: "", categorie: "" });
   const [showOpt, setShowOpt] = useState(!!((initial == null ? void 0 : initial.brand) || (initial == null ? void 0 : initial.quantity) || (initial == null ? void 0 : initial.isPromo)));
   const searchRef = useRef(null);
   const flatItems = useMemo(() => buildFlatItems(data.categories), [data.categories]);
@@ -1340,17 +1314,32 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
         ),
         /* @__PURE__ */ React.createElement(
           "div",
-          { className: "mb-4" },
+          { className: "mb-3" },
           /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-slate-700 mb-1" }, "Hoofdcategorie"),
           /* @__PURE__ */ React.createElement(
             "select",
             {
               className: "w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500",
               value: qaForm.overkoepelend,
-              onChange: (e) => setQaForm((f) => ({ ...f, overkoepelend: e.target.value }))
+              onChange: (e) => setQaForm((f) => ({ ...f, overkoepelend: e.target.value, categorie: "" }))
             },
             /* @__PURE__ */ React.createElement("option", { value: "" }, "Kies hoofdcategorie..."),
             data.categories.map((ov) => /* @__PURE__ */ React.createElement("option", { key: ov.id, value: ov.name }, ov.name))
+          )
+        ),
+        qaForm.overkoepelend && /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "mb-4" },
+          /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-slate-700 mb-1" }, "Categorie"),
+          /* @__PURE__ */ React.createElement(
+            "select",
+            {
+              className: "w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500",
+              value: qaForm.categorie,
+              onChange: (e) => setQaForm((f) => ({ ...f, categorie: e.target.value }))
+            },
+            /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 Nieuwe categorie 'Overig' \u2014"),
+            ((data.categories.find((ov) => ov.name === qaForm.overkoepelend) || {}).categories || []).map((cat) => /* @__PURE__ */ React.createElement("option", { key: cat.id, value: cat.name }, cat.name))
           )
         ),
         /* @__PURE__ */ React.createElement(
@@ -1367,8 +1356,8 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
               const ov = data.categories.find((c) => c.name === qaForm.overkoepelend);
               const newItem = { id: "i-custom-" + Date.now(), name: qaForm.name, synonyms: [], unit: null };
               const catId = "cat-overig-" + qaForm.overkoepelend.toLowerCase().replace(/[^a-z]/g, "");
-              window._addCategory && window._addCategory(qaForm.overkoepelend, newItem);
-              selectItem({ ...newItem, category: "Overig", overkoepelend: qaForm.overkoepelend, hoofdtype: ov ? ov.hoofdtype : "Variabele Uitgaven", color: ov ? ov.color : "#94a3b8" });
+              window._addCategory && window._addCategory(qaForm.overkoepelend, qaForm.categorie, newItem);
+              selectItem({ ...newItem, category: qaForm.categorie || "Overig", overkoepelend: qaForm.overkoepelend, hoofdtype: ov ? ov.hoofdtype : "Variabele Uitgaven", color: ov ? ov.color : "#94a3b8" });
               setShowQuickAdd(false);
             },
             className: "flex-1 px-4 py-2 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-40"
@@ -1769,7 +1758,20 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
   return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-2xl mx-auto" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800 mb-6" }, "Instellingen"), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: T.tealBg } }, "\u{1F464}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Mijn profiel"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, "Naam die getoond wordt in de app"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Voornaam" }, /* @__PURE__ */ React.createElement(Input, { value: nameForm.firstName, onChange: (e) => setNameForm((f) => ({ ...f, firstName: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Achternaam" }, /* @__PURE__ */ React.createElement(Input, { value: nameForm.lastName, onChange: (e) => setNameForm((f) => ({ ...f, lastName: e.target.value })) }))), /* @__PURE__ */ React.createElement(Btn, { onClick: saveProfile }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: T.tealBg } }, "\u2601\uFE0F"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Google Drive Sync"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, "Koppel je account voor sync over alle toestellen"))), /* @__PURE__ */ React.createElement("div", { className: "p-4 rounded-xl border-2 border-dashed border-slate-200 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm text-slate-500 mb-3" }, "Nog niet verbonden \u2014 vereist eenmalige Google Cloud setup.", /* @__PURE__ */ React.createElement("br", null), "Handleiding volgt in de volgende stap."), /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", size: "sm" }, "\u{1F4D8} Setup-handleiding"))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#eff6ff" } }, "\u{1F4BE}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Export & Backup"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: exportJSON, className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-teal-200 hover:bg-teal-50 transition-all text-sm font-medium text-slate-700" }, /* @__PURE__ */ React.createElement(Download, { size: 16, className: "text-teal-600" }), "JSON Backup"), /* @__PURE__ */ React.createElement("button", { onClick: exportCSV, className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-amber-200 hover:bg-amber-50 transition-all text-sm font-medium text-slate-700" }, /* @__PURE__ */ React.createElement(Download, { size: 16, className: "text-amber-600" }), "CSV (Excel)"))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#ecfdf5" } }, "\u{1F4C2}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Importeren"))), /* @__PURE__ */ React.createElement("label", { className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-teal-300 cursor-pointer transition-colors" }, /* @__PURE__ */ React.createElement(Upload, { size: 16, className: "text-slate-400" }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-500" }, "Klik om JSON-backup te importeren"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".json", className: "hidden", onChange: importJSON }))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-3" }, "Overzicht data"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, [["Transacties", data.transactions.length], ["Rekeningen", data.accounts.length], ["Spaardoelen", data.goals.length], ["Budgetten", data.budgets.length], ["Categorie\xEBn", data.categories.length], ["Subcategorie\xEBn", data.categories.reduce((s, o) => s + o.categories.reduce((ss, c) => ss + c.items.length, 0), 0)]].map(([k, v]) => /* @__PURE__ */ React.createElement("div", { key: k, className: "bg-slate-50 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, k), /* @__PURE__ */ React.createElement("div", { className: "font-semibold text-slate-800 mt-0.5" }, v)))), /* @__PURE__ */ React.createElement("button", { onClick: () => {
     onReset();
     toast("Voorbeelddata hersteld");
-  }, className: "mt-4 text-xs text-slate-400 hover:text-slate-600 underline" }, "Voorbeelddata herstellen"))));
+  }, className: "mt-4 text-xs text-slate-400 hover:text-slate-600 underline" }, "Voorbeelddata herstellen")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" },
+    /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-2" }, "Transacties wissen"),
+    /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400 mb-3" }, "Verwijder alle transacties en begin met een schone lei. Rekeningen, doelen en budgetten blijven bewaard."),
+    /* @__PURE__ */ React.createElement("button", {
+      onClick: () => {
+        if (window.confirm("Alle " + data.transactions.length + " transacties verwijderen? Dit kan niet ongedaan gemaakt worden.")) {
+          onUpdate((d) => ({ ...d, transactions: [] }));
+          toast("Alle transacties verwijderd ✓");
+        }
+      },
+      className: "px-4 py-2 text-sm font-semibold text-white rounded-xl",
+      style: { background: "#DC2626" }
+    }, "Wis alle transacties")
+  )));
 };
 function App({ data, onUpdate }) {
   const [page, setPage] = useState("dashboard");
