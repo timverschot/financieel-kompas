@@ -9,67 +9,31 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Financieel Kompas">
   <title>Financieel Kompas</title>
-
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- React 18 -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-  <!-- Recharts -->
-  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
-
-  <!-- Lucide React -->
   <script src="https://unpkg.com/lucide-react@0.383.0/dist/umd/lucide-react.js"></script>
-
-  <!-- Babel Standalone (JSX transpiler) -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <!-- Google APIs (async — only needed for Drive sync) -->
+  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-
   <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; background: #f8fafc; -webkit-tap-highlight-color: transparent; font-family: Inter, system-ui, sans-serif; }
-    ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    *{box-sizing:border-box;}body{margin:0;background:#f8fafc;-webkit-tap-highlight-color:transparent;font-family:Inter,system-ui,sans-serif;}
+    ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#f1f5f9;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}
+    input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
   </style>
 </head>
 <body>
-  <!-- Visible fallback while JS loads -->
-  <div id="root">
-    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0F2942;">
-      <div style="text-align:center;color:white;font-family:sans-serif">
-        <div style="font-size:52px;margin-bottom:16px">💎</div>
-        <div style="font-size:18px;font-weight:600;margin-bottom:8px">Financieel Kompas</div>
-        <div style="font-size:14px;opacity:0.6">App wordt geladen...</div>
-      </div>
-    </div>
-  </div>
+  <div id="root"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0F2942;"><div style="text-align:center;color:white;font-family:sans-serif"><div style="font-size:52px;margin-bottom:16px">💎</div><div style="font-size:18px;font-weight:600;margin-bottom:8px">Financieel Kompas</div><div style="font-size:14px;opacity:0.6">App wordt geladen...</div></div></div></div>
 
-  <!-- Google Client ID — vervang 'YOUR_GOOGLE_CLIENT_ID' met jouw echte Client ID -->
-  <script>
-    const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
-  </script>
+  <script>const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';</script>
 
-  <!-- Error catcher: shows errors on screen instead of blank page -->
   <script>
     window.addEventListener('error', function(e) {
-      var msg = e.message + '\nFile: ' + e.filename + '\nLine: ' + e.lineno;
-      document.getElementById('root').innerHTML =
-        '<div style="padding:24px;background:#fef2f2;min-height:100vh;font-family:sans-serif">' +
-        '<h2 style="color:#dc2626">⚠️ JavaScript fout</h2>' +
-        '<pre style="background:#fff;border:1px solid #fca5a5;padding:16px;border-radius:8px;overflow:auto;font-size:13px;color:#374151">' +
-        msg + '</pre>' +
-        '<p style="color:#6b7280;font-size:14px">Stuur een screenshot van deze foutmelding.</p></div>';
+      var msg = (e.message||'Onbekende fout') + '\nBestand: ' + (e.filename||'?') + '\nRegel: ' + (e.lineno||'?');
+      document.getElementById('root').innerHTML = '<div style="padding:24px;background:#fef2f2;min-height:100vh;font-family:sans-serif"><h2 style="color:#dc2626">⚠️ JavaScript fout</h2><pre style="background:#fff;border:1px solid #fca5a5;padding:16px;border-radius:8px;overflow:auto;font-size:13px;color:#374151">' + msg + '</pre><p style="color:#6b7280;font-size:14px">Stuur een screenshot hiervan.</p></div>';
     });
   </script>
 
-  <!-- Google Drive Service -->
   <script>
 
 // ═══════════════════════════════════════════════════════════════
@@ -130,11 +94,78 @@ async function driveSave(data) {
 
   </script>
 
-  <!-- App (JSX — Babel transpiles this in the browser) -->
-  <script type="text/babel">
+  <script type="text/babel" data-presets="env,react">
 const { useState, useEffect, useMemo, useCallback, useRef } = React;
 const { LayoutDashboard, Receipt, Building2, Target, PiggyBank, TrendingUp, Tags, Settings, Menu, X, Plus, Search, ChevronRight, ChevronDown, Bell, Download, Upload, Trash2, Check, Calendar, AlertCircle, Info, Pencil, ArrowLeft, CheckCircle2 } = LucideReact;
-const { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
+// No external chart library — using native SVG charts below
+
+
+// ═══════════════════════════════════════════════════════════════
+// NATIVE SVG CHART COMPONENTS (geen externe bibliotheek nodig)
+// ═══════════════════════════════════════════════════════════════
+
+function SvgBarChart({ data, height=180 }) {
+  if (!data || !data.length) return null;
+  const maxVal = Math.max(1, ...data.flatMap(d => [d.Inkomsten||0, d.Uitgaven||0]));
+  const pad = { top:10, right:10, bottom:30, left:52 };
+  const w = 480, h = height;
+  const innerH = h - pad.top - pad.bottom;
+  const innerW = w - pad.left - pad.right;
+  const groupW = innerW / data.length;
+  const barW = Math.min(18, groupW * 0.35);
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(maxVal * f));
+  const fmtY = v => v >= 1000 ? `€${(v/1000).toFixed(1)}k` : `€${v}`;
+  const toY = v => pad.top + innerH - (v / maxVal) * innerH;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{width:"100%",height}}>
+      {/* Grid lines */}
+      {yTicks.map((v,i) => <line key={i} x1={pad.left} x2={w-pad.right} y1={toY(v)} y2={toY(v)} stroke="#f1f5f9" strokeWidth={1}/>)}
+      {/* Y labels */}
+      {yTicks.map((v,i) => <text key={i} x={pad.left-6} y={toY(v)+4} textAnchor="end" fontSize={10} fill="#94a3b8">{fmtY(v)}</text>)}
+      {/* Bars */}
+      {data.map((d,gi) => {
+        const cx = pad.left + gi * groupW + groupW/2;
+        const hiH = (d.Inkomsten||0)/maxVal * innerH;
+        const uitH = (d.Uitgaven||0)/maxVal * innerH;
+        return <g key={gi}>
+          <rect x={cx - barW - 2} y={toY(d.Inkomsten||0)} width={barW} height={hiH} fill="#0D9488" rx={4}/>
+          <rect x={cx + 2} y={toY(d.Uitgaven||0)} width={barW} height={uitH} fill="#fca5a5" rx={4}/>
+          <text x={cx} y={h - 6} textAnchor="middle" fontSize={10} fill="#94a3b8">{d.name}</text>
+        </g>;
+      })}
+      {/* Legend */}
+      <rect x={pad.left} y={2} width={10} height={10} fill="#0D9488" rx={2}/>
+      <text x={pad.left+14} y={11} fontSize={10} fill="#64748b">Inkomsten</text>
+      <rect x={pad.left+90} y={2} width={10} height={10} fill="#fca5a5" rx={2}/>
+      <text x={pad.left+104} y={11} fontSize={10} fill="#64748b">Uitgaven</text>
+    </svg>
+  );
+}
+
+function SvgDonut({ data, size=170, inner=38, outer=62 }) {
+  if (!data || !data.length) return null;
+  const total = data.reduce((s,d) => s + d.value, 0);
+  if (total === 0) return null;
+  const cx = size/2, cy = size/2;
+  let angle = -Math.PI / 2;
+  const paths = data.map((d,i) => {
+    const slice = (d.value / total) * 2 * Math.PI * 0.98;
+    const x1 = cx + outer * Math.cos(angle), y1 = cy + outer * Math.sin(angle);
+    const x2 = cx + outer * Math.cos(angle+slice), y2 = cy + outer * Math.sin(angle+slice);
+    const xi1 = cx + inner * Math.cos(angle+slice), yi1 = cy + inner * Math.sin(angle+slice);
+    const xi2 = cx + inner * Math.cos(angle), yi2 = cy + inner * Math.sin(angle);
+    const large = slice > Math.PI ? 1 : 0;
+    const path = `M${x1},${y1} A${outer},${outer} 0 ${large} 1 ${x2},${y2} L${xi1},${yi1} A${inner},${inner} 0 ${large} 0 ${xi2},${yi2} Z`;
+    angle += slice + (2 * Math.PI * 0.005);
+    return { path, color:d.color, name:d.name, value:d.value };
+  });
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} style={{width:"100%",maxWidth:size,display:"block",margin:"0 auto"}}>
+      {paths.map((p,i) => <path key={i} d={p.path} fill={p.color} stroke="white" strokeWidth={2}/>)}
+    </svg>
+  );
+}
 
 
 
@@ -637,18 +668,11 @@ const Dashboard = ({data,onQuickAdd,profile}) => {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
       <Card className="lg:col-span-2 p-5">
         <div className="flex items-center justify-between mb-4"><h2 className="font-semibold text-slate-800">Inkomsten vs Uitgaven</h2><span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-full">Laatste 6 maanden</span></div>
-        <ResponsiveContainer width="100%" height={180}><BarChart data={chartData} barGap={4}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
-          <XAxis dataKey="name" tick={{fontSize:11,fill:"#94a3b8"}} axisLine={false} tickLine={false}/>
-          <YAxis tick={{fontSize:11,fill:"#94a3b8"}} axisLine={false} tickLine={false} tickFormatter={v=>v?`€${(v/1000).toFixed(1)}k`:""}/> 
-          <Tooltip formatter={(v,n)=>[fmtEUR(v),n]} contentStyle={{borderRadius:12,border:"1px solid #e2e8f0"}}/>
-          <Bar dataKey="Inkomsten" fill={T.teal} radius={[6,6,0,0]}/>
-          <Bar dataKey="Uitgaven" fill="#fca5a5" radius={[6,6,0,0]}/>
-        </BarChart></ResponsiveContainer>
+        <SvgBarChart data={chartData} height={180}/>
       </Card>
       <Card className="p-5">
         <h2 className="font-semibold text-slate-800 mb-4">Uitgaven per categorie</h2>
-        {pieData.length>0?<><ResponsiveContainer width="100%" height={140}><PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={38} outerRadius={62} paddingAngle={3} dataKey="value">{pieData.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie><Tooltip formatter={v=>[fmtEUR(v)]} contentStyle={{borderRadius:12,border:"1px solid #e2e8f0"}}/></PieChart></ResponsiveContainer>
+        {pieData.length>0?<><SvgDonut data={pieData} size={170} inner={38} outer={62}/>
         <div className="space-y-1.5 mt-2">{pieData.map((e,i)=><div key={i} className="flex items-center justify-between"><div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full flex-shrink-0" style={{backgroundColor:e.color}}/><span className="text-xs text-slate-600 truncate max-w-24">{e.name}</span></div><span className="text-xs font-medium text-slate-700">{fmtEUR(e.value)}</span></div>)}</div></>
         :<div className="py-8 text-center text-slate-400 text-sm">Nog geen uitgaven deze maand</div>}
       </Card>
@@ -926,7 +950,7 @@ const AnalysePage = ({data}) => {
     {!drillOv?<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card className="p-5">
         <h2 className="font-semibold text-slate-800 mb-4">Verdeling uitgaven</h2>
-        {byOv.length>0?<ResponsiveContainer width="100%" height={200}><PieChart><Pie data={byOv} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">{byOv.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie><Tooltip formatter={v=>[fmtEUR(v)]} contentStyle={{borderRadius:12,border:"1px solid #e2e8f0"}}/></PieChart></ResponsiveContainer>
+        {byOv.length>0?<SvgDonut data={byOv} size={200} inner={55} outer={90}/>
         :<div className="py-16 text-center text-slate-400 text-sm">Geen uitgaven in deze periode</div>}
       </Card>
       <Card className="p-5">
@@ -1122,69 +1146,46 @@ function LoginScreen({ onSignIn, clientIdMissing }) {
 }
 
 function Root() {
-  const [driveState, setDriveState] = useState('init');
+  const [driveState, setDriveState] = useState("init");
   const [data, setData] = useState(null);
   const saveTimer = useRef(null);
-  const clientIdMissing = !GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID';
+  const clientIdMissing = !GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === "YOUR_GOOGLE_CLIENT_ID";
 
   useEffect(() => {
-    if (clientIdMissing) {
-      setDriveState('login');
-      return;
-    }
-    _onDriveReady = () => setDriveState('login');
+    if (clientIdMissing) { setDriveState("login"); return; }
+    _onDriveReady = () => setDriveState("login");
     window._driveAuthenticated = async () => {
-      setDriveState('loading');
+      setDriveState("loading");
       try {
         const loaded = await driveLoad();
         setData(loaded && loaded.transactions ? loaded : SAMPLE_DATA);
-        setDriveState('ready');
-      } catch(e) {
-        console.error('Drive load error:', e);
-        setDriveState('error');
-      }
+        setDriveState("ready");
+      } catch(e) { console.error("Drive load error:", e); setDriveState("error"); }
     };
-    window._driveError = (err) => { console.error('Drive auth error:', err); setDriveState('error'); };
-    if (_gapiReady && _gisReady) setDriveState('login');
+    window._driveError = (err) => { console.error("Drive error:", err); setDriveState("error"); };
+    if (_gapiReady && _gisReady) setDriveState("login");
   }, []);
 
   const update = useCallback((fn) => {
     setData(d => {
-      const next = typeof fn === 'function' ? fn(d) : fn;
+      const next = typeof fn === "function" ? fn(d) : fn;
       if (!clientIdMissing) {
         clearTimeout(saveTimer.current);
-        saveTimer.current = setTimeout(() => driveSave(next).catch(e => console.error('Drive save error:', e)), 2000);
+        saveTimer.current = setTimeout(() => driveSave(next).catch(console.error), 2000);
       }
       return next;
     });
   }, [clientIdMissing]);
 
   const navy = "#0F2942";
-  if (driveState === 'init') return (
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",backgroundColor:navy}}>
-      <div style={{color:"white",textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>💎</div><div style={{fontSize:16,opacity:0.7}}>Laden...</div></div>
-    </div>
-  );
-  if (driveState === 'login') return <LoginScreen onSignIn={driveSignIn} clientIdMissing={clientIdMissing}/>;
-  if (driveState === 'loading') return (
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",backgroundColor:navy}}>
-      <div style={{color:"white",textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>💎</div><div style={{fontWeight:600}}>Data laden uit Google Drive...</div></div>
-    </div>
-  );
-  if (driveState === 'error') return (
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,backgroundColor:navy}}>
-      <div style={{background:"white",borderRadius:16,padding:24,textAlign:"center",maxWidth:320}}>
-        <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
-        <p style={{color:"#475569",marginBottom:16}}>Verbinding mislukt. Controleer je internet en probeer opnieuw.</p>
-        <button onClick={()=>setDriveState('login')} style={{padding:"8px 20px",background:"#0D9488",color:"white",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer"}}>Opnieuw proberen</button>
-      </div>
-    </div>
-  );
-
+  if (driveState === "init") return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",backgroundColor:navy}}><div style={{color:"white",textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>💎</div><div style={{fontSize:16,opacity:0.7}}>Laden...</div></div></div>;
+  if (driveState === "login") return <LoginScreen onSignIn={driveSignIn} clientIdMissing={clientIdMissing}/>;
+  if (driveState === "loading") return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",backgroundColor:navy}}><div style={{color:"white",textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>💎</div><div style={{fontWeight:600}}>Laden uit Google Drive...</div></div></div>;
+  if (driveState === "error") return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,backgroundColor:navy}}><div style={{background:"white",borderRadius:16,padding:24,textAlign:"center",maxWidth:320}}><div style={{fontSize:40,marginBottom:12}}>⚠️</div><p style={{color:"#475569",marginBottom:16}}>Verbinding mislukt. Controleer je internet.</p><button onClick={()=>setDriveState("login")} style={{padding:"8px 20px",background:"#0D9488",color:"white",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer"}}>Opnieuw proberen</button></div></div>;
   return <App data={data} onUpdate={update}/>;
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<Root/>);
+ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
 
   </script>
 </body>
