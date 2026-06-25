@@ -20,7 +20,7 @@
 <body>
   <div id="root"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0F2942;"><div style="text-align:center;color:white;font-family:-apple-system,sans-serif"><div style="font-size:52px;margin-bottom:16px">💎</div><div style="font-size:18px;font-weight:600;margin-bottom:8px">Financieel Kompas</div><div style="font-size:14px;opacity:0.6">App wordt geladen...</div></div></div></div>
   <script>var GOOGLE_CLIENT_ID = '85645466663-60fil73neottl60jeseit5ic3t2i9fdd.apps.googleusercontent.com';</script>
-  <script>window.addEventListener('error',function(e){var msg=(e.message||'Fout')+'\nRegel:'+(e.lineno||'?')+'\n'+(e.error&&e.error.stack||'');if(msg.indexOf('Script error')>=0||msg.indexOf('script error')>=0){msg='Laadprobleem met extern script. Herlaad de pagina.';}document.getElementById('root').innerHTML='<div style="padding:24px;background:#fef2f2;min-height:100vh;font-family:sans-serif"><h2 style="color:#dc2626">Fout</h2><pre style="background:#fff;border:1px solid #fca5a5;padding:16px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap">'+msg+'</pre><button onclick="location.reload()" style="margin-top:16px;padding:8px 20px;background:#0D9488;color:white;border:none;border-radius:8px;cursor:pointer">Herladen</button></div>';});</script>
+  <script>window.addEventListener('error',function(e){var msg=(e.message||'Fout')+'\nRegel:'+(e.lineno||'?')+'\n'+(e.error&&e.error.stack||'');if(msg.indexOf('Script error')>=0){msg='Laadprobleem met extern script. Herlaad de pagina.';}document.getElementById('root').innerHTML='<div style="padding:24px;background:#fef2f2;min-height:100vh;font-family:sans-serif"><h2 style="color:#dc2626">Fout</h2><pre style="background:#fff;border:1px solid #fca5a5;padding:16px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap">'+msg+'</pre><button onclick="location.reload()" style="margin-top:16px;padding:8px 20px;background:#0D9488;color:white;border:none;border-radius:8px;cursor:pointer">Herladen</button></div>';});</script>
   <script>
 
 // ═══════════════════════════════════════════════════════════════
@@ -1367,9 +1367,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
               const ov = data.categories.find((c) => c.name === qaForm.overkoepelend);
               const newItem = { id: "i-custom-" + Date.now(), name: qaForm.name, synonyms: [], unit: null };
               const catId = "cat-overig-" + qaForm.overkoepelend.toLowerCase().replace(/[^a-z]/g, "");
-              if (onAddCategory) {
-                onAddCategory(qaForm.overkoepelend, qaForm.name, newItem);
-              }
+              window._addCategory && window._addCategory(qaForm.overkoepelend, newItem);
               selectItem({ ...newItem, category: "Overig", overkoepelend: qaForm.overkoepelend, hoofdtype: ov ? ov.hoofdtype : "Variabele Uitgaven", color: ov ? ov.color : "#94a3b8" });
               setShowQuickAdd(false);
             },
@@ -1457,10 +1455,10 @@ const TransactiesPage = ({ data, onAdd, onUpdate, onDelete, toast }) => {
       setConfirmDel(null);
       toast("Transactie verwijderd");
     }, className: "px-2 py-1 bg-red-600 text-white text-xs rounded-lg" }, "Ja"), /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDel(null), className: "px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg" }, "Nee")) : /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDel(t.id), className: "p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u{1F5D1}"))));
-  }))), showForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: addCategoryQuick, onSave: (tx) => {
+  }))), showForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, onSave: (tx) => {
     onAdd(tx);
     toast("Transactie opgeslagen \u2713");
-  }, onClose: () => setShowForm(false) }), editTx && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: addCategoryQuick, initial: { ...editTx, type: editTx.hoofdtype === "Inkomsten" ? "income" : editTx.hoofdtype === "Sparen" ? "saving" : editTx.hoofdtype === "Vaste Uitgaven" ? "fixed" : "expense" }, title: "Transactie bewerken", onSave: (tx) => {
+  }, onClose: () => setShowForm(false) }), editTx && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, initial: { ...editTx, type: editTx.hoofdtype === "Inkomsten" ? "income" : editTx.hoofdtype === "Sparen" ? "saving" : editTx.hoofdtype === "Vaste Uitgaven" ? "fixed" : "expense" }, title: "Transactie bewerken", onSave: (tx) => {
     onUpdate(tx);
     toast("Transactie bijgewerkt \u2713");
   }, onClose: () => setEditTx(null) }));
@@ -1787,19 +1785,6 @@ function App({ data, onUpdate }) {
   const addTx = useCallback((tx) => update((d) => ({ ...d, transactions: [tx, ...d.transactions] })), [update]);
   const updateTx = useCallback((tx) => update((d) => ({ ...d, transactions: d.transactions.map((t) => t.id === tx.id ? tx : t) })), [update]);
   const deleteTx = useCallback((id) => update((d) => ({ ...d, transactions: d.transactions.filter((t) => t.id !== id) })), [update]);
-  const addCategoryQuick2 = useCallback((ovName, itemName, newItem) => {
-    update((d) => {
-      const cats = d.categories.map((ov) => {
-        if (ov.name !== ovName) return ov;
-        const existing = ov.categories.find((c) => c.name === "Overig");
-        if (existing) {
-          return { ...ov, categories: ov.categories.map((c) => c.name === "Overig" ? { ...c, items: [...c.items, newItem] } : c) };
-        }
-        return { ...ov, categories: [...ov.categories, { id: "cat-overig-" + Date.now(), name: "Overig", items: [newItem] }] };
-      });
-      return { ...d, categories: cats };
-    });
-  }, [update]);
   return /* @__PURE__ */ React.createElement("div", { className: "flex h-screen overflow-hidden", style: { backgroundColor: T.slate50, fontFamily: "Inter,system-ui,sans-serif" } }, /* @__PURE__ */ React.createElement(Sidebar, { current: page, onNav: setPage, open: sidebarOpen, onToggle: () => setSidebarOpen((s) => !s), profile: data.userProfile }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 flex flex-col min-w-0 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 px-4 py-3 bg-white border-b border-slate-100 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setSidebarOpen((s) => !s), className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500" }, /* @__PURE__ */ React.createElement(Menu, { size: 18 })), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }), /* @__PURE__ */ React.createElement(Btn, { size: "sm", onClick: () => setShowTxForm(true) }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Transactie"), /* @__PURE__ */ React.createElement("button", { className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500 relative" }, /* @__PURE__ */ React.createElement(Bell, { size: 18 }), data.budgets.some((b) => {
     const spent = data.transactions.filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend && getMonth(t.date) === currentMonth).reduce((s, t) => s + t.amount, 0);
     return b.amount > 0 && spent / b.amount > 0.85;
@@ -1807,7 +1792,7 @@ function App({ data, onUpdate }) {
     addTx(tx);
   }, onUpdate: (tx) => {
     updateTx(tx);
-  }, onDelete: deleteTx, toast: addToast }), page === "rekeningen" && /* @__PURE__ */ React.createElement(RekeningenPage, { data, onUpdate: update, toast: addToast }), page === "spaardoelen" && /* @__PURE__ */ React.createElement(SpaardoelenPage, { data, onUpdate: update, toast: addToast }), page === "budgetten" && /* @__PURE__ */ React.createElement(BudgettenPage, { data, onUpdate: update, toast: addToast }), page === "analyse" && /* @__PURE__ */ React.createElement(AnalysePage, { data }), page === "categorieen" && /* @__PURE__ */ React.createElement(CategorieeenPage, { data, onUpdate: update, toast: addToast }), page === "instellingen" && /* @__PURE__ */ React.createElement(InstellingenPage, { data, onUpdate: update, onReset: () => update(() => SAMPLE_DATA), toast: addToast }))), showTxForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: addCategoryQuick2, onSave: (tx) => {
+  }, onDelete: deleteTx, toast: addToast }), page === "rekeningen" && /* @__PURE__ */ React.createElement(RekeningenPage, { data, onUpdate: update, toast: addToast }), page === "spaardoelen" && /* @__PURE__ */ React.createElement(SpaardoelenPage, { data, onUpdate: update, toast: addToast }), page === "budgetten" && /* @__PURE__ */ React.createElement(BudgettenPage, { data, onUpdate: update, toast: addToast }), page === "analyse" && /* @__PURE__ */ React.createElement(AnalysePage, { data }), page === "categorieen" && /* @__PURE__ */ React.createElement(CategorieeenPage, { data, onUpdate: update, toast: addToast }), page === "instellingen" && /* @__PURE__ */ React.createElement(InstellingenPage, { data, onUpdate: update, onReset: () => update(() => SAMPLE_DATA), toast: addToast }))), showTxForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, onSave: (tx) => {
     addTx(tx);
     addToast("Transactie opgeslagen \u2713");
     setShowTxForm(false);
@@ -1849,11 +1834,7 @@ function LoginScreen(props) {
           ),
           "Aanmelden met Google"
         ),
-        ce(
-          "p",
-          { style: { fontSize: 12, color: "#94a3b8" } },
-          "Je data wordt opgeslagen in jouw Google Drive."
-        )
+        ce("p", { style: { fontSize: 12, color: "#94a3b8" } }, "Je data wordt opgeslagen in jouw Google Drive.")
       )
     )
   );
@@ -1879,10 +1860,28 @@ function Root() {
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(function() {
       driveSave(next).catch(function(e) {
-        console.error("Drive save fout:", e);
+        console.error("Drive save:", e);
       });
     }, 500);
   }, []);
+  window._addCategory = function(ovName, newItem) {
+    update(function(d) {
+      var cats = (d.categories || INITIAL_CATEGORIES).map(function(ov) {
+        if (ov.name !== ovName) return ov;
+        var cats2 = ov.categories || [];
+        var existing = cats2.find(function(c) {
+          return c.name === "Overig";
+        });
+        if (existing) {
+          return Object.assign({}, ov, { categories: cats2.map(function(c) {
+            return c.name === "Overig" ? Object.assign({}, c, { items: c.items.concat([newItem]) }) : c;
+          }) });
+        }
+        return Object.assign({}, ov, { categories: cats2.concat([{ id: "cat-overig-" + Date.now(), name: "Overig", items: [newItem] }]) });
+      });
+      return Object.assign({}, d, { categories: cats });
+    });
+  };
   useEffect(function() {
     var timeout = setTimeout(function() {
       setDriveState(function(s) {
@@ -1900,7 +1899,36 @@ function Root() {
     window._driveAuthenticated = function() {
       setDriveState("loading");
       driveLoad().then(function(loaded) {
-        var d = loaded && typeof loaded === "object" && loaded.transactions ? loaded : SAMPLE_DATA;
+        var d;
+        if (loaded && typeof loaded === "object" && loaded.transactions) {
+          // Merge: gebruik altijd de 724 ingebouwde categorieën als basis,
+          // maar voeg manuele toevoegingen (id start met "custom-") uit Drive toe
+          var mergedCats = INITIAL_CATEGORIES.map(function(ov) {
+            var driveOv = (loaded.categories || []).find(function(c) { return c.id === ov.id; });
+            if (!driveOv) return ov;
+            var builtInIds = [];
+            ov.categories.forEach(function(c) { c.items.forEach(function(i) { builtInIds.push(i.id); }); });
+            var customItems = [];
+            (driveOv.categories || []).forEach(function(c) {
+              (c.items || []).forEach(function(i) {
+                if (i.id && i.id.indexOf("custom-") === 0 && builtInIds.indexOf(i.id) < 0) customItems.push(i);
+              });
+            });
+            if (customItems.length === 0) return ov;
+            var hasMijnCat = ov.categories.find(function(c) { return c.id === "cat-mijn-toevoegingen"; });
+            var newCats = hasMijnCat
+              ? ov.categories.map(function(c) {
+                  if (c.id !== "cat-mijn-toevoegingen") return c;
+                  var existIds = c.items.map(function(i) { return i.id; });
+                  return Object.assign({}, c, { items: c.items.concat(customItems.filter(function(i) { return existIds.indexOf(i.id) < 0; })) });
+                })
+              : ov.categories.concat([{ id: "cat-mijn-toevoegingen", name: "Mijn toevoegingen", items: customItems }]);
+            return Object.assign({}, ov, { categories: newCats });
+          });
+          d = Object.assign({}, loaded, { categories: mergedCats });
+        } else {
+          d = SAMPLE_DATA;
+        }
         dataRef.current = d;
         setDriveState("ready");
       }).catch(function() {
