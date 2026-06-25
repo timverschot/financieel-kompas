@@ -24,13 +24,13 @@
 <body>
   <div id="root"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0F2942;"><div style="text-align:center;color:white;font-family:sans-serif"><div style="font-size:52px;margin-bottom:16px">💎</div><div style="font-size:18px;font-weight:600;margin-bottom:8px">Financieel Kompas</div><div style="font-size:14px;opacity:0.6">App wordt geladen...</div></div></div></div>
 
-  <!-- Vervang YOUR_GOOGLE_CLIENT_ID met je echte Client ID -->
+  <!-- ★ ENIGE AANPASSING: vervang YOUR_GOOGLE_CLIENT_ID door jouw echte Client ID -->
   <script>var GOOGLE_CLIENT_ID = '85645466663-60fil73neottl60jeseit5ic3t2i9fdd.apps.googleusercontent.com';</script>
 
   <script>
     window.addEventListener('error', function(e) {
-      var msg = (e.message||'Onbekende fout') + '\nBestand: ' + (e.filename||'?') + '\nRegel: ' + (e.lineno||'?') + '\nKolom: ' + (e.colno||'?');
-      document.getElementById('root').innerHTML = '<div style="padding:24px;background:#fef2f2;min-height:100vh;font-family:sans-serif"><h2 style="color:#dc2626">⚠️ JavaScript fout</h2><pre style="background:#fff;border:1px solid #fca5a5;padding:16px;border-radius:8px;overflow:auto;font-size:12px;color:#374151;white-space:pre-wrap">' + msg + '</pre><p style="color:#6b7280;font-size:14px">Stuur een screenshot van deze fout.</p></div>';
+      var msg = (e.message||'Onbekende fout')+'\nRegel: '+(e.lineno||'?')+'\nKolom: '+(e.colno||'?')+'\n\n'+(e.error&&e.error.stack||'');
+      document.getElementById('root').innerHTML = '<div style="padding:24px;background:#fef2f2;min-height:100vh;font-family:sans-serif"><h2 style="color:#dc2626">⚠️ JavaScript fout</h2><pre style="background:#fff;border:1px solid #fca5a5;padding:16px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap">'+msg+'</pre></div>';
     });
   </script>
 
@@ -952,65 +952,124 @@ function App({ data, onUpdate }) {
 }
 
 
+
 function LoginScreen({ onSignIn, clientIdMissing }) {
-  const st = {
-    wrap: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", backgroundColor: "#0F2942" },
-    card: { background: "white", borderRadius: "24px", boxShadow: "0 25px 50px rgba(0,0,0,0.4)", padding: "32px", maxWidth: "360px", width: "100%", textAlign: "center" },
-    logo: { width: 64, height: 64, borderRadius: 16, backgroundColor: "#F59E0B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px" },
-    h1: { fontSize: 24, fontWeight: 700, color: "#1e293b", margin: "0 0 4px" },
-    sub: { color: "#94a3b8", fontSize: 14, margin: "0 0 32px" },
-    warn: { padding: 16, background: "#fffbeb", borderRadius: 12, fontSize: 14, color: "#92400e", textAlign: "left" },
-    btn: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "12px 24px", borderRadius: 12, fontWeight: 600, color: "#374151", border: "2px solid #e2e8f0", background: "white", cursor: "pointer", fontSize: 15, marginBottom: 16 },
-    note: { fontSize: 12, color: "#94a3b8" }
-  };
-  return /* @__PURE__ */ React.createElement("div", { style: st.wrap }, /* @__PURE__ */ React.createElement("div", { style: st.card }, /* @__PURE__ */ React.createElement("div", { style: st.logo }, "\u{1F48E}"), /* @__PURE__ */ React.createElement("h1", { style: st.h1 }, "Financieel Kompas"), /* @__PURE__ */ React.createElement("p", { style: st.sub }, "Jouw persoonlijke budgetplanner"), clientIdMissing ? /* @__PURE__ */ React.createElement("div", { style: st.warn }, /* @__PURE__ */ React.createElement("strong", null, "\u2699\uFE0F Setup nodig:"), /* @__PURE__ */ React.createElement("br", null), "Voeg je Google Client ID toe in de HTML (stap 6 van de handleiding).") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { onClick: onSignIn, style: st.btn }, /* @__PURE__ */ React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 24 24" }, /* @__PURE__ */ React.createElement("path", { fill: "#4285F4", d: "M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" }), /* @__PURE__ */ React.createElement("path", { fill: "#34A853", d: "M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" }), /* @__PURE__ */ React.createElement("path", { fill: "#FBBC05", d: "M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" }), /* @__PURE__ */ React.createElement("path", { fill: "#EA4335", d: "M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" })), "Aanmelden met Google"), /* @__PURE__ */ React.createElement("p", { style: st.note }, "Je data wordt opgeslagen in jouw Google Drive.", /* @__PURE__ */ React.createElement("br", null), "Niemand anders heeft er toegang toe."))));
+  return React.createElement('div', {style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",backgroundColor:"#0F2942"}},
+    React.createElement('div', {style:{background:"white",borderRadius:"24px",boxShadow:"0 25px 50px rgba(0,0,0,0.4)",padding:"32px",maxWidth:"360px",width:"100%",textAlign:"center"}},
+      React.createElement('div', {style:{width:64,height:64,borderRadius:16,backgroundColor:"#F59E0B",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 20px"}}, "💎"),
+      React.createElement('h1', {style:{fontSize:24,fontWeight:700,color:"#1e293b",margin:"0 0 4px"}}, "Financieel Kompas"),
+      React.createElement('p', {style:{color:"#94a3b8",fontSize:14,margin:"0 0 32px"}}, "Jouw persoonlijke budgetplanner"),
+      clientIdMissing
+        ? React.createElement('div', {style:{padding:16,background:"#fffbeb",borderRadius:12,fontSize:14,color:"#92400e",textAlign:"left"}},
+            React.createElement('strong', null, "⚙️ Setup nodig: "),
+            "Voeg je Google Client ID toe (regel 28 van de HTML)."
+          )
+        : React.createElement(React.Fragment, null,
+            React.createElement('button', {
+              onClick: onSignIn,
+              style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:12,padding:"12px 24px",borderRadius:12,fontWeight:600,color:"#374151",border:"2px solid #e2e8f0",background:"white",cursor:"pointer",fontSize:15,marginBottom:16}
+            },
+              React.createElement('svg', {width:20,height:20,viewBox:"0 0 24 24"},
+                React.createElement('path', {fill:"#4285F4",d:"M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"}),
+                React.createElement('path', {fill:"#34A853",d:"M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"}),
+                React.createElement('path', {fill:"#FBBC05",d:"M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"}),
+                React.createElement('path', {fill:"#EA4335",d:"M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"})
+              ),
+              "Aanmelden met Google"
+            ),
+            React.createElement('p', {style:{fontSize:12,color:"#94a3b8"}},
+              "Je data wordt opgeslagen in jouw Google Drive.",
+              React.createElement('br'),
+              "Niemand anders heeft er toegang toe."
+            )
+          )
+    )
+  );
 }
+
 function Root() {
-  const [driveState, setDriveState] = useState("init");
-  const [data, setData] = useState(null);
-  const saveTimer = useRef(null);
-  const clientIdMissing = !window.GOOGLE_CLIENT_ID || window.GOOGLE_CLIENT_ID === "YOUR_GOOGLE_CLIENT_ID";
-  useEffect(() => {
+  var driveStateArr = useState("init");
+  var driveState = driveStateArr[0];
+  var setDriveState = driveStateArr[1];
+  var dataArr = useState(null);
+  var data = dataArr[0];
+  var setData = dataArr[1];
+  var saveTimer = useRef(null);
+
+  var clientId = window.GOOGLE_CLIENT_ID || "";
+  var clientIdMissing = !clientId || clientId === "YOUR_GOOGLE_CLIENT_ID";
+
+  useEffect(function() {
+    // Fallback: always show login after 4 seconds if still loading
+    var timeout = setTimeout(function() {
+      setDriveState(function(s) { return s === "init" ? "login" : s; });
+    }, 4000);
+
     if (clientIdMissing) {
       setDriveState("login");
+      clearTimeout(timeout);
       return;
     }
-    _onDriveReady = () => setDriveState("login");
-    window._driveAuthenticated = async () => {
+
+    // Set callback for when both Google APIs are ready
+    _onDriveReady = function() { setDriveState("login"); };
+
+    // Callback after Google sign-in
+    window._driveAuthenticated = async function() {
       setDriveState("loading");
       try {
-        const loaded = await driveLoad();
+        var loaded = await driveLoad();
         setData(loaded && loaded.transactions ? loaded : SAMPLE_DATA);
         setDriveState("ready");
-      } catch (e) {
+      } catch(e) {
         console.error("Drive load error:", e);
         setDriveState("error");
       }
     };
-    window._driveError = (err) => {
+
+    window._driveError = function(err) {
       console.error("Drive error:", err);
       setDriveState("error");
     };
-    if (_gapiReady && _gisReady) setDriveState("login");
+
+    // If APIs already loaded before React mounted
+    if (_gapiReady && _gisReady) {
+      setDriveState("login");
+    }
+
+    return function() { clearTimeout(timeout); };
   }, []);
-  const update = useCallback((fn) => {
-    setData((d) => {
-      const next = typeof fn === "function" ? fn(d) : fn;
+
+  var update = useCallback(function(fn) {
+    setData(function(d) {
+      var next = typeof fn === "function" ? fn(d) : fn;
       if (!clientIdMissing) {
         clearTimeout(saveTimer.current);
-        saveTimer.current = setTimeout(() => driveSave(next).catch(console.error), 2e3);
+        saveTimer.current = setTimeout(function() {
+          driveSave(next).catch(function(e) { console.error("Drive save:", e); });
+        }, 2000);
       }
       return next;
     });
   }, [clientIdMissing]);
-  const navy = "#0F2942";
-  const loadScreen = (text) => /* @__PURE__ */ React.createElement("div", { style: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: navy } }, /* @__PURE__ */ React.createElement("div", { style: { color: "white", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 48, marginBottom: 16 } }, "\u{1F48E}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, opacity: 0.7 } }, text)));
-  if (driveState === "init") return loadScreen("Laden...");
-  if (driveState === "login") return /* @__PURE__ */ React.createElement(LoginScreen, { onSignIn: () => driveSignIn(), clientIdMissing });
-  if (driveState === "loading") return loadScreen("Data laden uit Google Drive...");
-  if (driveState === "error") return /* @__PURE__ */ React.createElement("div", { style: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: navy } }, /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 16, padding: 24, textAlign: "center", maxWidth: 320 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 40, marginBottom: 12 } }, "\u26A0\uFE0F"), /* @__PURE__ */ React.createElement("p", { style: { color: "#475569", marginBottom: 16 } }, "Verbinding mislukt. Controleer je internet."), /* @__PURE__ */ React.createElement("button", { onClick: () => setDriveState("login"), style: { padding: "8px 20px", background: "#0D9488", color: "white", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer" } }, "Opnieuw proberen")));
-  return React.createElement(App, { data, onUpdate: update });
+
+  var navy = "#0F2942";
+  var loadStyle = {minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",backgroundColor:navy};
+  var loadInner = {color:"white",textAlign:"center"};
+
+  if (driveState === "init") return React.createElement('div', {style:loadStyle}, React.createElement('div', {style:loadInner}, React.createElement('div', {style:{fontSize:48,marginBottom:16}}, "💎"), React.createElement('div', {style:{fontSize:16,opacity:0.7}}, "Laden...")));
+  if (driveState === "login") return React.createElement(LoginScreen, {onSignIn: function() { driveSignIn(); }, clientIdMissing: clientIdMissing});
+  if (driveState === "loading") return React.createElement('div', {style:loadStyle}, React.createElement('div', {style:loadInner}, React.createElement('div', {style:{fontSize:48,marginBottom:16}}, "💎"), React.createElement('div', {style:{fontWeight:600}}, "Data laden uit Google Drive...")));
+  if (driveState === "error") return React.createElement('div', {style:{...loadStyle,padding:24}},
+    React.createElement('div', {style:{background:"white",borderRadius:16,padding:24,textAlign:"center",maxWidth:320}},
+      React.createElement('div', {style:{fontSize:40,marginBottom:12}}, "⚠️"),
+      React.createElement('p', {style:{color:"#475569",marginBottom:16}}, "Verbinding mislukt. Controleer je internet."),
+      React.createElement('button', {onClick:function(){setDriveState("login");},style:{padding:"8px 20px",background:"#0D9488",color:"white",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer"}}, "Opnieuw proberen")
+    )
+  );
+  return React.createElement(App, {data:data, onUpdate:update});
 }
+
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Root));
 
   </script>
