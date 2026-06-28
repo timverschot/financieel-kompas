@@ -1726,7 +1726,8 @@ const AnalysePage = ({ data }) => {
   const [period, setPeriod] = useState("month");
   const [drillOv, setDrillOv] = useState(null);
   const COLORS2 = [T.teal, T.amber, "#7C3AED", "#2563EB", "#059669", "#DB2777", "#d97706", "#64748B"];
-  const SUB_COLORS = ["#0D9488","#F59E0B","#7C3AED","#2563EB","#059669","#DB2777","#F97316","#64748B","#DC2626","#0891b2","#65a30d","#be185d"];
+  const SUB_COLORS = ["#0D9488","#F59E0B","#7C3AED","#2563EB","#059669","#DB2777","#F97316","#DC2626","#0891b2","#65a30d","#be185d","#64748B"];
+  const STORE_COLORS = ["#2563EB","#0D9488","#F59E0B","#7C3AED","#DB2777","#059669","#F97316","#DC2626","#0891b2","#64748B","#65a30d","#be185d"];
   const txs = useMemo(() => data.transactions.filter((t) => {
     if (period === "month") return getMonth(t.date) === currentMonth;
     if (period === "year") return t.date.startsWith(fmt(today).slice(0, 4));
@@ -1737,18 +1738,23 @@ const AnalysePage = ({ data }) => {
     txs.forEach((t) => { m[t.overkoepelend] = (m[t.overkoepelend] || 0) + t.amount; });
     return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value, color: OV_COLORS[name] || "#94a3b8" }));
   }, [txs]);
+  // Donut 2: volledige gesorteerde lijst per subcategorie/product — NOOIT de winkelnaam
   const byItem = useMemo(() => {
     const m = {};
     txs.forEach((t) => {
-      const key = t.itemName || t.description || "Overig";
+      const key = t.itemName || t.category || "Onbekend";
       m[key] = (m[key] || 0) + t.amount;
     });
-    const sorted = Object.entries(m).sort((a, b) => b[1] - a[1]);
-    const top = sorted.slice(0, 10);
-    const restTotal = sorted.slice(10).reduce((s, e) => s + e[1], 0);
-    const result = top.map(([name, value], i) => ({ name, value, color: SUB_COLORS[i % SUB_COLORS.length] }));
-    if (restTotal > 0) result.push({ name: "Overige", value: restTotal, color: "#94a3b8" });
-    return result;
+    return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, value], i) => ({ name, value, color: SUB_COLORS[i % SUB_COLORS.length] }));
+  }, [txs]);
+  // Donut 3: volledige gesorteerde lijst per winkel (description = kassaticket)
+  const byStore = useMemo(() => {
+    const m = {};
+    txs.forEach((t) => {
+      const key = t.description || "Onbekend";
+      m[key] = (m[key] || 0) + t.amount;
+    });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, value], i) => ({ name, value, color: STORE_COLORS[i % STORE_COLORS.length] }));
   }, [txs]);
   const drillTxs = useMemo(() => {
     if (!drillOv) return [];
@@ -1760,8 +1766,61 @@ const AnalysePage = ({ data }) => {
     drillTxs.forEach((t) => { m[t.category || "Onbekend"] = (m[t.category || "Onbekend"] || 0) + t.amount; });
     return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, value], i) => ({ name, value, color: COLORS2[i % COLORS2.length] }));
   }, [drillTxs, drillOv]);
+  // DonutCard: ontvangt de volledige gesorteerde lijst (allData).
+  // Het diagram toont altijd top 10 + "Overige".
+  // De legende is uitklapbaar: standaard top 10, "Toon alles" laat alle items zien.
+  const DonutCard = ({ title, subtitle, allData }) => {
+    const [showAll, setShowAll] = useState(false);
+    const totalVal = allData.reduce((s, e) => s + e.value, 0);
+    const top10 = allData.slice(0, 10);
+    const rest = allData.slice(10);
+    const restTotal = rest.reduce((s, e) => s + e.value, 0);
+    // Donut gebruikt altijd top10 + eventueel "Overige"-schijf
+    const donutData = top10.slice();
+    if (restTotal > 0) donutData.push({ name: "Overige (" + rest.length + ")", value: restTotal, color: "#94a3b8" });
+    // Legende: top10 standaard, alles bij showAll
+    const legendData = showAll ? allData : top10;
+    const hasMore = rest.length > 0;
+    return React.createElement(Card, { className: "p-5 mb-6" },
+      React.createElement("h2", { className: "font-semibold text-slate-800 mb-0.5" }, title),
+      subtitle && React.createElement("p", { className: "text-xs text-slate-400 mb-4" }, subtitle),
+      !subtitle && React.createElement("div", { className: "mb-4" }),
+      React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" },
+        React.createElement("div", null, React.createElement(SvgDonut, { data: donutData, size: 200, inner: 55, outer: 90 })),
+        React.createElement("div", null,
+          React.createElement("div", {
+            className: "space-y-2",
+            style: showAll && hasMore ? { maxHeight: "260px", overflowY: "auto", paddingRight: "4px" } : {}
+          },
+            legendData.map((e) => React.createElement("div", { key: e.name, className: "flex items-center justify-between" },
+              React.createElement("div", { className: "flex items-center gap-2 min-w-0 flex-1" },
+                React.createElement("div", { className: "w-2 h-2 rounded-full flex-shrink-0", style: { backgroundColor: e.color } }),
+                React.createElement("span", { className: "text-slate-700 truncate text-xs" }, e.name)
+              ),
+              React.createElement("div", { className: "flex items-center gap-2 flex-shrink-0 ml-2" },
+                React.createElement("span", { className: "text-xs text-slate-400 w-7 text-right" }, totalVal > 0 ? (e.value / totalVal * 100).toFixed(0) : 0, "%"),
+                React.createElement("span", { className: "font-semibold text-slate-800 text-xs w-20 text-right" }, fmtEUR(e.value))
+              )
+            ))
+          ),
+          hasMore && React.createElement("button", {
+            onClick: () => setShowAll(function(s) { return !s; }),
+            className: "mt-2 text-xs font-medium hover:opacity-80 flex items-center gap-1",
+            style: { color: T.teal }
+          },
+            showAll
+              ? React.createElement(React.Fragment, null, React.createElement(ChevronDown, { size: 12 }), "Toon minder")
+              : React.createElement(React.Fragment, null, React.createElement(ChevronRight, { size: 12 }), "Toon alle " + allData.length + " \u2014 incl. " + rest.length + " overige")
+          ),
+          React.createElement("div", { className: "mt-3 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold" },
+            React.createElement("span", { className: "text-slate-600" }, "Totaal"),
+            React.createElement("span", null, fmtEUR(totalVal))
+          )
+        )
+      )
+    );
+  };
   const total = byOv.reduce((s, e) => s + e.value, 0);
-  const itemTotal = byItem.reduce((s, e) => s + e.value, 0);
   const drillTotal = drillTxs.reduce((s, t) => s + t.amount, 0);
   const drillColor = OV_COLORS[drillOv] || T.teal;
   return React.createElement("div", { className: "p-6 max-w-5xl mx-auto" },
@@ -1775,9 +1834,11 @@ const AnalysePage = ({ data }) => {
       )
     ),
     !drillOv && React.createElement("div", null,
+      // ── Rij 1: Donut hoofdcategorieën + Ranglijst ──
       React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6" },
         React.createElement(Card, { className: "p-5" },
-          React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Verdeling uitgaven"),
+          React.createElement("h2", { className: "font-semibold text-slate-800 mb-1" }, "Verdeling uitgaven"),
+          React.createElement("p", { className: "text-xs text-slate-400 mb-4" }, "Per hoofdcategorie"),
           byOv.length > 0 ? React.createElement(SvgDonut, { data: byOv, size: 200, inner: 55, outer: 90 }) : React.createElement("div", { className: "py-16 text-center text-slate-400 text-sm" }, "Geen uitgaven in deze periode")
         ),
         React.createElement(Card, { className: "p-5" },
@@ -1805,29 +1866,18 @@ const AnalysePage = ({ data }) => {
           )
         )
       ),
-      byItem.length > 0 && React.createElement(Card, { className: "p-5" },
-        React.createElement("h2", { className: "font-semibold text-slate-800 mb-1" }, "Verdeling per product/dienst"),
-        React.createElement("p", { className: "text-xs text-slate-400 mb-5" }, "Top subcategorie\u00ebn \u2014 aangekochte producten en diensten"),
-        React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 items-center" },
-          React.createElement("div", null, React.createElement(SvgDonut, { data: byItem, size: 200, inner: 55, outer: 90 })),
-          React.createElement("div", { className: "space-y-2" },
-            byItem.map((e) => React.createElement("div", { key: e.name, className: "flex items-center justify-between" },
-              React.createElement("div", { className: "flex items-center gap-2 min-w-0 flex-1" },
-                React.createElement("div", { className: "w-2 h-2 rounded-full flex-shrink-0", style: { backgroundColor: e.color } }),
-                React.createElement("span", { className: "text-slate-700 truncate text-xs" }, e.name)
-              ),
-              React.createElement("div", { className: "flex items-center gap-2 flex-shrink-0 ml-2" },
-                React.createElement("span", { className: "text-xs text-slate-400 w-7 text-right" }, itemTotal > 0 ? (e.value / itemTotal * 100).toFixed(0) : 0, "%"),
-                React.createElement("span", { className: "font-semibold text-slate-800 text-xs w-20 text-right" }, fmtEUR(e.value))
-              )
-            )),
-            React.createElement("div", { className: "mt-3 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold" },
-              React.createElement("span", { className: "text-slate-600" }, "Totaal"),
-              React.createElement("span", null, fmtEUR(itemTotal))
-            )
-          )
-        )
-      )
+      // ── Rij 2: Donut subcategorieën (producten/diensten) ──
+      byItem.length > 0 && React.createElement(DonutCard, {
+        title: "Verdeling per product/dienst",
+        subtitle: "Subcategorie\u00ebn \u2014 brood, koffiekoeken, kipfilet, elektriciteit\u2026",
+        allData: byItem
+      }),
+      // ── Rij 3: Donut per winkel ──
+      byStore.length > 0 && React.createElement(DonutCard, {
+        title: "Uitgaven per winkel",
+        subtitle: "Gebaseerd op de ingevulde omschrijving bij elke transactie",
+        allData: byStore
+      })
     ),
     drillOv && React.createElement("div", null,
       React.createElement(Card, { className: "p-5 mb-6" },
