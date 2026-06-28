@@ -1128,30 +1128,6 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString("nl-BE", { day: "2-dig
 const fmtDateShort = (d) => d ? new Date(d).toLocaleDateString("nl-BE", { day: "2-digit", month: "2-digit" }) : "";
 const getMonth = (d) => d ? d.slice(0, 7) : "";
 const isExpense = (t) => t.hoofdtype !== "Inkomsten";
-// Kassaticket-uitsplitsing: vervang een transactie met splits door losse virtuele regels
-const expandSplits = function(txs) {
-  var result = [];
-  for (var i = 0; i < txs.length; i++) {
-    var t = txs[i];
-    if (t.splits && t.splits.length > 0) {
-      for (var j = 0; j < t.splits.length; j++) {
-        var s = t.splits[j];
-        if (s.description && s.amount) {
-          var merged = Object.assign({}, t, {
-            amount: parseFloat(s.amount) || 0,
-            overkoepelend: s.overkoepelend || t.overkoepelend || '',
-            category: s.category || t.category || '',
-            itemName: s.itemName || ''
-          });
-          result.push(merged);
-        }
-      }
-    } else {
-      result.push(t);
-    }
-  }
-  return result;
-};
 const getGreeting = () => {
   const h = (/* @__PURE__ */ new Date()).getHours();
   return h < 12 ? "Goedemorgen" : h < 18 ? "Goedemiddag" : "Goedenavond";
@@ -1265,7 +1241,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
   const [showRes, setShowRes] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [splitMode, setSplitMode] = useState(!!(initial && initial.splits && initial.splits.length));
-  const [splits, setSplits] = useState((initial && initial.splits) || [{ id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false, focusedIdx: -1 }]);
+  const [splits, setSplits] = useState((initial && initial.splits) || [{ id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false }]);
   const splitTotal = splits.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
   const splitDiff = (parseFloat(form.amount) || 0) - splitTotal;
   const getSplitResults = (search) => {
@@ -1276,13 +1252,11 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
   const selectSplitItem = (lineId, it) => {
     setSplits((s) => s.map((l) => l.id === lineId ? { ...l, description: it.name, overkoepelend: it.overkoepelend, category: it.category, itemName: it.name, search: it.name, showRes: false } : l));
   };
-  const addSplitLine = () => setSplits((s) => [...s, { id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false, focusedIdx: -1 }]);
+  const addSplitLine = () => setSplits((s) => [...s, { id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false }]);
   const removeSplitLine = (id) => setSplits((s) => s.filter((l) => l.id !== id));
   const updateSplitLine = (id, field, val) => setSplits((s) => s.map((l) => l.id === id ? { ...l, [field]: val } : l));
   const [qaForm, setQaForm] = useState({ name: "", overkoepelend: "", categorie: "" });
   const [showMerchant, setShowMerchant] = useState(false);
-  const [merchantIdx, setMerchantIdx] = useState(-1);
-  const [categoryIdx, setCategoryIdx] = useState(-1);
   const merchantSuggestions = useMemo(() => {
     if (!form.description || form.description.length < 1) return [];
     const q = form.description.toLowerCase();
@@ -1338,24 +1312,16 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
           placeholder: "Bv. Colruyt boodschappen",
           value: form.description,
           autoComplete: "off",
-          onChange: (e) => { setForm((f) => ({ ...f, description: e.target.value })); setShowMerchant(true); setMerchantIdx(-1); },
+          onChange: (e) => { setForm((f) => ({ ...f, description: e.target.value })); setShowMerchant(true); },
           onFocus: () => setShowMerchant(true),
-          onBlur: () => setTimeout(() => { setShowMerchant(false); setMerchantIdx(-1); }, 150),
-          onKeyDown: (e) => {
-            if (!showMerchant || merchantSuggestions.length === 0) return;
-            if (e.key === 'ArrowDown') { e.preventDefault(); setMerchantIdx(function(i) { return Math.min(i + 1, merchantSuggestions.length - 1); }); }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); setMerchantIdx(function(i) { return Math.max(i - 1, -1); }); }
-            else if ((e.key === 'Enter' || e.key === 'Tab') && merchantIdx >= 0 && merchantSuggestions[merchantIdx]) { e.preventDefault(); selectMerchant(merchantSuggestions[merchantIdx]); setMerchantIdx(-1); }
-            else if (e.key === 'Escape') { setShowMerchant(false); setMerchantIdx(-1); }
-          }
+          onBlur: () => setTimeout(() => setShowMerchant(false), 150)
         }),
         showMerchant && merchantSuggestions.length > 0 && /* @__PURE__ */ React.createElement("div", {
           className: "absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
-        }, merchantSuggestions.map((m, mi) => /* @__PURE__ */ React.createElement("button", {
+        }, merchantSuggestions.map((m) => /* @__PURE__ */ React.createElement("button", {
           key: m.id, type: "button",
-          onMouseDown: (e) => { e.preventDefault(); selectMerchant(m); setMerchantIdx(-1); },
-          className: "w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center justify-between border-b border-slate-50 last:border-0",
-          style: merchantIdx === mi ? { backgroundColor: '#f0fdfa' } : {}
+          onMouseDown: (e) => { e.preventDefault(); selectMerchant(m); },
+          className: "w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center justify-between border-b border-slate-50 last:border-0"
         },
           /* @__PURE__ */ React.createElement("div", null,
             /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800" }, m.name),
@@ -1390,29 +1356,19 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
                 updateSplitLine(line.id, "search", e.target.value);
                 updateSplitLine(line.id, "description", e.target.value);
                 updateSplitLine(line.id, "showRes", true);
-                updateSplitLine(line.id, "focusedIdx", -1);
                 if (!e.target.value) { updateSplitLine(line.id, "overkoepelend", ""); updateSplitLine(line.id, "category", ""); }
               },
               onFocus: () => updateSplitLine(line.id, "showRes", true),
-              onBlur: () => setTimeout(() => { updateSplitLine(line.id, "showRes", false); updateSplitLine(line.id, "focusedIdx", -1); }, 150),
-              onKeyDown: (e) => {
-                var items = getSplitResults(line.search || line.description);
-                var fi = line.focusedIdx !== undefined ? line.focusedIdx : -1;
-                if (e.key === 'ArrowDown') { e.preventDefault(); updateSplitLine(line.id, "focusedIdx", Math.min(fi + 1, items.length - 1)); }
-                else if (e.key === 'ArrowUp') { e.preventDefault(); updateSplitLine(line.id, "focusedIdx", Math.max(fi - 1, -1)); }
-                else if ((e.key === 'Enter' || e.key === 'Tab') && fi >= 0 && items[fi]) { e.preventDefault(); selectSplitItem(line.id, items[fi]); }
-                else if (e.key === 'Escape') { updateSplitLine(line.id, "showRes", false); updateSplitLine(line.id, "focusedIdx", -1); }
-              },
+              onBlur: () => setTimeout(() => updateSplitLine(line.id, "showRes", false), 150),
               className: "w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-400"
             }),
             line.showRes && getSplitResults(line.search || line.description).length > 0 && /* @__PURE__ */ React.createElement("div", {
               className: "absolute z-50 w-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden",
               style: { maxHeight: "180px", overflowY: "auto" }
-            }, getSplitResults(line.search || line.description).map((it, sii) => /* @__PURE__ */ React.createElement("button", {
+            }, getSplitResults(line.search || line.description).map((it) => /* @__PURE__ */ React.createElement("button", {
               key: it.id, type: "button",
               onMouseDown: (e) => { e.preventDefault(); selectSplitItem(line.id, it); },
-              className: "w-full text-left px-3 py-2 hover:bg-slate-50 flex flex-col border-b border-slate-50 last:border-0",
-              style: (line.focusedIdx !== undefined ? line.focusedIdx : -1) === sii ? { backgroundColor: '#f0fdfa' } : {}
+              className: "w-full text-left px-3 py-2 hover:bg-slate-50 flex flex-col border-b border-slate-50 last:border-0"
             },
               /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium text-slate-800" }, it.name),
               /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, it.overkoepelend, " \u203A ", it.category)
@@ -1436,15 +1392,8 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
     /* @__PURE__ */ React.createElement(FormField, { label: "Categorie", hint: "Zoek op naam of synoniem \u2014 bv. 'brood', 'tanken', 'netflix'" }, /* @__PURE__ */ React.createElement("div", { className: "relative", ref: searchRef }, /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(Search, { size: 14, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }), /* @__PURE__ */ React.createElement(Input, { className: "pl-8", placeholder: "Typ om te zoeken...", value: search, onChange: (e) => {
       setSearch(e.target.value);
       setShowRes(true);
-      setCategoryIdx(-1);
       if (!e.target.value) setForm((f) => ({ ...f, itemId: "", itemName: "", category: "", overkoepelend: "" }));
-    }, onFocus: () => setShowRes(true), onKeyDown: (e) => {
-      if (!showRes || results.length === 0) return;
-      if (e.key === 'ArrowDown') { e.preventDefault(); setCategoryIdx(function(i) { return Math.min(i + 1, results.length - 1); }); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); setCategoryIdx(function(i) { return Math.max(i - 1, -1); }); }
-      else if ((e.key === 'Enter' || e.key === 'Tab') && categoryIdx >= 0 && results[categoryIdx]) { e.preventDefault(); selectItem(results[categoryIdx]); setCategoryIdx(-1); }
-      else if (e.key === 'Escape') { setShowRes(false); setCategoryIdx(-1); }
-    } })), showRes && results.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden" }, results.map((it, ci) => /* @__PURE__ */ React.createElement("button", { key: it.id, onClick: () => { selectItem(it); setCategoryIdx(-1); }, className: "w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center justify-between group border-b border-slate-50 last:border-0", style: categoryIdx === ci ? { backgroundColor: '#f0fdfa' } : {} }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800" }, it.name), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, it.overkoepelend, " \u203A ", it.category)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, it.unit && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-slate-100 px-2 py-0.5 rounded-full" }, it.unit), /* @__PURE__ */ React.createElement(Badge, { color: it.color }, it.hoofdtype.replace(" Uitgaven", "")))))), !results.find((r) => r.name.toLowerCase() === search.trim().toLowerCase()) && /* @__PURE__ */ React.createElement("button", {
+    }, onFocus: () => setShowRes(true) })), showRes && results.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden" }, results.map((it) => /* @__PURE__ */ React.createElement("button", { key: it.id, onClick: () => selectItem(it), className: "w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center justify-between group border-b border-slate-50 last:border-0" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800" }, it.name), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, it.overkoepelend, " \u203A ", it.category)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, it.unit && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-slate-100 px-2 py-0.5 rounded-full" }, it.unit), /* @__PURE__ */ React.createElement(Badge, { color: it.color }, it.hoofdtype.replace(" Uitgaven", "")))))), !results.find((r) => r.name.toLowerCase() === search.trim().toLowerCase()) && /* @__PURE__ */ React.createElement("button", {
       type: "button",
       onClick: () => {
         setQaForm({ name: search.trim(), overkoepelend: "" });
@@ -1553,7 +1502,7 @@ const Dashboard = ({ data, onQuickAdd, profile }) => {
   }), [txs]);
   const pieData = useMemo(() => {
     const m = {};
-    expandSplits(thisMonth.filter((t) => isExpense(t) && t.hoofdtype !== "Sparen")).forEach((t) => {
+    thisMonth.filter((t) => isExpense(t) && t.hoofdtype !== "Sparen").forEach((t) => {
       m[t.overkoepelend] = (m[t.overkoepelend] || 0) + t.amount;
     });
     return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name, value, color: OV_COLORS[name] || "#94a3b8" }));
@@ -1564,7 +1513,7 @@ const Dashboard = ({ data, onQuickAdd, profile }) => {
     return { ...g, current, pct: Math.min(100, g.targetAmount > 0 ? current / g.targetAmount * 100 : 0) };
   }), [data.goals, latestByAcc]);
   const budgetAlerts = useMemo(() => data.budgets.map((b) => {
-    const spent = expandSplits(thisMonth).filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend).reduce((s, t) => s + t.amount, 0);
+    const spent = thisMonth.filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend).reduce((s, t) => s + t.amount, 0);
     return { ...b, spent, pct: b.amount > 0 ? spent / b.amount * 100 : 0 };
   }).filter((b) => b.pct > 85).sort((a, z) => z.pct - a.pct), [data.budgets, thisMonth]);
   const recentTxs = useMemo(() => [...txs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5), [txs]);
@@ -1747,7 +1696,7 @@ const BudgettenPage = ({ data, onUpdate, toast }) => {
   const ovList = useMemo(() => [...new Set(data.categories.map((c) => c.name))], [data.categories]);
   const budgetsWithSpent = useMemo(() => data.budgets.map((b) => {
     const year = fmt(today).slice(0, 4);
-    const relevant = expandSplits(data.transactions).filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend && (b.period === "monthly" ? getMonth(t.date) === currentMonth : t.date.startsWith(year)));
+    const relevant = data.transactions.filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend && (b.period === "monthly" ? getMonth(t.date) === currentMonth : t.date.startsWith(year)));
     const spent = relevant.reduce((s, t) => s + t.amount, 0);
     const pct = b.amount > 0 ? spent / b.amount * 100 : 0;
     return { ...b, spent, pct };
@@ -1776,32 +1725,175 @@ const BudgettenPage = ({ data, onUpdate, toast }) => {
 const AnalysePage = ({ data }) => {
   const [period, setPeriod] = useState("month");
   const [drillOv, setDrillOv] = useState(null);
-  const txs = useMemo(() => expandSplits(data.transactions.filter((t) => {
+  const COLORS2 = [T.teal, T.amber, "#7C3AED", "#2563EB", "#059669", "#DB2777", "#d97706", "#64748B"];
+  const SUB_COLORS = ["#0D9488","#F59E0B","#7C3AED","#2563EB","#059669","#DB2777","#F97316","#64748B","#DC2626","#0891b2","#65a30d","#be185d"];
+  const txs = useMemo(() => data.transactions.filter((t) => {
     if (period === "month") return getMonth(t.date) === currentMonth;
     if (period === "year") return t.date.startsWith(fmt(today).slice(0, 4));
     return true;
-  }).filter((t) => isExpense(t) && t.hoofdtype !== "Sparen")), [data.transactions, period]);
+  }).filter((t) => isExpense(t) && t.hoofdtype !== "Sparen"), [data.transactions, period]);
   const byOv = useMemo(() => {
     const m = {};
-    txs.forEach((t) => {
-      m[t.overkoepelend] = (m[t.overkoepelend] || 0) + t.amount;
-    });
+    txs.forEach((t) => { m[t.overkoepelend] = (m[t.overkoepelend] || 0) + t.amount; });
     return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value, color: OV_COLORS[name] || "#94a3b8" }));
   }, [txs]);
-  const byCat = useMemo(() => {
+  const byItem = useMemo(() => {
+    const m = {};
+    txs.forEach((t) => {
+      const key = t.itemName || t.description || "Overig";
+      m[key] = (m[key] || 0) + t.amount;
+    });
+    const sorted = Object.entries(m).sort((a, b) => b[1] - a[1]);
+    const top = sorted.slice(0, 10);
+    const restTotal = sorted.slice(10).reduce((s, e) => s + e[1], 0);
+    const result = top.map(([name, value], i) => ({ name, value, color: SUB_COLORS[i % SUB_COLORS.length] }));
+    if (restTotal > 0) result.push({ name: "Overige", value: restTotal, color: "#94a3b8" });
+    return result;
+  }, [txs]);
+  const drillTxs = useMemo(() => {
+    if (!drillOv) return [];
+    return txs.filter((t) => t.overkoepelend === drillOv).sort((a, b) => b.date.localeCompare(a.date));
+  }, [txs, drillOv]);
+  const drillByCat = useMemo(() => {
     if (!drillOv) return [];
     const m = {};
-    txs.filter((t) => t.overkoepelend === drillOv).forEach((t) => {
-      m[t.category || "Onbekend"] = (m[t.category || "Onbekend"] || 0) + t.amount;
-    });
-    return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value }));
-  }, [txs, drillOv]);
+    drillTxs.forEach((t) => { m[t.category || "Onbekend"] = (m[t.category || "Onbekend"] || 0) + t.amount; });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, value], i) => ({ name, value, color: COLORS2[i % COLORS2.length] }));
+  }, [drillTxs, drillOv]);
   const total = byOv.reduce((s, e) => s + e.value, 0);
-  const COLORS2 = [T.teal, T.amber, "#7C3AED", "#2563EB", "#059669", "#DB2777", "#d97706", "#64748B"];
-  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-5xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, drillOv && /* @__PURE__ */ React.createElement("button", { onClick: () => setDrillOv(null), className: "flex items-center gap-1 text-teal-600 text-sm hover:text-teal-700" }, /* @__PURE__ */ React.createElement(ArrowLeft, { size: 14 }), "Terug"), /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, drillOv || "Analyse")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [["month", "Deze maand"], ["year", "Dit jaar"], ["all", "Alles"]].map(([k, l]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setPeriod(k), className: `px-3 py-1.5 rounded-lg text-xs font-medium ${period === k ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}` }, l)))), !drillOv ? /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" }, /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Verdeling uitgaven"), byOv.length > 0 ? /* @__PURE__ */ React.createElement(SvgDonut, { data: byOv, size: 200, inner: 55, outer: 90 }) : /* @__PURE__ */ React.createElement("div", { className: "py-16 text-center text-slate-400 text-sm" }, "Geen uitgaven in deze periode")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Ranglijst ", /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400 font-normal" }, "\u2014 klik voor detail")), /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, byOv.map((e, i) => /* @__PURE__ */ React.createElement("button", { key: e.name, onClick: () => setDrillOv(e.name), className: "w-full text-left hover:bg-slate-50 rounded-xl p-2 -mx-2 transition-colors group" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between text-sm mb-1" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-2.5 h-2.5 rounded-full", style: { backgroundColor: COLORS2[i % COLORS2.length] } }), /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-700" }, e.name)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, total > 0 ? (e.value / total * 100).toFixed(0) : 0, "%"), /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, fmtEUR(e.value)), /* @__PURE__ */ React.createElement(ChevronRight, { size: 12, className: "text-slate-300 group-hover:text-teal-500" }))), /* @__PURE__ */ React.createElement(Progress, { value: e.value, max: total, color: COLORS2[i % COLORS2.length], h: 5 }))), byOv.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-slate-400 text-sm text-center py-8" }, "Geen gegevens"), total > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold" }, /* @__PURE__ */ React.createElement("span", { className: "text-slate-600" }, "Totaal"), /* @__PURE__ */ React.createElement("span", null, fmtEUR(total)))))) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "grid gap-3" }, byCat.map((e, i) => {
-    var _a;
-    return /* @__PURE__ */ React.createElement(Card, { key: e.name, className: "p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-800" }, e.name), /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, fmtEUR(e.value))), /* @__PURE__ */ React.createElement(Progress, { value: e.value, max: ((_a = byCat[0]) == null ? void 0 : _a.value) || 1, color: COLORS2[i % COLORS2.length], h: 6 }));
-  }), byCat.length === 0 && /* @__PURE__ */ React.createElement(Card, { className: "py-12 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "text-slate-400 text-sm" }, "Geen transacties voor deze categorie")))));
+  const itemTotal = byItem.reduce((s, e) => s + e.value, 0);
+  const drillTotal = drillTxs.reduce((s, t) => s + t.amount, 0);
+  const drillColor = OV_COLORS[drillOv] || T.teal;
+  return React.createElement("div", { className: "p-6 max-w-5xl mx-auto" },
+    React.createElement("div", { className: "flex items-center justify-between mb-6" },
+      React.createElement("div", { className: "flex items-center gap-3" },
+        drillOv && React.createElement("button", { onClick: () => setDrillOv(null), className: "flex items-center gap-1 text-teal-600 text-sm hover:text-teal-700" }, React.createElement(ArrowLeft, { size: 14 }), "Terug"),
+        React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, drillOv || "Analyse")
+      ),
+      React.createElement("div", { className: "flex gap-2" },
+        [["month", "Deze maand"], ["year", "Dit jaar"], ["all", "Alles"]].map(([k, l]) => React.createElement("button", { key: k, onClick: () => setPeriod(k), className: "px-3 py-1.5 rounded-lg text-xs font-medium " + (period === k ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200") }, l))
+      )
+    ),
+    !drillOv && React.createElement("div", null,
+      React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6" },
+        React.createElement(Card, { className: "p-5" },
+          React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Verdeling uitgaven"),
+          byOv.length > 0 ? React.createElement(SvgDonut, { data: byOv, size: 200, inner: 55, outer: 90 }) : React.createElement("div", { className: "py-16 text-center text-slate-400 text-sm" }, "Geen uitgaven in deze periode")
+        ),
+        React.createElement(Card, { className: "p-5" },
+          React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Ranglijst ", React.createElement("span", { className: "text-xs text-slate-400 font-normal" }, "\u2014 klik voor detail")),
+          React.createElement("div", { className: "space-y-3" },
+            byOv.map((e, i) => React.createElement("button", { key: e.name, onClick: () => setDrillOv(e.name), className: "w-full text-left hover:bg-slate-50 rounded-xl p-2 -mx-2 transition-colors group" },
+              React.createElement("div", { className: "flex items-center justify-between text-sm mb-1" },
+                React.createElement("div", { className: "flex items-center gap-2" },
+                  React.createElement("div", { className: "w-2.5 h-2.5 rounded-full", style: { backgroundColor: COLORS2[i % COLORS2.length] } }),
+                  React.createElement("span", { className: "font-medium text-slate-700" }, e.name)
+                ),
+                React.createElement("div", { className: "flex items-center gap-2" },
+                  React.createElement("span", { className: "text-xs text-slate-400" }, total > 0 ? (e.value / total * 100).toFixed(0) : 0, "%"),
+                  React.createElement("span", { className: "font-semibold" }, fmtEUR(e.value)),
+                  React.createElement(ChevronRight, { size: 12, className: "text-slate-300 group-hover:text-teal-500" })
+                )
+              ),
+              React.createElement(Progress, { value: e.value, max: total, color: COLORS2[i % COLORS2.length], h: 5 })
+            )),
+            byOv.length === 0 && React.createElement("p", { className: "text-slate-400 text-sm text-center py-8" }, "Geen gegevens"),
+            total > 0 && React.createElement("div", { className: "mt-4 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold" },
+              React.createElement("span", { className: "text-slate-600" }, "Totaal"),
+              React.createElement("span", null, fmtEUR(total))
+            )
+          )
+        )
+      ),
+      byItem.length > 0 && React.createElement(Card, { className: "p-5" },
+        React.createElement("h2", { className: "font-semibold text-slate-800 mb-1" }, "Verdeling per product/dienst"),
+        React.createElement("p", { className: "text-xs text-slate-400 mb-5" }, "Top subcategorie\u00ebn \u2014 aangekochte producten en diensten"),
+        React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 items-center" },
+          React.createElement("div", null, React.createElement(SvgDonut, { data: byItem, size: 200, inner: 55, outer: 90 })),
+          React.createElement("div", { className: "space-y-2" },
+            byItem.map((e) => React.createElement("div", { key: e.name, className: "flex items-center justify-between" },
+              React.createElement("div", { className: "flex items-center gap-2 min-w-0 flex-1" },
+                React.createElement("div", { className: "w-2 h-2 rounded-full flex-shrink-0", style: { backgroundColor: e.color } }),
+                React.createElement("span", { className: "text-slate-700 truncate text-xs" }, e.name)
+              ),
+              React.createElement("div", { className: "flex items-center gap-2 flex-shrink-0 ml-2" },
+                React.createElement("span", { className: "text-xs text-slate-400 w-7 text-right" }, itemTotal > 0 ? (e.value / itemTotal * 100).toFixed(0) : 0, "%"),
+                React.createElement("span", { className: "font-semibold text-slate-800 text-xs w-20 text-right" }, fmtEUR(e.value))
+              )
+            )),
+            React.createElement("div", { className: "mt-3 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold" },
+              React.createElement("span", { className: "text-slate-600" }, "Totaal"),
+              React.createElement("span", null, fmtEUR(itemTotal))
+            )
+          )
+        )
+      )
+    ),
+    drillOv && React.createElement("div", null,
+      React.createElement(Card, { className: "p-5 mb-6" },
+        React.createElement("div", { className: "flex items-center gap-4" },
+          React.createElement("div", { className: "w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0", style: { backgroundColor: drillColor } }, "\u20AC"),
+          React.createElement("div", { className: "flex-1" },
+            React.createElement("div", { className: "font-bold text-lg text-slate-800" }, drillOv),
+            React.createElement("div", { className: "text-xs text-slate-400 mt-0.5" }, drillTxs.length + " transacties in geselecteerde periode")
+          ),
+          React.createElement("div", { className: "text-right" },
+            React.createElement("div", { className: "text-2xl font-bold text-slate-800" }, fmtEUR(drillTotal)),
+            total > 0 && React.createElement("div", { className: "text-xs text-slate-400 mt-0.5" }, (drillTotal / total * 100).toFixed(1) + "% van totale uitgaven")
+          )
+        )
+      ),
+      drillByCat.length > 0 && React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6" },
+        React.createElement(Card, { className: "p-5" },
+          React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Verdeling per categorie"),
+          React.createElement(SvgDonut, { data: drillByCat, size: 180, inner: 50, outer: 80 })
+        ),
+        React.createElement(Card, { className: "p-5" },
+          React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Categorie\u00ebn"),
+          React.createElement("div", { className: "space-y-3" },
+            drillByCat.map((e) => React.createElement("div", { key: e.name },
+              React.createElement("div", { className: "flex items-center justify-between text-sm mb-1" },
+                React.createElement("div", { className: "flex items-center gap-2" },
+                  React.createElement("div", { className: "w-2.5 h-2.5 rounded-full", style: { backgroundColor: e.color } }),
+                  React.createElement("span", { className: "font-medium text-slate-700" }, e.name)
+                ),
+                React.createElement("div", { className: "flex items-center gap-2" },
+                  React.createElement("span", { className: "text-xs text-slate-400" }, drillTotal > 0 ? (e.value / drillTotal * 100).toFixed(0) : 0, "%"),
+                  React.createElement("span", { className: "font-semibold" }, fmtEUR(e.value))
+                )
+              ),
+              React.createElement(Progress, { value: e.value, max: drillTotal, color: e.color, h: 5 })
+            )),
+            React.createElement("div", { className: "mt-4 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold" },
+              React.createElement("span", { className: "text-slate-600" }, "Totaal"),
+              React.createElement("span", null, fmtEUR(drillTotal))
+            )
+          )
+        )
+      ),
+      React.createElement(Card, { className: "p-5" },
+        React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Alle transacties"),
+        drillTxs.length > 0
+          ? React.createElement("div", { className: "divide-y divide-slate-50" },
+              drillTxs.map((t, idx) => {
+                const acc = data.accounts.find((a) => a.id === t.accountId);
+                const accName = acc ? acc.name : "";
+                const sub = [t.itemName, t.category, t.brand].filter(Boolean).join(" \u00b7 ");
+                return React.createElement("div", { key: t.id || idx, className: "flex items-center gap-3 py-3" },
+                  React.createElement("div", { className: "text-xs text-slate-400 w-20 flex-shrink-0" }, fmtDate(t.date)),
+                  React.createElement("div", { className: "flex-1 min-w-0" },
+                    React.createElement("div", { className: "text-sm font-medium text-slate-800 truncate" }, t.description),
+                    sub && React.createElement("div", { className: "text-xs text-slate-400 truncate mt-0.5" }, sub)
+                  ),
+                  accName && React.createElement("div", { className: "text-xs text-slate-300 flex-shrink-0 hidden sm:block" }, accName),
+                  React.createElement("div", { className: "text-sm font-bold text-red-500 flex-shrink-0" }, "\u2212" + fmtEUR(t.amount))
+                );
+              })
+            )
+          : React.createElement("p", { className: "text-slate-400 text-sm text-center py-8" }, "Geen transacties voor deze categorie")
+      )
+    )
+  );
 };
 const CategorieeenPage = ({ data, onUpdate, toast }) => {
   const [search, setSearch] = useState("");
