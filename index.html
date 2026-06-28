@@ -1128,6 +1128,30 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString("nl-BE", { day: "2-dig
 const fmtDateShort = (d) => d ? new Date(d).toLocaleDateString("nl-BE", { day: "2-digit", month: "2-digit" }) : "";
 const getMonth = (d) => d ? d.slice(0, 7) : "";
 const isExpense = (t) => t.hoofdtype !== "Inkomsten";
+// Kassaticket-uitsplitsing: vervang een transactie met splits door losse virtuele regels
+const expandSplits = function(txs) {
+  var result = [];
+  for (var i = 0; i < txs.length; i++) {
+    var t = txs[i];
+    if (t.splits && t.splits.length > 0) {
+      for (var j = 0; j < t.splits.length; j++) {
+        var s = t.splits[j];
+        if (s.description && s.amount) {
+          var merged = Object.assign({}, t, {
+            amount: parseFloat(s.amount) || 0,
+            overkoepelend: s.overkoepelend || t.overkoepelend || '',
+            category: s.category || t.category || '',
+            itemName: s.itemName || ''
+          });
+          result.push(merged);
+        }
+      }
+    } else {
+      result.push(t);
+    }
+  }
+  return result;
+};
 const getGreeting = () => {
   const h = (/* @__PURE__ */ new Date()).getHours();
   return h < 12 ? "Goedemorgen" : h < 18 ? "Goedemiddag" : "Goedenavond";
@@ -1241,7 +1265,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
   const [showRes, setShowRes] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [splitMode, setSplitMode] = useState(!!(initial && initial.splits && initial.splits.length));
-  const [splits, setSplits] = useState((initial && initial.splits) || [{ id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false }]);
+  const [splits, setSplits] = useState((initial && initial.splits) || [{ id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false, focusedIdx: -1 }]);
   const splitTotal = splits.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
   const splitDiff = (parseFloat(form.amount) || 0) - splitTotal;
   const getSplitResults = (search) => {
@@ -1252,11 +1276,13 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
   const selectSplitItem = (lineId, it) => {
     setSplits((s) => s.map((l) => l.id === lineId ? { ...l, description: it.name, overkoepelend: it.overkoepelend, category: it.category, itemName: it.name, search: it.name, showRes: false } : l));
   };
-  const addSplitLine = () => setSplits((s) => [...s, { id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false }]);
+  const addSplitLine = () => setSplits((s) => [...s, { id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false, focusedIdx: -1 }]);
   const removeSplitLine = (id) => setSplits((s) => s.filter((l) => l.id !== id));
   const updateSplitLine = (id, field, val) => setSplits((s) => s.map((l) => l.id === id ? { ...l, [field]: val } : l));
   const [qaForm, setQaForm] = useState({ name: "", overkoepelend: "", categorie: "" });
   const [showMerchant, setShowMerchant] = useState(false);
+  const [merchantIdx, setMerchantIdx] = useState(-1);
+  const [categoryIdx, setCategoryIdx] = useState(-1);
   const merchantSuggestions = useMemo(() => {
     if (!form.description || form.description.length < 1) return [];
     const q = form.description.toLowerCase();
@@ -1312,16 +1338,24 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
           placeholder: "Bv. Colruyt boodschappen",
           value: form.description,
           autoComplete: "off",
-          onChange: (e) => { setForm((f) => ({ ...f, description: e.target.value })); setShowMerchant(true); },
+          onChange: (e) => { setForm((f) => ({ ...f, description: e.target.value })); setShowMerchant(true); setMerchantIdx(-1); },
           onFocus: () => setShowMerchant(true),
-          onBlur: () => setTimeout(() => setShowMerchant(false), 150)
+          onBlur: () => setTimeout(() => { setShowMerchant(false); setMerchantIdx(-1); }, 150),
+          onKeyDown: (e) => {
+            if (!showMerchant || merchantSuggestions.length === 0) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); setMerchantIdx(function(i) { return Math.min(i + 1, merchantSuggestions.length - 1); }); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setMerchantIdx(function(i) { return Math.max(i - 1, -1); }); }
+            else if ((e.key === 'Enter' || e.key === 'Tab') && merchantIdx >= 0 && merchantSuggestions[merchantIdx]) { e.preventDefault(); selectMerchant(merchantSuggestions[merchantIdx]); setMerchantIdx(-1); }
+            else if (e.key === 'Escape') { setShowMerchant(false); setMerchantIdx(-1); }
+          }
         }),
         showMerchant && merchantSuggestions.length > 0 && /* @__PURE__ */ React.createElement("div", {
           className: "absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
-        }, merchantSuggestions.map((m) => /* @__PURE__ */ React.createElement("button", {
+        }, merchantSuggestions.map((m, mi) => /* @__PURE__ */ React.createElement("button", {
           key: m.id, type: "button",
-          onMouseDown: (e) => { e.preventDefault(); selectMerchant(m); },
-          className: "w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center justify-between border-b border-slate-50 last:border-0"
+          onMouseDown: (e) => { e.preventDefault(); selectMerchant(m); setMerchantIdx(-1); },
+          className: "w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center justify-between border-b border-slate-50 last:border-0",
+          style: merchantIdx === mi ? { backgroundColor: '#f0fdfa' } : {}
         },
           /* @__PURE__ */ React.createElement("div", null,
             /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800" }, m.name),
@@ -1356,19 +1390,29 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
                 updateSplitLine(line.id, "search", e.target.value);
                 updateSplitLine(line.id, "description", e.target.value);
                 updateSplitLine(line.id, "showRes", true);
+                updateSplitLine(line.id, "focusedIdx", -1);
                 if (!e.target.value) { updateSplitLine(line.id, "overkoepelend", ""); updateSplitLine(line.id, "category", ""); }
               },
               onFocus: () => updateSplitLine(line.id, "showRes", true),
-              onBlur: () => setTimeout(() => updateSplitLine(line.id, "showRes", false), 150),
+              onBlur: () => setTimeout(() => { updateSplitLine(line.id, "showRes", false); updateSplitLine(line.id, "focusedIdx", -1); }, 150),
+              onKeyDown: (e) => {
+                var items = getSplitResults(line.search || line.description);
+                var fi = line.focusedIdx !== undefined ? line.focusedIdx : -1;
+                if (e.key === 'ArrowDown') { e.preventDefault(); updateSplitLine(line.id, "focusedIdx", Math.min(fi + 1, items.length - 1)); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); updateSplitLine(line.id, "focusedIdx", Math.max(fi - 1, -1)); }
+                else if ((e.key === 'Enter' || e.key === 'Tab') && fi >= 0 && items[fi]) { e.preventDefault(); selectSplitItem(line.id, items[fi]); }
+                else if (e.key === 'Escape') { updateSplitLine(line.id, "showRes", false); updateSplitLine(line.id, "focusedIdx", -1); }
+              },
               className: "w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-400"
             }),
             line.showRes && getSplitResults(line.search || line.description).length > 0 && /* @__PURE__ */ React.createElement("div", {
               className: "absolute z-50 w-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden",
               style: { maxHeight: "180px", overflowY: "auto" }
-            }, getSplitResults(line.search || line.description).map((it) => /* @__PURE__ */ React.createElement("button", {
+            }, getSplitResults(line.search || line.description).map((it, sii) => /* @__PURE__ */ React.createElement("button", {
               key: it.id, type: "button",
               onMouseDown: (e) => { e.preventDefault(); selectSplitItem(line.id, it); },
-              className: "w-full text-left px-3 py-2 hover:bg-slate-50 flex flex-col border-b border-slate-50 last:border-0"
+              className: "w-full text-left px-3 py-2 hover:bg-slate-50 flex flex-col border-b border-slate-50 last:border-0",
+              style: (line.focusedIdx !== undefined ? line.focusedIdx : -1) === sii ? { backgroundColor: '#f0fdfa' } : {}
             },
               /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium text-slate-800" }, it.name),
               /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, it.overkoepelend, " \u203A ", it.category)
@@ -1392,8 +1436,15 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
     /* @__PURE__ */ React.createElement(FormField, { label: "Categorie", hint: "Zoek op naam of synoniem \u2014 bv. 'brood', 'tanken', 'netflix'" }, /* @__PURE__ */ React.createElement("div", { className: "relative", ref: searchRef }, /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(Search, { size: 14, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }), /* @__PURE__ */ React.createElement(Input, { className: "pl-8", placeholder: "Typ om te zoeken...", value: search, onChange: (e) => {
       setSearch(e.target.value);
       setShowRes(true);
+      setCategoryIdx(-1);
       if (!e.target.value) setForm((f) => ({ ...f, itemId: "", itemName: "", category: "", overkoepelend: "" }));
-    }, onFocus: () => setShowRes(true) })), showRes && results.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden" }, results.map((it) => /* @__PURE__ */ React.createElement("button", { key: it.id, onClick: () => selectItem(it), className: "w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center justify-between group border-b border-slate-50 last:border-0" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800" }, it.name), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, it.overkoepelend, " \u203A ", it.category)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, it.unit && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-slate-100 px-2 py-0.5 rounded-full" }, it.unit), /* @__PURE__ */ React.createElement(Badge, { color: it.color }, it.hoofdtype.replace(" Uitgaven", "")))))), !results.find((r) => r.name.toLowerCase() === search.trim().toLowerCase()) && /* @__PURE__ */ React.createElement("button", {
+    }, onFocus: () => setShowRes(true), onKeyDown: (e) => {
+      if (!showRes || results.length === 0) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); setCategoryIdx(function(i) { return Math.min(i + 1, results.length - 1); }); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setCategoryIdx(function(i) { return Math.max(i - 1, -1); }); }
+      else if ((e.key === 'Enter' || e.key === 'Tab') && categoryIdx >= 0 && results[categoryIdx]) { e.preventDefault(); selectItem(results[categoryIdx]); setCategoryIdx(-1); }
+      else if (e.key === 'Escape') { setShowRes(false); setCategoryIdx(-1); }
+    } })), showRes && results.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden" }, results.map((it, ci) => /* @__PURE__ */ React.createElement("button", { key: it.id, onClick: () => { selectItem(it); setCategoryIdx(-1); }, className: "w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center justify-between group border-b border-slate-50 last:border-0", style: categoryIdx === ci ? { backgroundColor: '#f0fdfa' } : {} }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800" }, it.name), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, it.overkoepelend, " \u203A ", it.category)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, it.unit && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-slate-100 px-2 py-0.5 rounded-full" }, it.unit), /* @__PURE__ */ React.createElement(Badge, { color: it.color }, it.hoofdtype.replace(" Uitgaven", "")))))), !results.find((r) => r.name.toLowerCase() === search.trim().toLowerCase()) && /* @__PURE__ */ React.createElement("button", {
       type: "button",
       onClick: () => {
         setQaForm({ name: search.trim(), overkoepelend: "" });
@@ -1502,7 +1553,7 @@ const Dashboard = ({ data, onQuickAdd, profile }) => {
   }), [txs]);
   const pieData = useMemo(() => {
     const m = {};
-    thisMonth.filter((t) => isExpense(t) && t.hoofdtype !== "Sparen").forEach((t) => {
+    expandSplits(thisMonth.filter((t) => isExpense(t) && t.hoofdtype !== "Sparen")).forEach((t) => {
       m[t.overkoepelend] = (m[t.overkoepelend] || 0) + t.amount;
     });
     return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name, value, color: OV_COLORS[name] || "#94a3b8" }));
@@ -1513,7 +1564,7 @@ const Dashboard = ({ data, onQuickAdd, profile }) => {
     return { ...g, current, pct: Math.min(100, g.targetAmount > 0 ? current / g.targetAmount * 100 : 0) };
   }), [data.goals, latestByAcc]);
   const budgetAlerts = useMemo(() => data.budgets.map((b) => {
-    const spent = thisMonth.filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend).reduce((s, t) => s + t.amount, 0);
+    const spent = expandSplits(thisMonth).filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend).reduce((s, t) => s + t.amount, 0);
     return { ...b, spent, pct: b.amount > 0 ? spent / b.amount * 100 : 0 };
   }).filter((b) => b.pct > 85).sort((a, z) => z.pct - a.pct), [data.budgets, thisMonth]);
   const recentTxs = useMemo(() => [...txs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5), [txs]);
@@ -1696,7 +1747,7 @@ const BudgettenPage = ({ data, onUpdate, toast }) => {
   const ovList = useMemo(() => [...new Set(data.categories.map((c) => c.name))], [data.categories]);
   const budgetsWithSpent = useMemo(() => data.budgets.map((b) => {
     const year = fmt(today).slice(0, 4);
-    const relevant = data.transactions.filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend && (b.period === "monthly" ? getMonth(t.date) === currentMonth : t.date.startsWith(year)));
+    const relevant = expandSplits(data.transactions).filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend && (b.period === "monthly" ? getMonth(t.date) === currentMonth : t.date.startsWith(year)));
     const spent = relevant.reduce((s, t) => s + t.amount, 0);
     const pct = b.amount > 0 ? spent / b.amount * 100 : 0;
     return { ...b, spent, pct };
@@ -1725,11 +1776,11 @@ const BudgettenPage = ({ data, onUpdate, toast }) => {
 const AnalysePage = ({ data }) => {
   const [period, setPeriod] = useState("month");
   const [drillOv, setDrillOv] = useState(null);
-  const txs = useMemo(() => data.transactions.filter((t) => {
+  const txs = useMemo(() => expandSplits(data.transactions.filter((t) => {
     if (period === "month") return getMonth(t.date) === currentMonth;
     if (period === "year") return t.date.startsWith(fmt(today).slice(0, 4));
     return true;
-  }).filter((t) => isExpense(t) && t.hoofdtype !== "Sparen"), [data.transactions, period]);
+  }).filter((t) => isExpense(t) && t.hoofdtype !== "Sparen")), [data.transactions, period]);
   const byOv = useMemo(() => {
     const m = {};
     txs.forEach((t) => {
