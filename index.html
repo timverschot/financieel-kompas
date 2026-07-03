@@ -3,24 +3,82 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#0F2942">
+  <meta name="theme-color" content="#2C211B">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Financieel Kompas">
   <title>Financieel Kompas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+  /* Warm "Gouden Uur" palet: bestaande kleurklassen worden hier omgeleid naar warme tinten,
+     zodat de hele app in een keer van jas wisselt zonder duizend losse aanpassingen. */
+  tailwind.config = { theme: { extend: {
+    fontFamily: { sans: ['Outfit', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'] },
+    colors: {
+      teal: { 50:'#FDF3E7', 100:'#FAE5CC', 200:'#F5CD9E', 300:'#EEB06C', 400:'#E69544', 500:'#DA7E2B', 600:'#C56A1F', 700:'#A35618', 800:'#7F4314' },
+      slate: { 50:'#FAF5EE', 100:'#F2EADF', 200:'#E4D8C8', 300:'#CDBBA6', 400:'#A08C77', 500:'#83705C', 600:'#6B5847', 700:'#514336', 800:'#33281F', 900:'#241C15' },
+      emerald: { 600:'#3F8A58' }
+    }
+  } } };
+  </script>
   <script crossorigin="anonymous" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin="anonymous" src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-  <style>*{box-sizing:border-box;}body{margin:0;background:#f8fafc;-webkit-tap-highlight-color:transparent;font-family:-apple-system,BlinkMacSystemFont,Inter,system-ui,sans-serif;}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#f1f5f9;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}</style>
+  <style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#FAF5EE;-webkit-tap-highlight-color:transparent;font-family:'Outfit',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:#33281F;}
+  h1,h2{font-family:'Fraunces',Georgia,serif;letter-spacing:-0.01em;}
+  ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#F2EADF;}::-webkit-scrollbar-thumb{background:#CDBBA6;border-radius:3px;}
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+  .fk-num{font-variant-numeric:tabular-nums;}
+
+  /* ---- Levendigheid: pagina's, kaarten, grafieken, acties ---- */
+  @keyframes fkPage{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  main>div{animation:fkPage .35s ease both;}
+
+  @keyframes fkCardIn{from{opacity:0;transform:translateY(14px) scale(.985);}to{opacity:1;transform:none;}}
+  .fk-card{animation:fkCardIn .5s cubic-bezier(.22,1,.36,1) both;transition:transform .25s ease,box-shadow .25s ease;}
+  .fk-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -10px rgba(51,40,31,.18);}
+  .grid>.fk-card:nth-child(1){animation-delay:.03s;}.grid>.fk-card:nth-child(2){animation-delay:.09s;}
+  .grid>.fk-card:nth-child(3){animation-delay:.15s;}.grid>.fk-card:nth-child(4){animation-delay:.21s;}
+  .grid>.fk-card:nth-child(5){animation-delay:.27s;}.grid>.fk-card:nth-child(6){animation-delay:.33s;}
+  .grid>.fk-card:nth-child(7){animation-delay:.39s;}.grid>.fk-card:nth-child(8){animation-delay:.45s;}
+
+  @keyframes fkBarGrow{from{transform:scaleY(0);}to{transform:scaleY(1);}}
+  .fk-bars rect{transform-box:fill-box;transform-origin:center bottom;animation:fkBarGrow .8s cubic-bezier(.22,1,.36,1) both;}
+  .fk-bars rect:nth-of-type(2n){animation-delay:.12s;}
+
+  @keyframes fkDonutIn{from{opacity:0;transform:rotate(-70deg) scale(.75);}to{opacity:1;transform:none;}}
+  .fk-donut{transform-origin:center;animation:fkDonutIn .7s cubic-bezier(.22,1,.36,1) both;}
+  .fk-donut path{transition:opacity .2s ease;}
+  .fk-donut path:hover{opacity:.82;}
+
+  @keyframes fkToastIn{from{opacity:0;transform:translateX(24px);}to{opacity:1;transform:none;}}
+  .fk-toast{animation:fkToastIn .3s cubic-bezier(.22,1,.36,1) both;}
+
+  @keyframes fkModalIn{from{opacity:0;transform:translateY(12px) scale(.97);}to{opacity:1;transform:none;}}
+  @keyframes fkFadeIn{from{opacity:0;}to{opacity:1;}}
+  .fk-backdrop{animation:fkFadeIn .2s ease both;}
+  .fk-modal{animation:fkModalIn .28s cubic-bezier(.22,1,.36,1) both;}
+
+  .fk-press{transition:transform .12s ease,background-color .15s ease,box-shadow .15s ease;}
+  .fk-press:active{transform:scale(.96);}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}
+  }
+  </style>
 </head>
 <body>
-  <div id="root"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0F2942;"><div style="text-align:center;color:white;font-family:-apple-system,sans-serif"><div style="font-size:52px;margin-bottom:16px">💎</div><div style="font-size:18px;font-weight:600;margin-bottom:8px">Financieel Kompas</div><div style="font-size:14px;opacity:0.6">App wordt geladen...</div></div></div></div>
+  <div id="root"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#2C211B;"><div style="text-align:center;color:white;font-family:-apple-system,sans-serif"><div style="font-size:52px;margin-bottom:16px">🧭</div><div style="font-size:18px;font-weight:600;margin-bottom:8px">Financieel Kompas</div><div style="font-size:14px;opacity:0.6">App wordt geladen...</div></div></div></div>
   <script>var GOOGLE_CLIENT_ID = '85645466663-60fil73neottl60jeseit5ic3t2i9fdd.apps.googleusercontent.com';</script>
-  <script>window.addEventListener('error',function(e){var msg=(e.message||'Fout')+'\nRegel:'+(e.lineno||'?')+'\n'+(e.error&&e.error.stack||'');if(msg.indexOf('Script error')>=0){msg='Laadprobleem met extern script. Herlaad de pagina.';}document.getElementById('root').innerHTML='<div style="padding:24px;background:#fef2f2;min-height:100vh;font-family:sans-serif"><h2 style="color:#dc2626">Fout</h2><pre style="background:#fff;border:1px solid #fca5a5;padding:16px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap">'+msg+'</pre><button onclick="location.reload()" style="margin-top:16px;padding:8px 20px;background:#0D9488;color:white;border:none;border-radius:8px;cursor:pointer">Herladen</button></div>';});</script>
+  <script>window.addEventListener('error',function(e){var msg=(e.message||'Fout')+'\nRegel:'+(e.lineno||'?')+'\n'+(e.error&&e.error.stack||'');if(msg.indexOf('Script error')>=0){msg='Laadprobleem met extern script. Herlaad de pagina.';}document.getElementById('root').innerHTML='<div style="padding:24px;background:#FBEFEC;min-height:100vh;font-family:sans-serif"><h2 style="color:#D64545">Fout</h2><pre style="background:#fff;border:1px solid #F2A08C;padding:16px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap">'+msg+'</pre><button onclick="location.reload()" style="margin-top:16px;padding:8px 20px;background:#C56A1F;color:white;border:none;border-radius:8px;cursor:pointer">Herladen</button></div>';});</script>
   <script>
 
 // ═══════════════════════════════════════════════════════════════
@@ -96,12 +154,12 @@ function SvgBarChart({ data, height = 180 }) {
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(maxVal * f));
   const fmtY = (v) => v >= 1e3 ? `\u20AC${(v / 1e3).toFixed(1)}k` : `\u20AC${v}`;
   const toY = (v) => pad.top + innerH - v / maxVal * innerH;
-  return /* @__PURE__ */ React.createElement("svg", { viewBox: `0 0 ${w} ${h}`, style: { width: "100%", height } }, yTicks.map((v, i) => /* @__PURE__ */ React.createElement("line", { key: i, x1: pad.left, x2: w - pad.right, y1: toY(v), y2: toY(v), stroke: "#f1f5f9", strokeWidth: 1 })), yTicks.map((v, i) => /* @__PURE__ */ React.createElement("text", { key: i, x: pad.left - 6, y: toY(v) + 4, textAnchor: "end", fontSize: 10, fill: "#94a3b8" }, fmtY(v))), data.map((d, gi) => {
+  return /* @__PURE__ */ React.createElement("svg", { className: "fk-bars", viewBox: `0 0 ${w} ${h}`, style: { width: "100%", height } }, yTicks.map((v, i) => /* @__PURE__ */ React.createElement("line", { key: i, x1: pad.left, x2: w - pad.right, y1: toY(v), y2: toY(v), stroke: "#F2EADF", strokeWidth: 1 })), yTicks.map((v, i) => /* @__PURE__ */ React.createElement("text", { key: i, x: pad.left - 6, y: toY(v) + 4, textAnchor: "end", fontSize: 10, fill: "#A08C77" }, fmtY(v))), data.map((d, gi) => {
     const cx = pad.left + gi * groupW + groupW / 2;
     const hiH = (d.Inkomsten || 0) / maxVal * innerH;
     const uitH = (d.Uitgaven || 0) / maxVal * innerH;
-    return /* @__PURE__ */ React.createElement("g", { key: gi }, /* @__PURE__ */ React.createElement("rect", { x: cx - barW - 2, y: toY(d.Inkomsten || 0), width: barW, height: hiH, fill: "#0D9488", rx: 4 }), /* @__PURE__ */ React.createElement("rect", { x: cx + 2, y: toY(d.Uitgaven || 0), width: barW, height: uitH, fill: "#fca5a5", rx: 4 }), /* @__PURE__ */ React.createElement("text", { x: cx, y: h - 6, textAnchor: "middle", fontSize: 10, fill: "#94a3b8" }, d.name));
-  }), /* @__PURE__ */ React.createElement("rect", { x: pad.left, y: 2, width: 10, height: 10, fill: "#0D9488", rx: 2 }), /* @__PURE__ */ React.createElement("text", { x: pad.left + 14, y: 11, fontSize: 10, fill: "#64748b" }, "Inkomsten"), /* @__PURE__ */ React.createElement("rect", { x: pad.left + 90, y: 2, width: 10, height: 10, fill: "#fca5a5", rx: 2 }), /* @__PURE__ */ React.createElement("text", { x: pad.left + 104, y: 11, fontSize: 10, fill: "#64748b" }, "Uitgaven"));
+    return /* @__PURE__ */ React.createElement("g", { key: gi }, /* @__PURE__ */ React.createElement("rect", { x: cx - barW - 2, y: toY(d.Inkomsten || 0), width: barW, height: hiH, fill: "#C56A1F", rx: 4 }), /* @__PURE__ */ React.createElement("rect", { x: cx + 2, y: toY(d.Uitgaven || 0), width: barW, height: uitH, fill: "#F2A08C", rx: 4 }), /* @__PURE__ */ React.createElement("text", { x: cx, y: h - 6, textAnchor: "middle", fontSize: 10, fill: "#A08C77" }, d.name));
+  }), /* @__PURE__ */ React.createElement("rect", { x: pad.left, y: 2, width: 10, height: 10, fill: "#C56A1F", rx: 2 }), /* @__PURE__ */ React.createElement("text", { x: pad.left + 14, y: 11, fontSize: 10, fill: "#83705C" }, "Inkomsten"), /* @__PURE__ */ React.createElement("rect", { x: pad.left + 90, y: 2, width: 10, height: 10, fill: "#F2A08C", rx: 2 }), /* @__PURE__ */ React.createElement("text", { x: pad.left + 104, y: 11, fontSize: 10, fill: "#83705C" }, "Uitgaven"));
 }
 function SvgDonut({ data, size = 170, inner = 38, outer = 62 }) {
   if (!data || !data.length) return null;
@@ -120,11 +178,32 @@ function SvgDonut({ data, size = 170, inner = 38, outer = 62 }) {
     angle += slice + 2 * Math.PI * 5e-3;
     return { path, color: d.color, name: d.name, value: d.value };
   });
-  return /* @__PURE__ */ React.createElement("svg", { viewBox: `0 0 ${size} ${size}`, style: { width: "100%", maxWidth: size, display: "block", margin: "0 auto" } }, paths.map((p, i) => /* @__PURE__ */ React.createElement("path", { key: i, d: p.path, fill: p.color, stroke: "white", strokeWidth: 2 })));
+  return /* @__PURE__ */ React.createElement("svg", { className: "fk-donut", viewBox: `0 0 ${size} ${size}`, style: { width: "100%", maxWidth: size, display: "block", margin: "0 auto" } }, paths.map((p, i) => /* @__PURE__ */ React.createElement("path", { key: i, d: p.path, fill: p.color, stroke: "white", strokeWidth: 2 })));
 }
 
-const T = { navy: "#0F2942", teal: "#0D9488", tealBg: "#f0fdfa", amber: "#F59E0B", amberBg: "#fffbeb", green: "#059669", greenBg: "#ecfdf5", red: "#DC2626", redBg: "#fef2f2", blue: "#2563EB", blueBg: "#eff6ff", purple: "#7C3AED", slate50: "#f8fafc", slate100: "#f1f5f9", slate200: "#e2e8f0", slate400: "#94a3b8", slate600: "#475569", slate800: "#1e293b" };
-const OV_COLORS = { "Voeding": "#F59E0B", "Drank": "#0D9488", "Woning en vaste lasten": "#7C3AED", "Vervoer en Mobiliteit": "#2563EB", "Apotheek en gezondheid": "#DC2626", "Vrije Tijd en Lifestyle": "#059669", "Kinderen en Gezin": "#F97316", "Kledij en Schoenen": "#DB2777", "Belastingen en Offici\xEBle Kosten": "#64748B", "Sparen en Investeren": "#2563EB", "Inkomsten": "#059669" };
+const T = { navy: "#2C211B", teal: "#C56A1F", tealBg: "#FDF3E7", amber: "#E8A33D", amberBg: "#FFF7E6", green: "#3F8A58", greenBg: "#EEF6EF", red: "#D64545", redBg: "#FBEFEC", blue: "#96588A", blueBg: "#F6EEF4", purple: "#8E5A9E", slate50: "#FAF5EE", slate100: "#F2EADF", slate200: "#E4D8C8", slate400: "#A08C77", slate600: "#6B5847", slate800: "#33281F" };
+
+// Tellende cijfers: bedragen "rollen" naar hun waarde toe bij het laden van een pagina.
+function AnimNum({ value, format }) {
+  const target = typeof value === "number" && isFinite(value) ? value : 0;
+  const [shown, setShown] = useState(target);
+  const startRef = useRef(null);
+  useEffect(() => {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setShown(target); return; }
+    let raf; const dur = 750; const from = 0; const t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setShown(from + (target - from) * eased);
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  const txt = format === "pct" ? Math.round(shown) + "%" : fmtEUR(shown);
+  return /* @__PURE__ */ React.createElement("span", { className: "fk-num" }, txt);
+}
+const OV_COLORS = { "Voeding": "#F59E0B", "Drank": "#C56A1F", "Woning en vaste lasten": "#96588A", "Vervoer en Mobiliteit": "#3E7C7B", "Apotheek en gezondheid": "#D64545", "Vrije Tijd en Lifestyle": "#3F8A58", "Kinderen en Gezin": "#C1502E", "Kledij en Schoenen": "#C97B8B", "Belastingen en Offici\xEBle Kosten": "#83705C", "Sparen en Investeren": "#3E7C7B", "Inkomsten": "#3F8A58" };
 const INITIAL_CATEGORIES = [
   {
     id: "ov-voeding",
@@ -515,7 +594,6 @@ const INITIAL_CATEGORIES = [
       ] },
       { id: "cat-droogvoeding--snoep", name: "Droogvoeding (snoep)", items: [
         { id: "i-chips-848", name: "Chips", synonyms: [], unit: null },
-        { id: "i-crackers-1978", name: "Crackers", synonyms: [], unit: null },
         { id: "i-cocktailnootjes-1836", name: "Cocktailnootjes", synonyms: [], unit: null },
         { id: "i-leo-6554", name: "Leo", synonyms: [], unit: null },
         { id: "i-koeken-divers-809", name: "Koeken divers", synonyms: [], unit: null },
@@ -596,7 +674,7 @@ const INITIAL_CATEGORIES = [
     id: "ov-drank",
     name: "Drank",
     hoofdtype: "Variabele Uitgaven",
-    color: "#0D9488",
+    color: "#C56A1F",
     icon: "\u{1F37A}",
     categories: [
       { id: "cat-water", name: "Water", items: [
@@ -664,7 +742,6 @@ const INITIAL_CATEGORIES = [
         { id: "i-wasverzachter-2723", name: "Wasverzachter", synonyms: [], unit: "stuks" },
         { id: "i-afwasmiddel-327", name: "Afwasmiddel", synonyms: ["vaatwasmiddel", "spoelmiddel afwas"], unit: "stuks" },
         { id: "i-vaatwastabletten-7025", name: "Vaatwastabletten", synonyms: [], unit: "stuks" },
-        { id: "i-allesreiniger-4989", name: "Allesreiniger", synonyms: [], unit: "stuks" },
         { id: "i-antikal-2214", name: "Antikal", synonyms: [], unit: "stuks" },
         { id: "i-mr-proper-spray-3079", name: "Mr Proper spray", synonyms: [], unit: "stuks" },
         { id: "i-dettolspray-8925", name: "Dettolspray", synonyms: [], unit: "stuks" },
@@ -703,7 +780,7 @@ const INITIAL_CATEGORIES = [
     id: "ov-apotheek-en-gezondheid",
     name: "Apotheek en gezondheid",
     hoofdtype: "Variabele Uitgaven",
-    color: "#DC2626",
+    color: "#D64545",
     icon: "\u2764\uFE0F",
     categories: [
       { id: "cat-medicatie", name: "Medicatie", items: [
@@ -746,7 +823,7 @@ const INITIAL_CATEGORIES = [
     id: "ov-kinderen-en-gezin",
     name: "Kinderen en Gezin",
     hoofdtype: "Variabele Uitgaven",
-    color: "#F97316",
+    color: "#C1502E",
     icon: "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}",
     categories: [
       { id: "cat-kinderen-school", name: "Kinderen school", items: [
@@ -794,7 +871,7 @@ const INITIAL_CATEGORIES = [
     id: "ov-woning-en-vaste-lasten",
     name: "Woning en vaste lasten",
     hoofdtype: "Vaste Uitgaven",
-    color: "#7C3AED",
+    color: "#96588A",
     icon: "\u{1F3E0}",
     categories: [
       { id: "cat-abonnementen-en-multimedia", name: "Abonnementen en multimedia", items: [
@@ -861,7 +938,7 @@ const INITIAL_CATEGORIES = [
     id: "ov-vervoer-en-mobiliteit",
     name: "Vervoer en Mobiliteit",
     hoofdtype: "Vaste Uitgaven",
-    color: "#2563EB",
+    color: "#3E7C7B",
     icon: "\u{1F697}",
     categories: [
       { id: "cat-auto", name: "Auto", items: [
@@ -899,7 +976,7 @@ const INITIAL_CATEGORIES = [
     id: "ov-vrije-tijd-en-lifestyle",
     name: "Vrije Tijd en Lifestyle",
     hoofdtype: "Variabele Uitgaven",
-    color: "#059669",
+    color: "#3F8A58",
     icon: "\u{1F3AD}",
     categories: [
       { id: "cat-ontspanning", name: "Ontspanning", items: [
@@ -940,7 +1017,7 @@ const INITIAL_CATEGORIES = [
     id: "ov-inkomsten",
     name: "Inkomsten",
     hoofdtype: "Inkomsten",
-    color: "#059669",
+    color: "#3F8A58",
     icon: "\u{1F4B5}",
     categories: [
       { id: "cat-beroepsinkomen", name: "Beroepsinkomen", items: [
@@ -974,7 +1051,7 @@ const INITIAL_CATEGORIES = [
     id: "ov-sparen---investeren",
     name: "Sparen & Investeren",
     hoofdtype: "Sparen",
-    color: "#2563EB",
+    color: "#3E7C7B",
     icon: "\u{1F4B0}",
     categories: [
       { id: "cat-schuldaflossing-extra", name: "Schuldaflossing extra", items: [
@@ -995,7 +1072,7 @@ const INITIAL_CATEGORIES = [
     id: "ov-kledij-en-schoenen",
     name: "Kledij en Schoenen",
     hoofdtype: "Variabele Uitgaven",
-    color: "#DB2777",
+    color: "#C97B8B",
     icon: "\u{1F457}",
     categories: [
       { id: "cat-kledij-volwassenen", name: "Kledij volwassenen", items: [
@@ -1024,7 +1101,7 @@ const INITIAL_CATEGORIES = [
     id: "ov-belastingen-en-offici-le-koste",
     name: "Belastingen en Offici\xEBle Kosten",
     hoofdtype: "Vaste Uitgaven",
-    color: "#64748B",
+    color: "#83705C",
     icon: "\u{1F4CB}",
     categories: [
       { id: "cat-personenbelasting", name: "Personenbelasting", items: [
@@ -1100,6 +1177,84 @@ const INITIAL_CATEGORIES = [
     ]
   }
 ];
+
+// ═══════════════════════════════════════════════════════════════
+// UITBREIDING SUBCATEGORIEEN (v24) — alle levensdomeinen breed afgedekt.
+// Bestaande namen binnen dezelfde hoofdcategorie worden automatisch
+// overgeslagen, zodat er nooit dubbels ontstaan.
+// ═══════════════════════════════════════════════════════════════
+(function extendCategories() {
+  var EXTRA = [
+    { ov: "ov-voeding", cat: "Plantaardig en speciaal dieet", items: [["Vleesvervangers",["veggie burger","vegan"]],["Tofu",[]],["Tempeh",[]],["Sojadrink",["sojamelk"]],["Havermelk",["haverdrink"]],["Amandelmelk",[]],["Glutenvrij brood",["glutenvrij"]],["Lactosevrije zuivel",["lactosevrij"]],["Prote\u00efnerepen",["eiwitreep"]],["Sportvoeding",["prote\u00efnepoeder","whey"]]] },
+    { ov: "ov-voeding", cat: "Wereldkeuken", items: [["Sushi",[]],["Woksaus",["wok"]],["Tortilla's",["wraps"]],["Couscous",[]],["Bulgur",[]],["Noedels",["noodles","ramen"]],["Kokosmelk",[]],["Currypasta",["curry"]],["Sojasaus",[]],["Hummus",[]],["Falafel",[]],["Quinoa",[]]] },
+    { ov: "ov-voeding", cat: "Kruiden en specerijen", items: [["Verse kruiden",["basilicum","peterselie"]],["Gedroogde kruiden",[]],["Specerijen",["kaneel","paprikapoeder"]],["Bouillonblokjes",["bouillon"]],["Gist",[]]] },
+    { ov: "ov-voeding", cat: "Noten en zaden", items: [["Noten",["amandelen","walnoten","cashewnoten"]],["Zaden en pitten",["chiazaad","lijnzaad","pompoenpitten"]],["Notenpasta",["pindakaas"]],["Gedroogd fruit",["rozijnen","dadels"]]] },
+    { ov: "ov-voeding", cat: "Ontbijt", items: [["Ontbijtgranen",[]],["Muesli",["granola"]],["Havermout",[]],["Cornflakes",[]],["Pannenkoekenmix",["pannenkoeken"]]] },
+    { ov: "ov-drank", cat: "Warme dranken", items: [["Koffiebonen",["koffie bonen"]],["Gemalen koffie",[]],["Koffiepads",["senseo"]],["Koffiecapsules",["nespresso","dolce gusto"]],["Thee",["theezakjes"]],["Kruidenthee",["muntthee","kamille"]],["Warme chocolademelk",["cacao","chocomelk"]],["Oploskoffie",[]]] },
+    { ov: "ov-drank", cat: "Speciale dranken", items: [["Kombucha",[]],["Smoothie",[]],["Verse fruitsap",["versgeperst"]],["Alcoholvrij bier",["0.0"]],["Mocktail",["alcoholvrije cocktail"]]] },
+    { ov: "ov-huishouden-en-verzorging", cat: "Kapper en schoonheid", items: [["Barbier",["barber"]],["Schoonheidsspecialiste",["gelaatsverzorging"]],["Manicure",["nagels","gelnagels"]],["Pedicure",[]],["Make-up",["cosmetica"]],["Parfum",["eau de toilette"]],["Zonnebank",[]],["Haarverzorging",["shampoo","conditioner"]]] },
+    { ov: "ov-huishouden-en-verzorging", cat: "Wellness en ontspanning", items: [["Massage",[]],["Sauna",["wellnesscentrum"]],["Spa-bezoek",["spa"]],["Floatsessie",["floating"]]] },
+    { ov: "ov-huishouden-en-verzorging", cat: "Wasserij en herstel", items: [["Droogkuis",["stomerij"]],["Wassalon",["wasserette"]],["Strijkdienst",["strijkatelier"]],["Schoenmaker",["schoenherstel"]],["Kledijherstelling",["retouches","naaiatelier"]]] },
+    { ov: "ov-apotheek-en-gezondheid", cat: "Paramedische zorg", items: [["Osteopaat",["osteopathie"]],["Podoloog",["podologie"]],["Di\u00ebtist",["voedingsadvies"]],["Logopedist",["logopedie"]],["Ergotherapeut",["ergotherapie"]],["Chiropractor",["chiropraxie"]]] },
+    { ov: "ov-apotheek-en-gezondheid", cat: "Geestelijke gezondheid", items: [["Psychiater",[]],["Therapiesessie",["therapie","gesprekstherapie"]],["Relatietherapie",["koppeltherapie"]],["Mentale coaching",["life coach","burn-out coach"]]] },
+    { ov: "ov-apotheek-en-gezondheid", cat: "Optiek en gehoor", items: [["Brilmontuur",["bril","montuur"]],["Brilglazen",["glazen"]],["Contactlenzen",["lenzen"]],["Lenzenvloeistof",[]],["Zonnebril op sterkte",[]],["Hoorapparaat",["hoortoestel"]],["Oogmeting",["oogonderzoek","opticien"]]] },
+    { ov: "ov-apotheek-en-gezondheid", cat: "Tandzorg", items: [["Orthodontie",["beugel","orthodontist"]],["Tandprothese",["kunstgebit"]],["Mondhygi\u00ebnist",["tandreiniging"]],["Tandimplantaat",["implantaat"]]] },
+    { ov: "ov-apotheek-en-gezondheid", cat: "Vitamines en supplementen", items: [["Vitamines",["multivitamine","vitamine d"]],["Voedingssupplementen",["supplementen"]],["Magnesium",[]],["Omega 3",["visolie"]],["Probiotica",[]]] },
+    { ov: "ov-apotheek-en-gezondheid", cat: "Medische hulpmiddelen", items: [["Bloeddrukmeter",[]],["Thermometer",["koortsthermometer"]],["Krukken",[]],["Steunzolen",["zolen"]],["Braces en verbanden",["polsbrace","kniebrace"]],["Gehoorbescherming",["oordoppen"]]] },
+    { ov: "ov-apotheek-en-gezondheid", cat: "Alternatieve zorg", items: [["Acupunctuur",[]],["Homeopathie",[]],["Voetreflexologie",["reflexologie"]]] },
+    { ov: "ov-kinderen-en-gezin", cat: "Baby en peuter", items: [["Luiers",["pampers"]],["Billendoekjes",["vochtige doekjes"]],["Flesvoeding",["melkpoeder"]],["Babyvoeding potjes",["fruitpap","groentepap"]],["Fopspenen",["tut","tutje"]],["Zuigflessen",["papfles"]],["Kinderwagen",["buggy"]],["Babyfoon",[]],["Autostoel kind",["maxi-cosi"]],["Babykleding",[]],["Verzorging baby",["babyolie","zinkzalf"]]] },
+    { ov: "ov-kinderen-en-gezin", cat: "Kampen en uitstappen", items: [["Jeugdkamp",["chirokamp","scoutskamp"]],["Speelpleinwerking",["speelplein"]],["Sportkamp",[]],["Schooluitstap",["schoolreis"]],["Pretpark gezin",["plopsaland","bellewaerde","efteling"]],["Dierentuin",["zoo","pairi daiza"]]] },
+    { ov: "ov-kinderen-en-gezin", cat: "Zakgeld en sparen kind", items: [["Zakgeld",[]],["Spaargeld kind",["spaarrekening kind"]]] },
+    { ov: "ov-kinderen-en-gezin", cat: "Hoger onderwijs", items: [["Kothuur",["kot","studentenkamer"]],["Inschrijvingsgeld hogeschool of unief",["studiegeld"]],["Cursusmateriaal",["cursussen","handboeken"]],["Studentenrestaurant",["resto"]],["Studentenvereniging",["lidgeld club"]]] },
+    { ov: "ov-woning-en-vaste-lasten", cat: "Tuin en terras", items: [["Planten en bloemen",["tuinplanten","bloemen"]],["Zaden en bollen",["bloembollen"]],["Potgrond",["compost","aarde"]],["Tuingereedschap",["snoeischaar","hark"]],["Grasmaaier",["robotmaaier"]],["Tuinmeubelen",["tuinset","loungeset"]],["Tuinaannemer",["tuinman","tuinonderhoud"]],["Barbecue",["bbq"]],["Parasol",["zonnescherm"]],["Snoeiwerk",["boomverzorging"]]] },
+    { ov: "ov-woning-en-vaste-lasten", cat: "Klussen en materiaal", items: [["Verf en lak",["verf","muurverf"]],["Behang",[]],["Gereedschap",["boormachine","schroevendraaier"]],["Bouwmaterialen",["cement","gyproc"]],["Schroeven en bevestiging",["pluggen","nagels"]],["Elektriciteitsmateriaal",["stopcontact","kabels"]],["Sanitair materiaal",["kraan","leidingen"]],["Hout",["planken","multiplex"]],["Huur machines",["machineverhuur"]]] },
+    { ov: "ov-woning-en-vaste-lasten", cat: "Duurzaam wonen", items: [["Zonnepanelen",["pv-installatie"]],["Thuisbatterij",["batterij"]],["Warmtepomp",[]],["Isolatiewerken",["isolatie","dakisolatie"]],["Laadpaal installatie",["laadpaal"]],["Energieaudit",["epc","energiescan"]],["Regenwaterput",["regenwater"]],["Zonwering",["screens","rolluiken"]]] },
+    { ov: "ov-woning-en-vaste-lasten", cat: "Beveiliging", items: [["Alarmsysteem",["alarm"]],["Camerabewaking",["bewakingscamera"]],["Slotenmaker",["slotenmakerij"]],["Rookmelders",["rookdetector"]],["Brandblusser",["branddeken"]]] },
+    { ov: "ov-woning-en-vaste-lasten", cat: "Afval en milieu", items: [["Vuilniszakken gemeente",["restafvalzakken","pmd-zakken"]],["Containerpark",["recyclagepark"]],["Ophaling grofvuil",["grofvuil"]],["GFT-container",["gft"]]] },
+    { ov: "ov-woning-en-vaste-lasten", cat: "Verhuis en opslag", items: [["Verhuisfirma",["verhuizers"]],["Opslagruimte",["self storage","box"]],["Verhuisdozen",[]]] },
+    { ov: "ov-vervoer-en-mobiliteit", cat: "Elektrisch laden", items: [["Laadpas",["laadkaart"]],["Publiek laden",["laadstation"]],["Snelladen",["fastned","ionity"]],["Thuis laden",["laadpaal verbruik"]]] },
+    { ov: "ov-vervoer-en-mobiliteit", cat: "Deelmobiliteit en taxi", items: [["Taxi",[]],["Uber",["bolt"]],["Deelauto",["cambio","poppy"]],["Deelfiets",["blue-bike","velo"]],["Deelstep",["lime","dott"]],["Autoverhuur",["huurauto"]]] },
+    { ov: "ov-vervoer-en-mobiliteit", cat: "Moto en brommer", items: [["Moto onderhoud",["motorfiets"]],["Motokledij",["motorpak"]],["Motorhelm",["helm"]],["Brommer onderhoud",["scooter"]]] },
+    { ov: "ov-vervoer-en-mobiliteit", cat: "Parkeren en heffingen", items: [["Parkeergarage",["parking"]],["Parkeermeter",["parkeerapp","4411"]],["Tolwegen",["tol","p\u00e9age"]],["Vignetten",["vignet"]],["Carwash",["car wash","autowas"]],["LEZ-heffing",["lage-emissiezone"]]] },
+    { ov: "ov-vrije-tijd-en-lifestyle", cat: "Sport en fitness", items: [["Fitnessabonnement",["basic fit","gym"]],["Sportclub lidgeld",["voetbalclub","volleybalclub"]],["Padel",["padelterrein"]],["Tennis",["tennisles"]],["Zwembad",["zwemles","zwembeurt"]],["Yogales",["yoga","pilates"]],["Personal trainer",["pt-sessie"]],["Wedstrijdinschrijving",["loopwedstrijd","10 miles"]],["Sportmateriaal",["fitnessmateriaal","halters"]],["Skiles",["skipas les"]],["Klimzaal",["boulderen"]]] },
+    { ov: "ov-vrije-tijd-en-lifestyle", cat: "Cultuur en uitgaan", items: [["Bioscoop",["cinema","kinepolis"]],["Theater",["toneel"]],["Concert",["optreden"]],["Festival",["festivalticket"]],["Museum",[]],["Tentoonstelling",["expo"]],["Stand-upcomedy",["comedy"]],["Bowling",[]],["Escape room",[]],["Nachtleven",["club","discotheek"]]] },
+    { ov: "ov-vrije-tijd-en-lifestyle", cat: "Hobby en creatief", items: [["Muziekinstrument",["gitaar","piano"]],["Muzieklessen",["muziekschool"]],["Fotografie",["camera","lens"]],["Knutselmateriaal",["knutselen"]],["Naaimachine en stof",["naaien","stoffen"]],["Tekenmateriaal",["schildermateriaal","verf hobby"]],["Modelbouw",[]],["LEGO",["duplo"]],["Puzzels",["puzzel"]],["Bordspellen",["gezelschapsspel"]],["Handwerk en breien",["breigaren","haken"]]] },
+    { ov: "ov-vrije-tijd-en-lifestyle", cat: "Gamen", items: [["Videogames",["playstation game","nintendo game"]],["Gameconsole",["playstation","xbox","switch"]],["Game-abonnement",["game pass","ps plus"]],["In-game aankopen",["v-bucks","skins"]],["Gaming accessoires",["controller","headset"]]] },
+    { ov: "ov-vrije-tijd-en-lifestyle", cat: "Boeken en media", items: [["Boeken",["roman","boek"]],["E-books",["kobo","kindle"]],["Luisterboeken",["audiobook","storytel"]],["Strips",["stripverhaal","manga"]],["Tijdschriften",["magazine"]],["Krantenabonnement",["krant"]]] },
+    { ov: "ov-vrije-tijd-en-lifestyle", cat: "Loterij en kansspelen", items: [["Lotto",["euromillions"]],["Krasbiljetten",["krasloten","win for life"]],["Sportweddenschappen",["betting"]]] },
+    { ov: "ov-vrije-tijd-en-lifestyle", cat: "Vakantie en reizen", items: [["Reisverzekering",["annulatieverzekering"]],["Visum en reisdocumenten",["visum","esta"]],["Huurauto vakantie",[]],["Camping",["campingplaats"]],["Skipas",[]],["Excursies",["uitstap ter plaatse","tour"]],["Reisgids",[]],["Bagage",["koffer","reistas"]]] },
+    { ov: "ov-kledij-en-schoenen", cat: "Sport- en zwemkledij", items: [["Sportschoenen",["loopschoenen","voetbalschoenen"]],["Sportkledij",["trainingspak","sportshirt"]],["Zwemkledij",["badpak","zwembroek"]],["Wandelschoenen",["bergschoenen"]]] },
+    { ov: "ov-kledij-en-schoenen", cat: "Speciale gelegenheden", items: [["Kostuum",["maatpak"]],["Feestkledij",["galajurk","avondkledij"]],["Trouwkledij",["trouwjurk","trouwpak"]],["Verkleedkledij",["carnaval","halloween"]]] },
+    { ov: "ov-belastingen-en-offici-le-koste", cat: "Documenten en retributies", items: [["Identiteitskaart",["eid"]],["Reispas",["paspoort"]],["Rijbewijs",[]],["Attesten en uittreksels",["uittreksel","attest gemeente"]],["Milieuheffing",["milieubelasting"]]] },
+    { ov: "ov-huisdieren", cat: "Diergeneeskunde", items: [["Vaccinatie huisdier",["inenting"]],["Ontworming en vlooien",["vlooienband","ontwormingskuur"]],["Sterilisatie of castratie",["sterilisatie","castratie"]],["Dierenverzekering",[]],["Medicatie huisdier",[]]] },
+    { ov: "ov-huisdieren", cat: "Opvang en training", items: [["Hondenschool",["puppytraining","gedragstraining"]],["Dierenpension",["kattenpension","hondenpension"]],["Hondenuitlaatdienst",["dogwalker"]],["Trimsalon",["hondenkapper"]],["Hondenbelasting",[]]] },
+    { ov: "ov-diensten-en-ontwikkeling", cat: "Digitale abonnementen", items: [["Cloudopslag",["icloud","google one","dropbox"]],["Software-abonnement",["office 365","adobe"]],["VPN",["nordvpn"]],["Domeinnaam en hosting",["website hosting"]],["AI-assistent abonnement",["claude","chatgpt","copilot"]],["Wachtwoordmanager",["1password","bitwarden"]],["Antivirus",["norton","mcafee"]]] },
+    { ov: "ov-diensten-en-ontwikkeling", cat: "Administratie en advies", items: [["Boekhouder",["accountant"]],["Vakbondsbijdrage",["vakbond","acv","abvv"]],["Mutualiteitsbijdrage",["ziekenfonds","cm","bond moyson"]],["Postzegels en verzending",["postzegel","bpost","pakje versturen"]],["Print- en kopiekosten",["printen","kopie"]],["Vertaaldienst",["be\u00ebdigde vertaling"]]] },
+    { ov: "ov-diensten-en-ontwikkeling", cat: "Goede doelen", items: [["Gift goed doel",["donatie","gift"]],["Sponsoring",["sponsortocht"]],["Collecte",["omhaling"]],["Peterschap",["plan international","unicef"]]] },
+    { ov: "ov-inkomsten", cat: "Terugbetalingen", items: [["Terugbetaling mutualiteit",["terugbetaling ziekenfonds"]],["Belastingteruggave",["teruggave belastingen"]],["Cashback",[]],["Terugbetaling onkosten",["onkostenvergoeding terug"]],["Waarborg terug",["huurwaarborg terug"]],["Statiegeld terug",["statiegeld","lege flessen"]]] },
+    { ov: "ov-inkomsten", cat: "Verkoop en verhuur", items: [["Tweedehands verkoop",["2dehands","marktplaats"]],["Vinted verkoop",["vinted"]],["Garageverkoop",["rommelmarkt"]],["Huurinkomsten",["huur ontvangen"]]] },
+    { ov: "ov-inkomsten", cat: "Sociale toelagen", items: [["Groeipakket",["kinderbijslag"]],["Studietoelage",["studiebeurs"]]] },
+    { ov: "ov-sparen---investeren", cat: "Beleggen", items: [["Aandelen",["aandeel kopen"]],["ETF's",["tracker","etf"]],["Obligaties",["staatsbon"]],["Crypto",["bitcoin","ethereum"]],["Goud en edelmetalen",["goud"]],["Beleggingsfonds",["fonds"]]] }
+  ];
+  function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
+  EXTRA.forEach(function(e) {
+    var ov = null;
+    for (var i = 0; i < INITIAL_CATEGORIES.length; i++) { if (INITIAL_CATEGORIES[i].id === e.ov) { ov = INITIAL_CATEGORIES[i]; break; } }
+    if (!ov) return;
+    var existing = {};
+    (ov.categories || []).forEach(function(c) { (c.items || []).forEach(function(it) { existing[(it.name || "").toLowerCase()] = true; }); });
+    var group = null;
+    for (var j = 0; j < ov.categories.length; j++) { if (ov.categories[j].name === e.cat) { group = ov.categories[j]; break; } }
+    if (!group) { group = { id: "cat-x-" + slugify(e.cat), name: e.cat, items: [] }; ov.categories.push(group); }
+    e.items.forEach(function(raw) {
+      var name = typeof raw === "string" ? raw : raw[0];
+      var syn = typeof raw === "string" ? [] : (raw[1] || []);
+      if (existing[name.toLowerCase()]) return;
+      existing[name.toLowerCase()] = true;
+      group.items.push({ id: "i-x-" + slugify(name), name: name, synonyms: syn, unit: null });
+    });
+  });
+})();
 ;
 ;
 const buildFlatItems = (cats) => {
@@ -1141,8 +1296,8 @@ const SAMPLE_DATA = {
     { id: "acc-2", name: "Spaarrekening", type: "savings", institution: "ING", iban: "", color: T.blue, active: true },
     { id: "acc-3", name: "Budgetline & Budgetkrediet", type: "loan", institution: "KBC", iban: "", color: T.red, active: true },
     { id: "acc-4", name: "Beleggingsrekening", type: "investment", institution: "Belfius", iban: "", color: T.purple, active: true },
-    { id: "acc-5", name: "Buffer persoonlijk", type: "savings", institution: "ING", iban: "", color: "#0891b2", active: true },
-    { id: "acc-6", name: "Buffer kinderen", type: "savings", institution: "ING", iban: "", color: "#d97706", active: true }
+    { id: "acc-5", name: "Buffer persoonlijk", type: "savings", institution: "ING", iban: "", color: "#4E8D8C", active: true },
+    { id: "acc-6", name: "Buffer kinderen", type: "savings", institution: "ING", iban: "", color: "#B08A2E", active: true }
   ],
   balances: [
     { id: "b1", accountId: "acc-1", date: fmt(today), amount: 2450.8, notes: "" },
@@ -1155,7 +1310,7 @@ const SAMPLE_DATA = {
   transactions: [],
   goals: [
     { id: "goal-1", name: "Buffer persoonlijk", targetAmount: 5e3, targetDate: "2027-12-31", linkedAccountId: "acc-5", monthlyTarget: 100, color: T.teal, notes: "Noodfonds voor onverwachte uitgaven" },
-    { id: "goal-2", name: "Communie Jasper", targetAmount: 2500, targetDate: "2027-05-01", linkedAccountId: "acc-6", monthlyTarget: 150, color: "#d97706", notes: "Communie 2027" },
+    { id: "goal-2", name: "Communie Jasper", targetAmount: 2500, targetDate: "2027-05-01", linkedAccountId: "acc-6", monthlyTarget: 150, color: "#B08A2E", notes: "Communie 2027" },
     { id: "goal-3", name: "Schuldenvrij", targetAmount: 6200, targetDate: "2030-01-01", linkedAccountId: "acc-3", monthlyTarget: 200, color: T.red, notes: "Budgetline volledig aflossen" },
     { id: "goal-4", name: "Beleggingsdoel", targetAmount: 2e4, targetDate: "2030-12-31", linkedAccountId: "acc-4", monthlyTarget: 300, color: T.purple, notes: "" }
   ],
@@ -1184,16 +1339,16 @@ const saveData = (d) => {
   } catch {
   }
 };
-const Card = ({ children, className = "" }) => /* @__PURE__ */ React.createElement("div", { className: `bg-white rounded-2xl shadow-sm border border-slate-100 ${className}` }, children);
+const Card = ({ children, className = "", ...p }) => /* @__PURE__ */ React.createElement("div", { className: `fk-card bg-white rounded-2xl shadow-sm border border-slate-100 ${className}`, ...p }, children);
 const Badge = ({ color, children, small }) => /* @__PURE__ */ React.createElement("span", { className: `inline-flex items-center rounded-full font-medium ${small ? "px-1.5 py-0.5 text-xs" : "px-2 py-0.5 text-xs"}`, style: { backgroundColor: color + "22", color } }, children);
 const Progress = ({ value, max, color = T.teal, h = 8 }) => {
   const p = Math.min(100, Math.max(0, value / max * 100));
-  return /* @__PURE__ */ React.createElement("div", { className: "w-full rounded-full bg-slate-100", style: { height: h } }, /* @__PURE__ */ React.createElement("div", { className: "rounded-full transition-all duration-500", style: { width: `${p}%`, height: h, backgroundColor: p >= 100 ? T.green : p > 85 ? T.amber : color } }));
+  return /* @__PURE__ */ React.createElement("div", { className: "w-full rounded-full bg-slate-100", style: { height: h } }, /* @__PURE__ */ React.createElement("div", { className: "rounded-full transition-all duration-700 ease-out", style: { width: `${p}%`, height: h, backgroundColor: p >= 100 ? T.red : p > 85 ? T.amber : color } }));
 };
 const Btn = ({ variant = "primary", size = "sm", children, className = "", ...p }) => {
   const s = { xs: "px-2 py-1 text-xs", sm: "px-3 py-1.5 text-sm", md: "px-4 py-2 text-sm", lg: "px-5 py-2.5 text-base" };
   const v = { primary: `bg-teal-600 text-white hover:bg-teal-700`, secondary: `bg-white text-slate-700 border border-slate-200 hover:bg-slate-50`, danger: `bg-red-600 text-white hover:bg-red-700`, ghost: `text-slate-600 hover:bg-slate-100`, amber: `bg-amber-500 text-white hover:bg-amber-600` };
-  return /* @__PURE__ */ React.createElement("button", { className: `inline-flex items-center gap-1.5 font-medium rounded-lg transition-colors focus:outline-none disabled:opacity-40 ${s[size]} ${v[variant]} ${className}`, ...p }, children);
+  return /* @__PURE__ */ React.createElement("button", { className: `fk-press inline-flex items-center gap-1.5 font-medium rounded-lg focus:outline-none disabled:opacity-40 ${s[size]} ${v[variant]} ${className}`, ...p }, children);
 };
 const FormField = ({ label, hint, children }) => /* @__PURE__ */ React.createElement("div", { className: "mb-4" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-medium text-slate-700 mb-1" }, label), children, hint && /* @__PURE__ */ React.createElement("p", { className: "mt-1 text-xs text-slate-400" }, hint));
 const Input = ({ className = "", ...p }) => /* @__PURE__ */ React.createElement("input", { className: `w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white ${className}`, ...p });
@@ -1206,9 +1361,9 @@ const Modal = ({ title, onClose, children, wide }) => {
     document.addEventListener("keydown", f);
     return () => document.removeEventListener("keydown", f);
   }, [onClose]);
-  return /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-4", style: { backgroundColor: "rgba(0,0,0,0.5)" } }, /* @__PURE__ */ React.createElement("div", { className: `bg-white rounded-2xl shadow-xl w-full ${wide ? "max-w-3xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto` }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-6 border-b border-slate-100" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-slate-800" }, title), /* @__PURE__ */ React.createElement("button", { onClick: onClose, className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500" }, /* @__PURE__ */ React.createElement(X, { size: 18 }))), /* @__PURE__ */ React.createElement("div", { className: "p-6" }, children)));
+  return /* @__PURE__ */ React.createElement("div", { className: "fk-backdrop fixed inset-0 z-50 flex items-center justify-center p-4", style: { backgroundColor: "rgba(44,33,27,0.5)" } }, /* @__PURE__ */ React.createElement("div", { className: `fk-modal bg-white rounded-2xl shadow-xl w-full ${wide ? "max-w-3xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto` }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-6 border-b border-slate-100" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-slate-800" }, title), /* @__PURE__ */ React.createElement("button", { onClick: onClose, className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500" }, /* @__PURE__ */ React.createElement(X, { size: 18 }))), /* @__PURE__ */ React.createElement("div", { className: "p-6" }, children)));
 };
-const Toast = ({ toasts }) => /* @__PURE__ */ React.createElement("div", { className: "fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none" }, toasts.map((t) => /* @__PURE__ */ React.createElement("div", { key: t.id, className: `flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white transition-all ${t.type === "error" ? "bg-red-600" : "bg-slate-800"}` }, /* @__PURE__ */ React.createElement(CheckCircle2, { size: 16 }), t.msg)));
+const Toast = ({ toasts }) => /* @__PURE__ */ React.createElement("div", { className: "fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none" }, toasts.map((t) => /* @__PURE__ */ React.createElement("div", { key: t.id, className: `fk-toast flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white ${t.type === "error" ? "bg-red-600" : "bg-slate-800"}` }, /* @__PURE__ */ React.createElement(CheckCircle2, { size: 16 }), t.msg)));
 const NAV = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "transacties", label: "Transacties", icon: Receipt },
@@ -1219,7 +1374,7 @@ const NAV = [
   { id: "categorieen", label: "Categorie\xEBn", icon: Tags },
   { id: "instellingen", label: "Instellingen", icon: Settings }
 ];
-const Sidebar = ({ current, onNav, open, onToggle, profile }) => /* @__PURE__ */ React.createElement(React.Fragment, null, open && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/40 z-30 lg:hidden", onClick: onToggle }), /* @__PURE__ */ React.createElement("aside", { className: `fixed top-0 left-0 h-full z-40 flex flex-col transition-transform duration-300 ${open ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:static lg:flex`, style: { width: 220, backgroundColor: T.navy, minHeight: "100vh" } }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 px-5 py-5 border-b border-white/10" }, /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 rounded-xl flex items-center justify-center text-lg", style: { backgroundColor: T.amber } }, "\u{1F48E}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-white text-sm font-bold leading-tight" }, "Financieel"), /* @__PURE__ */ React.createElement("div", { className: "text-xs leading-tight", style: { color: "#7ba7c2" } }, "Kompas")), /* @__PURE__ */ React.createElement("button", { className: "ml-auto lg:hidden text-white/60 hover:text-white", onClick: onToggle }, /* @__PURE__ */ React.createElement(X, { size: 18 }))), /* @__PURE__ */ React.createElement("nav", { className: "flex-1 py-4 overflow-y-auto" }, NAV.map(({ id, label, icon: Icon }) => /* @__PURE__ */ React.createElement(
+const Sidebar = ({ current, onNav, open, onToggle, profile }) => /* @__PURE__ */ React.createElement(React.Fragment, null, open && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/40 z-30 lg:hidden", onClick: onToggle }), /* @__PURE__ */ React.createElement("aside", { className: `fixed top-0 left-0 h-full z-40 flex flex-col transition-transform duration-300 ${open ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:static lg:flex`, style: { width: 220, backgroundColor: T.navy, minHeight: "100vh" } }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 px-5 py-5 border-b border-white/10" }, /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 rounded-xl flex items-center justify-center text-lg", style: { backgroundColor: T.amber } }, "\u{1F9ED}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-white text-sm font-bold leading-tight" }, "Financieel"), /* @__PURE__ */ React.createElement("div", { className: "text-xs leading-tight", style: { color: "#D9A468" } }, "Kompas")), /* @__PURE__ */ React.createElement("button", { className: "ml-auto lg:hidden text-white/60 hover:text-white", onClick: onToggle }, /* @__PURE__ */ React.createElement(X, { size: 18 }))), /* @__PURE__ */ React.createElement("nav", { className: "flex-1 py-4 overflow-y-auto" }, NAV.map(({ id, label, icon: Icon }) => /* @__PURE__ */ React.createElement(
   "button",
   {
     key: id,
@@ -1228,11 +1383,11 @@ const Sidebar = ({ current, onNav, open, onToggle, profile }) => /* @__PURE__ */
       if (window.innerWidth < 1024) onToggle();
     },
     className: "w-full flex items-center gap-3 py-2.5 mx-2 rounded-xl text-sm transition-colors mb-0.5",
-    style: { width: "calc(100% - 16px)", paddingLeft: 16, paddingRight: 16, backgroundColor: current === id ? T.teal + "33" : "transparent", color: current === id ? "#fff" : "#7ba7c2", fontWeight: current === id ? 600 : 400 }
+    style: { width: "calc(100% - 16px)", paddingLeft: 16, paddingRight: 16, backgroundColor: current === id ? T.teal + "33" : "transparent", color: current === id ? "#fff" : "#D9A468", fontWeight: current === id ? 600 : 400 }
   },
   /* @__PURE__ */ React.createElement(Icon, { size: 18, style: { color: current === id ? T.teal : void 0 } }),
   label
-))), /* @__PURE__ */ React.createElement("div", { className: "px-4 py-4 border-t border-white/10" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 p-2 rounded-lg", style: { backgroundColor: "rgba(255,255,255,0.06)" } }, /* @__PURE__ */ React.createElement("div", { className: "w-7 h-7 rounded-full bg-teal-500 flex items-center justify-center text-xs text-white font-bold" }, ((profile == null ? void 0 : profile.firstName) || "?")[0]), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-white text-xs font-medium" }, (profile == null ? void 0 : profile.firstName) || "", " ", (profile == null ? void 0 : profile.lastName) || ""), /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: "#7ba7c2" } }, "Financieel Kompas"))))));
+))), /* @__PURE__ */ React.createElement("div", { className: "px-4 py-4 border-t border-white/10" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 p-2 rounded-lg", style: { backgroundColor: "rgba(255,255,255,0.06)" } }, /* @__PURE__ */ React.createElement("div", { className: "w-7 h-7 rounded-full bg-teal-500 flex items-center justify-center text-xs text-white font-bold" }, ((profile == null ? void 0 : profile.firstName) || "?")[0]), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-white text-xs font-medium" }, (profile == null ? void 0 : profile.firstName) || "", " ", (profile == null ? void 0 : profile.lastName) || ""), /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: "#D9A468" } }, "Financieel Kompas"))))));
 const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe transactie" }) => {
   var _a;
   const blank = { date: fmt(today), description: "", amount: "", type: "expense", hoofdtype: "Variabele Uitgaven", overkoepelend: "", category: "", itemName: "", itemId: "", accountId: ((_a = data.accounts[0]) == null ? void 0 : _a.id) || "", brand: "", quantity: "", unit: "", notes: "", isPromo: false, grossPrice: "" };
@@ -1312,7 +1467,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
   return /* @__PURE__ */ React.createElement(
     Modal,
     { title, onClose },
-    /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 gap-2 mb-5" }, Object.entries(typeConfig).map(([key, cfg]) => /* @__PURE__ */ React.createElement("button", { key, onClick: () => handleTypeChange(key), className: "flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium border-2 transition-all", style: { borderColor: form.type === key ? cfg.color : "#e2e8f0", backgroundColor: form.type === key ? cfg.color + "15" : "white", color: form.type === key ? cfg.color : "#64748b" } }, /* @__PURE__ */ React.createElement("span", { className: "text-base" }, cfg.icon), cfg.label))),
+    /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 gap-2 mb-5" }, Object.entries(typeConfig).map(([key, cfg]) => /* @__PURE__ */ React.createElement("button", { key, onClick: () => handleTypeChange(key), className: "flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium border-2 transition-all", style: { borderColor: form.type === key ? cfg.color : "#E4D8C8", backgroundColor: form.type === key ? cfg.color + "15" : "white", color: form.type === key ? cfg.color : "#83705C" } }, /* @__PURE__ */ React.createElement("span", { className: "text-base" }, cfg.icon), cfg.label))),
     /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Datum" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: form.date, onChange: (e) => setForm((f) => ({ ...f, date: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Bedrag (\u20AC)", hint: "Altijd positief" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", placeholder: "0,00", value: form.amount, onChange: (e) => setForm((f) => ({ ...f, amount: e.target.value })) }))),
     /* @__PURE__ */ React.createElement(FormField, { label: "Beschrijving" },
       /* @__PURE__ */ React.createElement("div", { className: "relative" },
@@ -1345,14 +1500,14 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
         type: "button",
         onClick: () => setSplitMode((v) => !v),
         className: "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
-        style: { background: splitMode ? "#0D9488" : "#cbd5e1" }
+        style: { background: splitMode ? "#C56A1F" : "#CDBBA6" }
       }, /* @__PURE__ */ React.createElement("span", {
         className: "inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform",
         style: { transform: splitMode ? "translateX(18px)" : "translateX(2px)" }
       }))
     ),
     splitMode && /* @__PURE__ */ React.createElement("div", { className: "mb-3 p-3 bg-slate-50 rounded-xl border border-slate-200" },
-      /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-500 mb-2" }, "Verdeel het totaal over meerdere categorie\xEBn. Subtotaal: ", /* @__PURE__ */ React.createElement("strong", null, "\u20AC", splitTotal.toFixed(2)), " van ", /* @__PURE__ */ React.createElement("strong", null, "\u20AC", (parseFloat(form.amount) || 0).toFixed(2)), Math.abs(splitDiff) > 0.01 ? /* @__PURE__ */ React.createElement("span", { style: { color: splitDiff < 0 ? "#DC2626" : "#059669" } }, " (", splitDiff > 0 ? "+" : "", splitDiff.toFixed(2), ")") : /* @__PURE__ */ React.createElement("span", { className: "text-teal-600" }, " \u2713")),
+      /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-500 mb-2" }, "Verdeel het totaal over meerdere categorie\xEBn. Subtotaal: ", /* @__PURE__ */ React.createElement("strong", null, "\u20AC", splitTotal.toFixed(2)), " van ", /* @__PURE__ */ React.createElement("strong", null, "\u20AC", (parseFloat(form.amount) || 0).toFixed(2)), Math.abs(splitDiff) > 0.01 ? /* @__PURE__ */ React.createElement("span", { style: { color: splitDiff < 0 ? "#D64545" : "#3F8A58" } }, " (", splitDiff > 0 ? "+" : "", splitDiff.toFixed(2), ")") : /* @__PURE__ */ React.createElement("span", { className: "text-teal-600" }, " \u2713")),
       splits.map((line, idx2) => {
         const splitRes = getSplitResults(line.search || line.description);
         const lineHl = line.hlIdx || -1;
@@ -1382,7 +1537,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
                 key: it.id, type: "button",
                 onMouseDown: (e) => { e.preventDefault(); selectSplitItem(line.id, it); },
                 className: "w-full text-left px-3 py-2 flex flex-col border-b border-slate-50 last:border-0",
-                style: { backgroundColor: ri === lineHl ? "#f0fdfa" : "white" }
+                style: { backgroundColor: ri === lineHl ? "#FDF3E7" : "white" }
               },
                 /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium text-slate-800" }, it.name),
                 /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, it.overkoepelend, " \u203A ", it.category)
@@ -1391,7 +1546,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
                 type: "button",
                 onMouseDown: (e) => { e.preventDefault(); window._addCategory && window._addCategory(line.overkoepelend || "Overig", { id: "i-custom-" + Date.now(), name: line.search || line.description, synonyms: [], unit: null }); updateSplitLine(line.id, "showRes", false); },
                 className: "w-full text-left px-3 py-2 text-xs font-semibold border-t border-slate-100",
-                style: { color: "#0D9488" }
+                style: { color: "#C56A1F" }
               }, "\u271A Voeg \"", (line.search || line.description), "\" toe als nieuwe subcategorie")
             )
           ),
@@ -1431,11 +1586,11 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
           }
         }
       }
-    })), showRes && results.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden" }, results.map(function(it, ri) { return /* @__PURE__ */ React.createElement("button", { key: it.id, onClick: function() { return selectItem(it); }, className: "w-full text-left px-4 py-2.5 flex items-center justify-between group border-b border-slate-50 last:border-0", style: { backgroundColor: ri === hlIdx ? "#f0fdfa" : "white" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800" }, it.name), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, it.overkoepelend, " \u203A ", it.category)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, it.unit && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-slate-100 px-2 py-0.5 rounded-full" }, it.unit), /* @__PURE__ */ React.createElement(Badge, { color: it.color }, (it.hoofdtype || "").replace(" Uitgaven", "")))); })), search.trim() && !results.find(function(r) { return (r.name || "").toLowerCase() === search.trim().toLowerCase(); }) && /* @__PURE__ */ React.createElement("button", {
+    })), showRes && results.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden" }, results.map(function(it, ri) { return /* @__PURE__ */ React.createElement("button", { key: it.id, onClick: function() { return selectItem(it); }, className: "w-full text-left px-4 py-2.5 flex items-center justify-between group border-b border-slate-50 last:border-0", style: { backgroundColor: ri === hlIdx ? "#FDF3E7" : "white" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800" }, it.name), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, it.overkoepelend, " \u203A ", it.category)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, it.unit && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-slate-100 px-2 py-0.5 rounded-full" }, it.unit), /* @__PURE__ */ React.createElement(Badge, { color: it.color }, (it.hoofdtype || "").replace(" Uitgaven", "")))); })), search.trim() && !results.find(function(r) { return (r.name || "").toLowerCase() === search.trim().toLowerCase(); }) && /* @__PURE__ */ React.createElement("button", {
       type: "button",
       onClick: function() { setQaForm({ name: search.trim(), overkoepelend: "" }); setShowQuickAdd(true); setShowRes(false); },
       className: "mt-1 w-full px-3 py-2 text-sm font-semibold flex items-center gap-2 rounded-lg border border-dashed border-teal-200 hover:bg-teal-50",
-      style: { color: "#0D9488" }
+      style: { color: "#C56A1F" }
     }, '\u271A Voeg "', search.trim(), '" toe als nieuwe subcategorie'), form.category && /* @__PURE__ */ React.createElement("div", { className: "mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs", style: { backgroundColor: T.tealBg, color: T.teal } }, /* @__PURE__ */ React.createElement(Check, { size: 12 }), form.overkoepelend, " \u203A ", form.category, " \u203A ", form.itemName))),
     /* @__PURE__ */ React.createElement(FormField, { label: "Rekening" }, /* @__PURE__ */ React.createElement(Sel, { value: form.accountId, onChange: (e) => setForm((f) => ({ ...f, accountId: e.target.value })) }, data.accounts.filter((a) => a.active).map((a) => /* @__PURE__ */ React.createElement("option", { key: a.id, value: a.id }, a.name)))),
     /* @__PURE__ */ React.createElement("button", { onClick: () => setShowOpt((s) => !s), className: "flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 mb-4" }, showOpt ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 14 }) : /* @__PURE__ */ React.createElement(ChevronRight, { size: 14 }), showOpt ? "Minder" : "Optionele velden (merk, hoeveelheid, promo...)"),
@@ -1500,7 +1655,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
               const newItem = { id: "i-custom-" + Date.now(), name: qaForm.name, synonyms: [], unit: null };
               const catId = "cat-overig-" + qaForm.overkoepelend.toLowerCase().replace(/[^a-z]/g, "");
               window._addCategory && window._addCategory(qaForm.overkoepelend, qaForm.categorie, newItem);
-              selectItem({ ...newItem, category: qaForm.categorie || "Overig", overkoepelend: qaForm.overkoepelend, hoofdtype: ov ? ov.hoofdtype : "Variabele Uitgaven", color: ov ? ov.color : "#94a3b8" });
+              selectItem({ ...newItem, category: qaForm.categorie || "Overig", overkoepelend: qaForm.overkoepelend, hoofdtype: ov ? ov.hoofdtype : "Variabele Uitgaven", color: ov ? ov.color : "#A08C77" });
               setShowQuickAdd(false);
             },
             className: "flex-1 px-4 py-2 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-40"
@@ -1539,7 +1694,7 @@ const Dashboard = ({ data, onQuickAdd, profile }) => {
     thisMonth.filter((t) => isExpense(t) && t.hoofdtype !== "Sparen").forEach((t) => {
       m[t.overkoepelend] = (m[t.overkoepelend] || 0) + t.amount;
     });
-    return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name, value, color: OV_COLORS[name] || "#94a3b8" }));
+    return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name, value, color: OV_COLORS[name] || "#A08C77" }));
   }, [thisMonth]);
   const goalsForDash = useMemo(() => data.goals.map((g) => {
     const acc = g.linkedAccountId ? latestByAcc[g.linkedAccountId] : null;
@@ -1553,10 +1708,10 @@ const Dashboard = ({ data, onQuickAdd, profile }) => {
   const recentTxs = useMemo(() => [...txs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5), [txs]);
   const firstName = (profile == null ? void 0 : profile.firstName) || "";
   return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-7xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, getGreeting(), firstName ? `, ${firstName}` : "", " \u{1F44B}"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, today.toLocaleDateString("nl-BE", { weekday: "long", day: "numeric", month: "long" }))), /* @__PURE__ */ React.createElement(Btn, { onClick: onQuickAdd, size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Transactie")), budgetAlerts.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-5 p-4 rounded-xl border border-amber-200 bg-amber-50 flex items-start gap-3" }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 18, className: "text-amber-600 mt-0.5 flex-shrink-0" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-semibold text-amber-800 mb-1" }, "Budgetwaarschuwing"), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-amber-700 space-y-0.5" }, budgetAlerts.map((b) => /* @__PURE__ */ React.createElement("div", { key: b.id }, b.label ? b.overkoepelend + " • " + b.label : b.overkoepelend, ": ", fmtEUR(b.spent), " van ", fmtEUR(b.amount), " (", b.pct.toFixed(0), "%)", b.pct >= 100 ? " — OVER BUDGET" : ""))))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" }, [
-    { label: "Netto Vermogen", value: fmtEUR(netWorth), sub: `Schulden: ${fmtEUR(totalDebts)}`, icon: "\u{1F48E}", accent: T.teal, bg: "#f0fdfa" },
-    { label: "Inkomsten (maand)", value: fmtEUR(income), sub: "Deze maand", icon: "\u{1F4C8}", accent: T.green, bg: "#ecfdf5" },
-    { label: "Uitgaven (maand)", value: fmtEUR(expenses), sub: "Excl. sparen", icon: "\u{1F4C9}", accent: T.red, bg: "#fef2f2" },
-    { label: "Spaarquote", value: `${spaarquote}%`, sub: `${fmtEUR(savings)} gespaard`, icon: "\u{1F3AF}", accent: T.blue, bg: "#eff6ff" }
+    { label: "Netto Vermogen", value: /* @__PURE__ */ React.createElement(AnimNum, { value: netWorth }), sub: `Schulden: ${fmtEUR(totalDebts)}`, icon: "\u{1F48E}", accent: T.teal, bg: "#FDF3E7" },
+    { label: "Inkomsten (maand)", value: /* @__PURE__ */ React.createElement(AnimNum, { value: income }), sub: "Deze maand", icon: "\u{1F4C8}", accent: T.green, bg: "#EEF6EF" },
+    { label: "Uitgaven (maand)", value: /* @__PURE__ */ React.createElement(AnimNum, { value: expenses }), sub: "Excl. sparen", icon: "\u{1F4C9}", accent: T.red, bg: "#FBEFEC" },
+    { label: "Spaarquote", value: /* @__PURE__ */ React.createElement(AnimNum, { value: spaarquote, format: "pct" }), sub: `${fmtEUR(savings)} gespaard`, icon: "\u{1F3AF}", accent: T.blue, bg: "#F6EEF4" }
   ].map((k, i) => /* @__PURE__ */ React.createElement(Card, { key: i, className: "p-4 border-l-4", style: { borderLeftColor: k.accent } }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium text-slate-500 uppercase tracking-wide" }, k.label), /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, k.icon)), /* @__PURE__ */ React.createElement("div", { className: "text-xl font-bold text-slate-800 mb-1" }, k.value), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, k.sub)))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6" }, /* @__PURE__ */ React.createElement(Card, { className: "lg:col-span-2 p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-4" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Inkomsten vs Uitgaven"), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-full" }, "Laatste 6 maanden")), /* @__PURE__ */ React.createElement(SvgBarChart, { data: chartData, height: 180 })), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Uitgaven per categorie"), pieData.length > 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(SvgDonut, { data: pieData, size: 170, inner: 38, outer: 62 }), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5 mt-2" }, pieData.map((e, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "flex items-center justify-between" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-2 h-2 rounded-full flex-shrink-0", style: { backgroundColor: e.color } }), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-600 truncate max-w-24" }, e.name)), /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium text-slate-700" }, fmtEUR(e.value)))))) : /* @__PURE__ */ React.createElement("div", { className: "py-8 text-center text-slate-400 text-sm" }, "Nog geen uitgaven deze maand"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" }, /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Recente transacties"), recentTxs.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, recentTxs.map((t) => /* @__PURE__ */ React.createElement("div", { key: t.id, className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0", style: { backgroundColor: isExpense(t) ? T.redBg : T.greenBg } }, isExpense(t) ? "\u{1F4B8}" : "\u{1F4B0}"), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800 truncate" }, t.description), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, t.category || t.overkoepelend || "\u2014", " \xB7 ", fmtDateShort(t.date))), /* @__PURE__ */ React.createElement("div", { className: `text-sm font-semibold flex-shrink-0 ${isExpense(t) ? "text-red-500" : "text-emerald-600"}` }, isExpense(t) ? "-" : "+", fmtEUR(t.amount))))) : /* @__PURE__ */ React.createElement("div", { className: "py-8 text-center text-slate-400 text-sm" }, "Nog geen transacties")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Spaardoelen"), goalsForDash.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, goalsForDash.slice(0, 4).map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-medium text-slate-700" }, g.name), /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold", style: { color: g.pct >= 100 ? T.green : g.color } }, g.pct.toFixed(0), "%")), /* @__PURE__ */ React.createElement(Progress, { value: g.current, max: g.targetAmount, color: g.color }), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between mt-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, fmtEUR(g.current)), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, fmtEUR(g.targetAmount)))))) : /* @__PURE__ */ React.createElement("div", { className: "py-8 text-center text-slate-400 text-sm" }, "Nog geen spaardoelen"))));
 };
 const TransactiesPage = ({ data, onAdd, onUpdate, onDelete, toast }) => {
@@ -1582,7 +1737,7 @@ const TransactiesPage = ({ data, onAdd, onUpdate, onDelete, toast }) => {
   const totalOut = filtered.filter((t) => isExpense(t)).reduce((s, t) => s + t.amount, 0);
   return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-5xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Transacties"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Toevoegen")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-4 mb-4" }, /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.green } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Inkomsten"), /* @__PURE__ */ React.createElement("div", { className: "font-bold text-emerald-600" }, fmtEUR(totalIn))), /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.red } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Uitgaven"), /* @__PURE__ */ React.createElement("div", { className: "font-bold text-red-500" }, fmtEUR(totalOut))), /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.teal } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Saldo"), /* @__PURE__ */ React.createElement("div", { className: `font-bold ${totalIn - totalOut >= 0 ? "text-emerald-600" : "text-red-500"}` }, fmtEUR(totalIn - totalOut)))), /* @__PURE__ */ React.createElement(Card, { className: "mb-4 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "relative flex-1" }, /* @__PURE__ */ React.createElement(Search, { size: 14, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }), /* @__PURE__ */ React.createElement(Input, { className: "pl-8", placeholder: "Zoeken...", value: search, onChange: (e) => setSearch(e.target.value) })), /* @__PURE__ */ React.createElement(Sel, { value: monthFilter, onChange: (e) => setMonthFilter(e.target.value), className: "w-36" }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Alle maanden"), months.map((m) => /* @__PURE__ */ React.createElement("option", { key: m, value: m }, (/* @__PURE__ */ new Date(m + "-01")).toLocaleDateString("nl-BE", { month: "long", year: "numeric" })))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [["all", "Alle"], ["income", "Inkomsten"], ["expense", "Uitgaven"]].map(([k, l]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setFilter(k), className: `px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === k ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}` }, l))))), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-slate-50" }, filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "py-12 text-center text-slate-400 text-sm" }, "Geen transacties gevonden"), filtered.map((t) => {
     const acc = accMap[t.accountId];
-    return /* @__PURE__ */ React.createElement("div", { key: t.id, className: "flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/70 group transition-colors" }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 w-14 flex-shrink-0 font-mono" }, fmtDateShort(t.date)), /* @__PURE__ */ React.createElement("div", { className: "w-1.5 h-1.5 rounded-full flex-shrink-0", style: { backgroundColor: OV_COLORS[t.overkoepelend] || "#cbd5e1" } }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "font-medium text-slate-800 text-sm truncate" }, t.description, t.brand && /* @__PURE__ */ React.createElement("span", { className: "text-slate-400 font-normal ml-1" }, "\xB7 ", t.brand)), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 flex items-center gap-1 mt-0.5" }, /* @__PURE__ */ React.createElement("span", null, t.overkoepelend || "\u2014"), t.category && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(ChevronRight, { size: 10 }), /* @__PURE__ */ React.createElement("span", null, t.category)))), acc && /* @__PURE__ */ React.createElement(Badge, { color: acc.color, small: true }, acc.name), /* @__PURE__ */ React.createElement("div", { className: `text-sm font-semibold flex-shrink-0 ${isExpense(t) ? "text-red-500" : "text-emerald-600"}` }, isExpense(t) ? "-" : "+", fmtEUR(t.amount)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 transition-all" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setEditTx(t), className: "p-1.5 rounded-lg text-slate-300 hover:text-teal-600 hover:bg-teal-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u270F\uFE0F")), confirmDel === t.id ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
+    return /* @__PURE__ */ React.createElement("div", { key: t.id, className: "flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/70 group transition-colors" }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 w-14 flex-shrink-0 font-mono" }, fmtDateShort(t.date)), /* @__PURE__ */ React.createElement("div", { className: "w-1.5 h-1.5 rounded-full flex-shrink-0", style: { backgroundColor: OV_COLORS[t.overkoepelend] || "#CDBBA6" } }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "font-medium text-slate-800 text-sm truncate" }, t.description, t.brand && /* @__PURE__ */ React.createElement("span", { className: "text-slate-400 font-normal ml-1" }, "\xB7 ", t.brand)), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 flex items-center gap-1 mt-0.5" }, /* @__PURE__ */ React.createElement("span", null, t.overkoepelend || "\u2014"), t.category && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(ChevronRight, { size: 10 }), /* @__PURE__ */ React.createElement("span", null, t.category)))), acc && /* @__PURE__ */ React.createElement(Badge, { color: acc.color, small: true }, acc.name), /* @__PURE__ */ React.createElement("div", { className: `text-sm font-semibold flex-shrink-0 ${isExpense(t) ? "text-red-500" : "text-emerald-600"}` }, isExpense(t) ? "-" : "+", fmtEUR(t.amount)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 transition-all" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setEditTx(t), className: "p-1.5 rounded-lg text-slate-300 hover:text-teal-600 hover:bg-teal-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u270F\uFE0F")), confirmDel === t.id ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
       onDelete(t.id);
       setConfirmDel(null);
       toast("Transactie verwijderd");
@@ -1672,7 +1827,7 @@ const SpaardoelenPage = ({ data, onUpdate, toast }) => {
   const [editGoal, setEditGoal] = useState(null);
   const [quickUpdate, setQuickUpdate] = useState(null);
   const [qAmt, setQAmt] = useState("");
-  const COLORS = [T.teal, T.blue, T.amber, T.red, T.green, T.purple, "#d97706", "#db2777"];
+  const COLORS = [T.teal, T.blue, T.amber, T.red, T.green, T.purple, "#B08A2E", "#db2777"];
   const latestByAcc = useMemo(() => {
     const m = {};
     data.balances.forEach((b) => {
@@ -1744,7 +1899,7 @@ const BudgettenPage = ({ data, onUpdate, toast }) => {
     setForm({ overkoepelend: "", amount: "", period: "monthly", label: "" });
     toast("Budget toegevoegd \u2713");
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-4xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Maandbudgetten"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, "Maximale uitgaven per categorie")), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Budget")), /* @__PURE__ */ React.createElement(Card, { className: "p-5 mb-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-slate-500" }, "Totaal deze maand"), /* @__PURE__ */ React.createElement("div", { className: "text-2xl font-bold text-slate-800 mt-0.5" }, fmtEUR(totSpent), " ", /* @__PURE__ */ React.createElement("span", { className: "text-slate-400 text-lg font-normal" }, "/ ", fmtEUR(totBudget)))), /* @__PURE__ */ React.createElement("div", { className: "text-right" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-slate-500" }, "Resterend"), /* @__PURE__ */ React.createElement("div", { className: `text-xl font-bold ${totSpent > totBudget ? "text-red-500" : "text-emerald-600"}` }, fmtEUR(totBudget - totSpent)))), /* @__PURE__ */ React.createElement(Progress, { value: totSpent, max: totBudget, h: 10 })), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3" }, budgetsWithSpent.map((b) => {
+  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-4xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Maandbudgetten"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, "Maximale uitgaven per categorie")), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Budget")), /* @__PURE__ */ React.createElement(Card, { className: "p-5 mb-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-slate-500" }, "Totaal deze maand"), /* @__PURE__ */ React.createElement("div", { className: "text-2xl font-bold text-slate-800 mt-0.5" }, /* @__PURE__ */ React.createElement(AnimNum, { value: totSpent }), " ", /* @__PURE__ */ React.createElement("span", { className: "text-slate-400 text-lg font-normal" }, "/ ", fmtEUR(totBudget)))), /* @__PURE__ */ React.createElement("div", { className: "text-right" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-slate-500" }, "Resterend"), /* @__PURE__ */ React.createElement("div", { className: `text-xl font-bold ${totSpent > totBudget ? "text-red-500" : "text-emerald-600"}` }, fmtEUR(totBudget - totSpent)))), /* @__PURE__ */ React.createElement(Progress, { value: totSpent, max: totBudget, h: 10 })), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3" }, budgetsWithSpent.map((b) => {
     const over = b.pct > 100;
     const warn = b.pct > 85 && !over;
     return /* @__PURE__ */ React.createElement(Card, { key: b.id, className: "p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", null,
@@ -1759,9 +1914,9 @@ const BudgettenPage = ({ data, onUpdate, toast }) => {
 const AnalysePage = ({ data }) => {
   const [period, setPeriod] = useState("month");
   const [drillOv, setDrillOv] = useState(null);
-  const COLORS2 = [T.teal, T.amber, "#7C3AED", "#2563EB", "#059669", "#DB2777", "#d97706", "#64748B"];
-  const SUB_COLORS = ["#0D9488","#F59E0B","#7C3AED","#2563EB","#059669","#DB2777","#F97316","#DC2626","#0891b2","#65a30d","#be185d","#64748B"];
-  const STORE_COLORS = ["#2563EB","#0D9488","#F59E0B","#7C3AED","#DB2777","#059669","#F97316","#DC2626","#0891b2","#64748B","#65a30d","#be185d"];
+  const COLORS2 = [T.teal, T.amber, "#96588A", "#3E7C7B", "#3F8A58", "#C97B8B", "#B08A2E", "#83705C"];
+  const SUB_COLORS = ["#C56A1F","#F59E0B","#96588A","#3E7C7B","#3F8A58","#C97B8B","#C1502E","#D64545","#4E8D8C","#7A8B3E","#A34A5E","#83705C"];
+  const STORE_COLORS = ["#3E7C7B","#C56A1F","#F59E0B","#96588A","#C97B8B","#3F8A58","#C1502E","#D64545","#4E8D8C","#83705C","#7A8B3E","#A34A5E"];
   const txs = useMemo(() => data.transactions.filter((t) => {
     if (period === "month") return getMonth(t.date) === currentMonth;
     if (period === "year") return t.date.startsWith(fmt(today).slice(0, 4));
@@ -1781,7 +1936,7 @@ const AnalysePage = ({ data }) => {
       if (!t.overkoepelend) return;
       m[t.overkoepelend] = (m[t.overkoepelend] || 0) + t.amount;
     });
-    return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value, color: OV_COLORS[name] || "#94a3b8" }));
+    return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value, color: OV_COLORS[name] || "#A08C77" }));
   }, [txs]);
   // Donut 2: volledige gesorteerde lijst per subcategorie/product — NOOIT de winkelnaam
   const byItem = useMemo(() => {
@@ -1853,7 +2008,7 @@ const AnalysePage = ({ data }) => {
     const restTotal = rest.reduce((s, e) => s + e.value, 0);
     // Donut gebruikt altijd top10 + eventueel "Overige"-schijf
     const donutData = top10.slice();
-    if (restTotal > 0) donutData.push({ name: "Overige (" + rest.length + ")", value: restTotal, color: "#94a3b8" });
+    if (restTotal > 0) donutData.push({ name: "Overige (" + rest.length + ")", value: restTotal, color: "#A08C77" });
     // Legende: top10 standaard, alles bij showAll
     const legendData = showAll ? allData : top10;
     const hasMore = rest.length > 0;
@@ -2050,7 +2205,7 @@ const CategorieeenPage = ({ data, onUpdate, toast }) => {
   const [showAddOv, setShowAddOv] = useState(false);
   const [showAddCat, setShowAddCat] = useState(null);
   const [showAddItem, setShowAddItem] = useState(null);
-  const [ovForm, setOvForm] = useState({ name: "", hoofdtype: "Variabele Uitgaven", color: "#0D9488", icon: "\u{1F4E6}" });
+  const [ovForm, setOvForm] = useState({ name: "", hoofdtype: "Variabele Uitgaven", color: "#C56A1F", icon: "\u{1F4E6}" });
   const [catForm, setCatForm] = useState({ name: "" });
   const [itemForm, setItemForm] = useState({ name: "", synonyms: "", unit: "" });
   const toggle = (id) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
@@ -2076,7 +2231,7 @@ const CategorieeenPage = ({ data, onUpdate, toast }) => {
     if (!ovForm.name) return;
     onUpdate((d) => ({ ...d, categories: [...d.categories, { id: `ov-${generateId()}`, ...ovForm, categories: [] }] }));
     setShowAddOv(false);
-    setOvForm({ name: "", hoofdtype: "Variabele Uitgaven", color: "#0D9488", icon: "\u{1F4E6}" });
+    setOvForm({ name: "", hoofdtype: "Variabele Uitgaven", color: "#C56A1F", icon: "\u{1F4E6}" });
     toast("Categorie toegevoegd \u2713");
   };
   const addCat = (ovId) => {
@@ -2162,7 +2317,7 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
   return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-2xl mx-auto" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800 mb-6" }, "Instellingen"), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: T.tealBg } }, "\u{1F464}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Mijn profiel"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, "Naam die getoond wordt in de app"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Voornaam" }, /* @__PURE__ */ React.createElement(Input, { value: nameForm.firstName, onChange: (e) => setNameForm((f) => ({ ...f, firstName: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Achternaam" }, /* @__PURE__ */ React.createElement(Input, { value: nameForm.lastName, onChange: (e) => setNameForm((f) => ({ ...f, lastName: e.target.value })) }))), /* @__PURE__ */ React.createElement(Btn, { onClick: saveProfile }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: T.tealBg } }, "\u2601\uFE0F"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Google Drive Sync"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, "Koppel je account voor sync over alle toestellen"))), window._driveConnected
     ? /* @__PURE__ */ React.createElement("div", { className: "p-4 rounded-xl border-2 border-slate-200 bg-slate-50" },
         /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" },
-          /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold", style: { background: "#0D9488" } }, "\u2713"),
+          /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold", style: { background: "#C56A1F" } }, "\u2713"),
           /* @__PURE__ */ React.createElement("div", null,
             /* @__PURE__ */ React.createElement("p", { className: "text-sm font-semibold text-slate-700" }, "Verbonden met Google Drive"),
             /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, window._driveEmail || "Jouw Google-account", " \u2014 data wordt automatisch opgeslagen")
@@ -2171,10 +2326,10 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
       )
     : /* @__PURE__ */ React.createElement("div", { className: "p-4 rounded-xl border-2 border-dashed border-slate-200 text-center" },
         /* @__PURE__ */ React.createElement("p", { className: "text-sm text-slate-500" }, "Nog niet verbonden met Google Drive.")
-      )), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#eff6ff" } }, "\u{1F4BE}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Export & Backup"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: exportJSON, className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-teal-200 hover:bg-teal-50 transition-all text-sm font-medium text-slate-700" }, /* @__PURE__ */ React.createElement(Download, { size: 16, className: "text-teal-600" }), "JSON Backup"), /* @__PURE__ */ React.createElement("button", { onClick: exportCSV, className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-amber-200 hover:bg-amber-50 transition-all text-sm font-medium text-slate-700" }, /* @__PURE__ */ React.createElement(Download, { size: 16, className: "text-amber-600" }), "CSV (Excel)"))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#ecfdf5" } }, "\u{1F4C2}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Importeren"))), /* @__PURE__ */ React.createElement("label", { className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-teal-300 cursor-pointer transition-colors" }, /* @__PURE__ */ React.createElement(Upload, { size: 16, className: "text-slate-400" }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-500" }, "Klik om JSON-backup te importeren"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".json", className: "hidden", onChange: importJSON }))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-3" }, "Overzicht data"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, [["Transacties", data.transactions.length], ["Rekeningen", data.accounts.length], ["Spaardoelen", data.goals.length], ["Budgetten", data.budgets.length], ["Categorie\xEBn", data.categories.length], ["Subcategorie\xEBn", data.categories.reduce((s, o) => s + o.categories.reduce((ss, c) => ss + c.items.length, 0), 0)]].map(([k, v]) => /* @__PURE__ */ React.createElement("div", { key: k, className: "bg-slate-50 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, k), /* @__PURE__ */ React.createElement("div", { className: "font-semibold text-slate-800 mt-0.5" }, v)))), /* @__PURE__ */ React.createElement("button", {
+      )), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#F6EEF4" } }, "\u{1F4BE}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Export & Backup"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: exportJSON, className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-teal-200 hover:bg-teal-50 transition-all text-sm font-medium text-slate-700" }, /* @__PURE__ */ React.createElement(Download, { size: 16, className: "text-teal-600" }), "JSON Backup"), /* @__PURE__ */ React.createElement("button", { onClick: exportCSV, className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-amber-200 hover:bg-amber-50 transition-all text-sm font-medium text-slate-700" }, /* @__PURE__ */ React.createElement(Download, { size: 16, className: "text-amber-600" }), "CSV (Excel)"))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#EEF6EF" } }, "\u{1F4C2}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Importeren"))), /* @__PURE__ */ React.createElement("label", { className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-teal-300 cursor-pointer transition-colors" }, /* @__PURE__ */ React.createElement(Upload, { size: 16, className: "text-slate-400" }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-500" }, "Klik om JSON-backup te importeren"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".json", className: "hidden", onChange: importJSON }))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-3" }, "Overzicht data"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, [["Transacties", data.transactions.length], ["Rekeningen", data.accounts.length], ["Spaardoelen", data.goals.length], ["Budgetten", data.budgets.length], ["Categorie\xEBn", data.categories.length], ["Subcategorie\xEBn", data.categories.reduce((s, o) => s + o.categories.reduce((ss, c) => ss + c.items.length, 0), 0)]].map(([k, v]) => /* @__PURE__ */ React.createElement("div", { key: k, className: "bg-slate-50 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, k), /* @__PURE__ */ React.createElement("div", { className: "font-semibold text-slate-800 mt-0.5" }, v)))), /* @__PURE__ */ React.createElement("button", {
     onClick: () => window._wisAlleTransacties && window._wisAlleTransacties(),
     className: "w-full mb-2 py-2 px-4 text-sm font-semibold text-white rounded-xl",
-    style: { background: "#DC2626" }
+    style: { background: "#D64545" }
   }, "\uD83D\uDDD1 Wis alle transacties"), /* @__PURE__ */ React.createElement("button", { onClick: () => {
     onReset();
     toast("Voorbeelddata hersteld");
@@ -2194,7 +2349,7 @@ function App({ data, onUpdate }) {
   const addTx = useCallback((tx) => update((d) => {
     const merchants = d.merchants || [];
     const existing = merchants.find((m) => m.name.toLowerCase() === (tx.description || "").toLowerCase());
-    const newMerchant = { id: existing ? existing.id : generateId(), name: tx.description, overkoepelend: tx.overkoepelend, category: tx.category, itemId: tx.itemId, itemName: tx.itemName, color: tx.color || "#94a3b8", lastUsed: tx.date };
+    const newMerchant = { id: existing ? existing.id : generateId(), name: tx.description, overkoepelend: tx.overkoepelend, category: tx.category, itemId: tx.itemId, itemName: tx.itemName, color: tx.color || "#A08C77", lastUsed: tx.date };
     const updatedMerchants = existing ? merchants.map((m) => m.id === existing.id ? newMerchant : m) : (tx.description ? [...merchants, newMerchant] : merchants);
     return { ...d, transactions: [tx, ...d.transactions], merchants: updatedMerchants };
   }), [update]);
@@ -2218,16 +2373,16 @@ function LoginScreen(props) {
   var ce = React.createElement;
   return ce(
     "div",
-    { style: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", backgroundColor: "#0F2942" } },
+    { style: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", backgroundColor: "#2C211B" } },
     ce(
       "div",
       { style: { background: "white", borderRadius: "24px", boxShadow: "0 25px 50px rgba(0,0,0,0.4)", padding: "32px", maxWidth: "360px", width: "100%", textAlign: "center" } },
       ce("div", { style: { width: 64, height: 64, borderRadius: 16, backgroundColor: "#F59E0B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px" } }, "\u{1F48E}"),
-      ce("h1", { style: { fontSize: 24, fontWeight: 700, color: "#1e293b", margin: "0 0 4px" } }, "Financieel Kompas"),
-      ce("p", { style: { color: "#94a3b8", fontSize: 14, margin: "0 0 32px" } }, "Jouw persoonlijke budgetplanner"),
+      ce("h1", { style: { fontSize: 24, fontWeight: 700, color: "#33281F", margin: "0 0 4px" } }, "Financieel Kompas"),
+      ce("p", { style: { color: "#A08C77", fontSize: 14, margin: "0 0 32px" } }, "Jouw persoonlijke budgetplanner"),
       props.clientIdMissing ? ce(
         "div",
-        { style: { padding: 16, background: "#fffbeb", borderRadius: 12, fontSize: 14, color: "#92400e" } },
+        { style: { padding: 16, background: "#FFF7E6", borderRadius: 12, fontSize: 14, color: "#92400e" } },
         ce("strong", null, "Setup: "),
         "Vervang YOUR_GOOGLE_CLIENT_ID op regel 23."
       ) : ce(
@@ -2237,7 +2392,7 @@ function LoginScreen(props) {
           "button",
           {
             onClick: props.onSignIn,
-            style: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "12px 24px", borderRadius: 12, fontWeight: 600, color: "#374151", border: "2px solid #e2e8f0", background: "white", cursor: "pointer", fontSize: 15, marginBottom: 16 }
+            style: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "12px 24px", borderRadius: 12, fontWeight: 600, color: "#374151", border: "2px solid #E4D8C8", background: "white", cursor: "pointer", fontSize: 15, marginBottom: 16 }
           },
           ce(
             "svg",
@@ -2249,7 +2404,7 @@ function LoginScreen(props) {
           ),
           "Aanmelden met Google"
         ),
-        ce("p", { style: { fontSize: 12, color: "#94a3b8" } }, "Je data wordt opgeslagen in jouw Google Drive.")
+        ce("p", { style: { fontSize: 12, color: "#A08C77" } }, "Je data wordt opgeslagen in jouw Google Drive.")
       )
     )
   );
@@ -2371,7 +2526,7 @@ function Root() {
       clearTimeout(timeout);
     };
   }, []);
-  var navy = "#0F2942";
+  var navy = "#2C211B";
   var ls = function(t) {
     return React.createElement(
       "div",
@@ -2396,10 +2551,10 @@ function Root() {
       "div",
       { style: { background: "white", borderRadius: 16, padding: 24, textAlign: "center", maxWidth: 320 } },
       React.createElement("div", { style: { fontSize: 40, marginBottom: 12 } }, "\u26A0\uFE0F"),
-      React.createElement("p", { style: { color: "#475569", marginBottom: 16 } }, "Verbinding mislukt."),
+      React.createElement("p", { style: { color: "#6B5847", marginBottom: 16 } }, "Verbinding mislukt."),
       React.createElement("button", { onClick: function() {
         setDriveState("login");
-      }, style: { padding: "8px 20px", background: "#0D9488", color: "white", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer" } }, "Opnieuw proberen")
+      }, style: { padding: "8px 20px", background: "#C56A1F", color: "white", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer" } }, "Opnieuw proberen")
     )
   );
   var data = dataRef.current;
