@@ -2536,6 +2536,7 @@ const berekenDossierStand = (dossier, data) => {
   return { open, all, settlements, settledIds, uitgaven, terug, netto, mijnAandeel, mijnBetaald, saldoOpen, openVorderingen, totaal: saldoOpen + openVorderingen };
 };
 const DossiersPage = ({ data, onUpdate, toast }) => {
+  const DOSSIER_COLORS = [T.teal, T.blue, T.amber, T.red, T.green, T.purple, "#B08A2E", "#db2777"];
   const dossiers = (data.dossiers || []).filter((d) => !d.archived);
   const [selId, setSelId] = useState(null);
   const [showDosForm, setShowDosForm] = useState(false);
@@ -2556,7 +2557,7 @@ const DossiersPage = ({ data, onUpdate, toast }) => {
   };
   // ── Dossier aanmaken/bewerken ──
   const DosForm = ({ init, onClose }) => {
-    const [f, setF] = useState(init || { name: "", partnerName: "", mySharePct: "50", color: COLORS[0], notes: "" });
+    const [f, setF] = useState(init || { name: "", partnerName: "", mySharePct: "50", color: DOSSIER_COLORS[0], notes: "" });
     const save = () => {
       const entry = { id: init ? init.id : generateId(), name: f.name, partnerName: f.partnerName, mySharePct: f.mySharePct, color: f.color, notes: f.notes, archived: init ? !!init.archived : false };
       // Dossiernaam gewijzigd? Dan hernoemt de map in Drive automatisch mee.
@@ -2584,7 +2585,7 @@ const DossiersPage = ({ data, onUpdate, toast }) => {
       /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" },
         /* @__PURE__ */ React.createElement(FormField, { label: "Naam tegenpartij" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. An", value: f.partnerName, onChange: (e) => setF((x) => ({ ...x, partnerName: e.target.value })) })),
         /* @__PURE__ */ React.createElement(FormField, { label: "Jouw aandeel (%)", hint: "Tegenpartij draagt automatisch " + (100 - mijnPct) + "%" }, /* @__PURE__ */ React.createElement(Input, { type: "number", min: "0", max: "100", step: "1", placeholder: "50", value: f.mySharePct, onChange: (e) => setF((x) => ({ ...x, mySharePct: e.target.value })) }))),
-      /* @__PURE__ */ React.createElement(FormField, { label: "Kleur" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, COLORS.map((c) => /* @__PURE__ */ React.createElement("button", { key: c, onClick: () => setF((x) => ({ ...x, color: c })), className: "w-7 h-7 rounded-full border-2 transition-all", style: { backgroundColor: c, borderColor: f.color === c ? "#0f2942" : "transparent" } })))),
+      /* @__PURE__ */ React.createElement(FormField, { label: "Kleur" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, DOSSIER_COLORS.map((c) => /* @__PURE__ */ React.createElement("button", { key: c, onClick: () => setF((x) => ({ ...x, color: c })), className: "w-7 h-7 rounded-full border-2 transition-all", style: { backgroundColor: c, borderColor: f.color === c ? "#0f2942" : "transparent" } })))),
       /* @__PURE__ */ React.createElement(FormField, { label: "Notities" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Optioneel", value: f.notes, onChange: (e) => setF((x) => ({ ...x, notes: e.target.value })) })),
       /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" },
         /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: onClose }, "Annuleren"),
