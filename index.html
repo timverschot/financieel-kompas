@@ -1422,6 +1422,96 @@ const processRecurringAutoBook = (d) => {
   if (!booked) return { data: d, booked: 0 };
   return { data: Object.assign({}, d, { recurring: rec, transactions: newTx.concat(d.transactions || []) }), booked };
 };
+const generateInsights = (data) => {
+  const out = [];
+  const mo = currentMonth;
+  const txs = data.transactions || [];
+  const thisM = txs.filter((t) => getMonth(t.date) === mo);
+  const dayOfMonth = today.getDate();
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  // 1) Mogelijke dubbele invoer: zelfde datum, bedrag en omschrijving
+  const seen = {};
+  thisM.forEach((t) => {
+    const k = t.date + "|" + t.amount + "|" + (t.description || "").trim().toLowerCase();
+    if (!seen[k]) seen[k] = [];
+    seen[k].push(t);
+  });
+  Object.keys(seen).forEach((k) => {
+    if (seen[k].length >= 2) {
+      const t = seen[k][0];
+      out.push({ key: "dup|" + k, tone: "alert", icon: "\u26A0\uFE0F", text: "Mogelijke dubbele invoer: " + seen[k].length + "\u00D7 \u201C" + t.description + "\u201D (" + fmtEUR(t.amount) + ") op " + fmtDateShort(t.date) + "." });
+    }
+  });
+  // Maandtotalen per hoofdcategorie (splits per regel geteld)
+  const spentByMonthOv = {};
+  txs.forEach((t) => {
+    if (!isExpense(t)) return;
+    const m = getMonth(t.date);
+    ovAmountsForTx(t).forEach((e) => {
+      if (!spentByMonthOv[m]) spentByMonthOv[m] = {};
+      spentByMonthOv[m][e.ov] = (spentByMonthOv[m][e.ov] || 0) + e.amount;
+    });
+  });
+  const prevMonths = [1, 2, 3].map((n) => {
+    const d = new Date(today);
+    d.setDate(1);
+    d.setMonth(d.getMonth() - n);
+    return fmt(d).slice(0, 7);
+  });
+  // 2) Budget dreigt overschreden te worden (zelfde projectie als op Budgetten)
+  (data.budgets || []).filter((b) => b.period === "monthly" && b.amount > 0).forEach((b) => {
+    const spent = (spentByMonthOv[mo] || {})[b.overkoepelend] || 0;
+    if (spent >= b.amount || dayOfMonth < 3) return;
+    const naive = spent / dayOfMonth * daysInMonth;
+    const hv = prevMonths.map((m) => (spentByMonthOv[m] || {})[b.overkoepelend] || 0).filter((v) => v > 0);
+    const hist = hv.length ? hv.reduce((s, v) => s + v, 0) / hv.length : 0;
+    const proj = hist > 0 ? naive * 0.5 + hist * 0.5 : naive;
+    if (proj > b.amount * 1.05) out.push({ key: "proj|" + b.overkoepelend + "|" + mo, tone: "warn", icon: "\u{1F4C8}", text: "Aan dit tempo kom je deze maand \u00B1 " + fmtEUR(Math.round(proj - b.amount)) + " boven je budget voor " + b.overkoepelend + " uit." });
+  });
+  // 3) Categorie duidelijk boven het gemiddelde van de voorbije maanden (top 2)
+  const above = [];
+  Object.keys(spentByMonthOv[mo] || {}).forEach((ov) => {
+    const cur = spentByMonthOv[mo][ov];
+    const hv = prevMonths.map((m) => (spentByMonthOv[m] || {})[ov] || 0).filter((v) => v > 0);
+    if (hv.length < 2 || cur < 50) return;
+    const avg = hv.reduce((s, v) => s + v, 0) / hv.length;
+    if (cur > avg * 1.15 && cur - avg >= 25) above.push({ ov, cur, avg, diff: cur - avg });
+  });
+  above.sort((a, b) => b.diff - a.diff).slice(0, 2).forEach((a) => {
+    out.push({ key: "avg|" + a.ov + "|" + mo, tone: "warn", icon: "\u{1F50D}", text: "Je gaf deze maand al " + fmtEUR(Math.round(a.cur)) + " uit aan " + a.ov + " \u2014 " + Math.round((a.cur / a.avg - 1) * 100) + "% boven je gemiddelde van de voorbije maanden." });
+  });
+  // 4) Meer uitgegeven dan binnengekomen (pas signaleren na dag 20)
+  if (dayOfMonth >= 20) {
+    const inc = thisM.filter((t) => !isExpense(t)).reduce((s, t) => s + t.amount, 0);
+    const exp = thisM.filter((t) => isExpense(t) && t.hoofdtype !== "Sparen").reduce((s, t) => s + t.amount, 0);
+    if (inc > 0 && exp > inc) out.push({ key: "overspend|" + mo, tone: "warn", icon: "\u2696\uFE0F", text: "Je gaf deze maand tot nu " + fmtEUR(Math.round(exp - inc)) + " meer uit dan er binnenkwam." });
+  }
+  // 5) Spaardoel-tempo: haal je het doel tegen de einddatum aan dit tempo?
+  (data.goals || []).forEach((g) => {
+    if (!g.targetDate || !g.linkedAccountId || !g.targetAmount) return;
+    const bals = (data.balances || []).filter((b) => b.accountId === g.linkedAccountId).sort((a, b) => a.date.localeCompare(b.date));
+    if (bals.length < 2) return;
+    const latest = bals[bals.length - 1];
+    if (latest.amount >= g.targetAmount) return;
+    const cutoff = (() => { const d = new Date(today); d.setMonth(d.getMonth() - 3); return fmt(d); })();
+    let ref = bals[0];
+    bals.forEach((b) => { if (b.date <= cutoff) ref = b; });
+    const daysSpan = Math.max(30, (new Date(latest.date) - new Date(ref.date)) / 864e5);
+    const paceMonth = (latest.amount - ref.amount) / (daysSpan / 30.44);
+    const monthsLeft = Math.max(0.5, (new Date(g.targetDate) - today) / 864e5 / 30.44);
+    const expected = latest.amount + paceMonth * monthsLeft;
+    if (expected < g.targetAmount * 0.95) {
+      out.push({ key: "goal|" + g.id + "|" + mo, tone: "warn", icon: "\u{1F3AF}", text: "Aan je huidige spaartempo (\u00B1 " + fmtEUR(Math.max(0, Math.round(paceMonth))) + "/maand) kom je " + fmtEUR(Math.round(g.targetAmount - expected)) + " tekort voor \u2018" + g.name + "\u2019 tegen " + fmtDateShort(g.targetDate) + "." });
+    }
+  });
+  // 6) Informatief: totaal van je vaste lasten (1x per maand zichtbaar)
+  const recs = (data.recurring || []).filter((r) => r.active && r.hoofdtype !== "Inkomsten");
+  if (recs.length >= 2) {
+    const perMonth = recs.reduce((s, r) => s + (r.interval === "weekly" ? r.amount * 4.33 : r.interval === "yearly" ? r.amount / 12 : r.amount), 0);
+    out.push({ key: "fixed|" + mo, tone: "info", icon: "\u{1F501}", text: "Je vaste lasten samen: \u00B1 " + fmtEUR(Math.round(perMonth)) + " per maand (" + recs.length + " stuks)." });
+  }
+  return out;
+};
 const withDeleted = (d, ids) => {
   const cur = d.deletedIds || [];
   const add = (ids || []).filter((x) => x && cur.indexOf(x) < 0);
@@ -1954,6 +2044,18 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
 const Dashboard = ({ data, onData, onQuickAdd, onDeleteTx, toast, profile }) => {
   const [confirmDelDash, setConfirmDelDash] = useState(null);
   const dueRecurring = useMemo(() => (data.recurring || []).filter((r) => r.active && !r.autoBook && r.nextDate && r.nextDate <= fmt(today)), [data.recurring]);
+  const insights = useMemo(() => {
+    const dismissed = data.dismissedInsights || {};
+    const rank = { alert: 0, warn: 1, info: 2 };
+    return generateInsights(data).filter((ins) => !dismissed[ins.key]).sort((a, b) => rank[a.tone] - rank[b.tone]).slice(0, 3);
+  }, [data]);
+  const dismissInsight = (key) => onData((d) => {
+    // Bewaar alleen sleutels van de huidige maand; oude ruimen zichzelf op
+    const keep = {};
+    Object.keys(d.dismissedInsights || {}).forEach((k) => { if (k.indexOf(currentMonth) >= 0) keep[k] = true; });
+    keep[key] = true;
+    return { ...d, dismissedInsights: keep };
+  });
   const bookRecurring = (r) => {
     onData((d) => ({
       ...d,
@@ -2018,13 +2120,27 @@ const Dashboard = ({ data, onData, onQuickAdd, onDeleteTx, toast, profile }) => 
     const current = acc ? Math.abs(acc.amount) : 0;
     return { ...g, current, pct: Math.min(100, g.targetAmount > 0 ? current / g.targetAmount * 100 : 0) };
   }), [data.goals, latestByAcc]);
-  const budgetAlerts = useMemo(() => data.budgets.map((b) => {
-    const spent = thisMonth.filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend).reduce((s, t) => s + t.amount, 0);
-    return { ...b, spent, pct: b.amount > 0 ? spent / b.amount * 100 : 0 };
-  }).filter((b) => b.pct > 85).sort((a, z) => z.pct - a.pct), [data.budgets, thisMonth]);
+  const budgetAlerts = useMemo(() => {
+    const spentByOv = {};
+    thisMonth.forEach((t) => {
+      if (!isExpense(t)) return;
+      ovAmountsForTx(t).forEach((e) => { spentByOv[e.ov] = (spentByOv[e.ov] || 0) + e.amount; });
+    });
+    return data.budgets.map((b) => {
+      const spent = spentByOv[b.overkoepelend] || 0;
+      return { ...b, spent, pct: b.amount > 0 ? spent / b.amount * 100 : 0 };
+    }).filter((b) => b.pct > 85).sort((a, z) => z.pct - a.pct);
+  }, [data.budgets, thisMonth]);
   const recentTxs = useMemo(() => [...txs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5), [txs]);
   const firstName = (profile == null ? void 0 : profile.firstName) || "";
-  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-7xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, getGreeting(), firstName ? `, ${firstName}` : "", " \u{1F44B}"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, today.toLocaleDateString("nl-BE", { weekday: "long", day: "numeric", month: "long" }))), /* @__PURE__ */ React.createElement(Btn, { onClick: onQuickAdd, size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Transactie")), dueRecurring.length > 0 && /* @__PURE__ */ React.createElement(Card, { className: "mb-5 p-4" },
+  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-7xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, getGreeting(), firstName ? `, ${firstName}` : "", " \u{1F44B}"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, today.toLocaleDateString("nl-BE", { weekday: "long", day: "numeric", month: "long" }))), /* @__PURE__ */ React.createElement(Btn, { onClick: onQuickAdd, size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Transactie")), insights.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-5 space-y-2" }, insights.map((ins) => /* @__PURE__ */ React.createElement("div", {
+    key: ins.key,
+    className: "flex items-start gap-3 px-4 py-3 rounded-xl border",
+    style: { backgroundColor: ins.tone === "alert" ? T.redBg : ins.tone === "warn" ? T.amberBg : T.tealBg, borderColor: ins.tone === "alert" ? "#EFC3B9" : ins.tone === "warn" ? "#EFDCB2" : "#F5CD9E" }
+  },
+    /* @__PURE__ */ React.createElement("span", { className: "text-base leading-none mt-0.5" }, ins.icon),
+    /* @__PURE__ */ React.createElement("p", { className: "flex-1 text-sm text-slate-700" }, ins.text),
+    /* @__PURE__ */ React.createElement("button", { onClick: () => dismissInsight(ins.key), title: "Verberg dit inzicht", className: "p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white/60" }, /* @__PURE__ */ React.createElement(X, { size: 14 }))))), dueRecurring.length > 0 && /* @__PURE__ */ React.createElement(Card, { className: "mb-5 p-4" },
     /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mb-3" }, /* @__PURE__ */ React.createElement("span", null, "\u{1F501}"), /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Klaargezet"), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, "vervallen vaste lasten")),
     /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, dueRecurring.map((r) => /* @__PURE__ */ React.createElement("div", { key: r.id, className: "flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-xl" },
       /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" },
