@@ -177,7 +177,7 @@ function mergeDatasets(remote, local) {
   var dels = (local.deletedIds || []).concat(remote.deletedIds || []).filter(function(x, i, a) { return a.indexOf(x) === i; });
   var catDels = (local.categoryDeletions || []).concat(remote.categoryDeletions || []).filter(function(x, i, a) { return a.indexOf(x) === i; });
   var merged = Object.assign({}, remote, local);
-  ['transactions', 'balances', 'accounts', 'goals', 'budgets', 'recurring', 'loanPlans'].forEach(function(k) {
+  ['transactions', 'balances', 'accounts', 'goals', 'budgets', 'recurring', 'loanPlans', 'dossiers', 'dossierEntries', 'dossierSettlements'].forEach(function(k) {
     merged[k] = _mergeArraysById(local[k], remote[k], dels);
   });
   merged.categories = _mergeCategoryTrees(local.categories, remote.categories, catDels);
@@ -252,6 +252,7 @@ async function driveSave(data) {
 var _LR=window.LucideReact||{};var _FB=function(p){return React.createElement('span',{style:{display:'inline-flex',alignItems:'center',justifyContent:'center',width:p.size||16,height:p.size||16,flexShrink:0}});};
 var LayoutDashboard=_LR.LayoutDashboard||_FB,Receipt=_LR.Receipt||_FB,Building2=_LR.Building2||_FB,Target=_LR.Target||_FB,PiggyBank=_LR.PiggyBank||_FB,TrendingUp=_LR.TrendingUp||_FB,Tags=_LR.Tags||_FB,Settings=_LR.Settings||_FB,Menu=_LR.Menu||_FB,X=_LR.X||_FB,Plus=_LR.Plus||_FB,Search=_LR.Search||_FB,ChevronRight=_LR.ChevronRight||_FB,ChevronDown=_LR.ChevronDown||_FB,Bell=_LR.Bell||_FB,Download=_LR.Download||_FB,Upload=_LR.Upload||_FB,Trash2=_LR.Trash2||_FB,Check=_LR.Check||_FB,Calendar=_LR.Calendar||_FB,AlertCircle=_LR.AlertCircle||_FB,Info=_LR.Info||_FB,Pencil=_LR.Pencil||_LR.Edit||_FB,ArrowLeft=_LR.ArrowLeft||_FB,CheckCircle2=_LR.CheckCircle2||_LR.CheckCircle||_FB;
 var useState=React.useState,useEffect=React.useEffect,useMemo=React.useMemo,useCallback=React.useCallback,useRef=React.useRef;
+var FolderOpen=_LR.FolderOpen||_FB,Scale=_LR.Scale||_FB;
 function SvgBarChart({ data, height = 180 }) {
   if (!data || !data.length) return null;
   const maxVal = Math.max(1, ...data.flatMap((d) => [d.Inkomsten || 0, d.Uitgaven || 0]));
@@ -1592,6 +1593,9 @@ const SAMPLE_DATA = {
     { id: "b6", accountId: "acc-6", date: fmt(today), amount: 650, notes: "" }
   ],
   transactions: [],
+  dossiers: [],
+  dossierEntries: [],
+  dossierSettlements: [],
   goals: [
     { id: "goal-1", name: "Buffer persoonlijk", targetAmount: 5e3, targetDate: "2027-12-31", linkedAccountId: "acc-5", monthlyTarget: 100, color: T.teal, notes: "Noodfonds voor onverwachte uitgaven" },
     { id: "goal-2", name: "Communie Jasper", targetAmount: 2500, targetDate: "2027-05-01", linkedAccountId: "acc-6", monthlyTarget: 150, color: "#B08A2E", notes: "Communie 2027" },
@@ -1654,6 +1658,7 @@ const NAV = [
   { id: "rekeningen", label: "Rekeningen", icon: Building2 },
   { id: "spaardoelen", label: "Spaardoelen", icon: Target },
   { id: "budgetten", label: "Budgetten", icon: PiggyBank },
+  { id: "dossiers", label: "Dossiers", icon: FolderOpen },
   { id: "analyse", label: "Analyse", icon: TrendingUp },
   { id: "categorieen", label: "Categorie\xEBn", icon: Tags },
   { id: "instellingen", label: "Instellingen", icon: Settings }
@@ -1663,7 +1668,7 @@ const NAV = [
 // Op de computer (brede schermen) blijft het zijpaneel; deze balk verschijnt alleen op smalle schermen.
 const BottomNav = ({ current, onNav, onAdd }) => {
   const [moreOpen, setMoreOpen] = useState(false);
-  const moreTabs = NAV.filter((n) => ["rekeningen", "spaardoelen", "budgetten", "categorieen", "instellingen"].indexOf(n.id) >= 0);
+  const moreTabs = NAV.filter((n) => ["rekeningen", "spaardoelen", "budgetten", "dossiers", "categorieen", "instellingen"].indexOf(n.id) >= 0);
   const moreActive = moreTabs.some((t) => t.id === current);
   const TabBtn = ({ id, label, icon: Icon, active, onClick }) => /* @__PURE__ */ React.createElement("button", {
     onClick, className: "flex-1 flex flex-col items-center gap-0.5 py-2",
@@ -1706,7 +1711,7 @@ const Sidebar = ({ current, onNav, open, onToggle, profile }) => /* @__PURE__ */
 ))), /* @__PURE__ */ React.createElement("div", { className: "px-4 py-4 border-t border-white/10" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 p-2 rounded-lg", style: { backgroundColor: "rgba(255,255,255,0.06)" } }, /* @__PURE__ */ React.createElement("div", { className: "w-7 h-7 rounded-full bg-teal-500 flex items-center justify-center text-xs text-white font-bold" }, ((profile == null ? void 0 : profile.firstName) || "?")[0]), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-white text-xs font-medium" }, (profile == null ? void 0 : profile.firstName) || "", " ", (profile == null ? void 0 : profile.lastName) || ""), /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: "#D9A468" } }, "Financieel Kompas"))))));
 const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe transactie" }) => {
   var _a;
-  const blank = { date: fmt(today), description: "", amount: "", type: "expense", hoofdtype: "Variabele Uitgaven", overkoepelend: "", category: "", itemName: "", itemId: "", accountId: ((_a = data.accounts[0]) == null ? void 0 : _a.id) || "", brand: "", quantity: "", unit: "", notes: "", isPromo: false, grossPrice: "" };
+  const blank = { date: fmt(today), description: "", amount: "", type: "expense", hoofdtype: "Variabele Uitgaven", overkoepelend: "", category: "", itemName: "", itemId: "", accountId: ((_a = data.accounts[0]) == null ? void 0 : _a.id) || "", brand: "", quantity: "", unit: "", notes: "", isPromo: false, grossPrice: "", dossierId: "" };
   const [form, setForm] = useState(initial || blank);
   const [search, setSearch] = useState((initial == null ? void 0 : initial.itemName) || "");
   const [showRes, setShowRes] = useState(false);
@@ -1994,6 +1999,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
       style: { color: "#C56A1F" }
     }, '\u271A Voeg "', search.trim(), '" toe als nieuwe subcategorie'), form.category && /* @__PURE__ */ React.createElement("div", { className: "mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs", style: { backgroundColor: T.tealBg, color: T.teal } }, /* @__PURE__ */ React.createElement(Check, { size: 12 }), form.overkoepelend, " \u203A ", form.category, " \u203A ", form.itemName))),
     /* @__PURE__ */ React.createElement(FormField, { label: "Rekening" }, /* @__PURE__ */ React.createElement(Sel, { value: form.accountId, onChange: (e) => setForm((f) => ({ ...f, accountId: e.target.value })) }, data.accounts.filter((a) => a.active).map((a) => /* @__PURE__ */ React.createElement("option", { key: a.id, value: a.id }, a.name)))),
+    (data.dossiers || []).filter((ds) => !ds.archived).length > 0 && /* @__PURE__ */ React.createElement(FormField, { label: "Dossier (optioneel)", hint: form.type === "income" ? "Inkomsten in een dossier tellen als door jou ontvangen terugbetaling" : "Koppel deze uitgave aan een gedeeld dossier" }, /* @__PURE__ */ React.createElement(Sel, { value: form.dossierId || "", onChange: (e) => setForm((f) => ({ ...f, dossierId: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Geen"), (data.dossiers || []).filter((ds) => !ds.archived).map((ds) => /* @__PURE__ */ React.createElement("option", { key: ds.id, value: ds.id }, ds.name)))),
     /* @__PURE__ */ React.createElement("button", { onClick: () => setShowOpt((s) => !s), className: "flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 mb-4" }, showOpt ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 14 }) : /* @__PURE__ */ React.createElement(ChevronRight, { size: 14 }), showOpt ? "Minder" : "Optionele velden (merk, hoeveelheid, promo...)"),
     showOpt && /* @__PURE__ */ React.createElement("div", { className: "space-y-4 p-4 bg-slate-50 rounded-xl mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-3" }, /* @__PURE__ */ React.createElement(FormField, { label: "Merk" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Colruyt", value: form.brand, onChange: (e) => setForm((f) => ({ ...f, brand: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Hoeveelheid" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "any", min: "0", placeholder: "1", value: form.quantity, onChange: (e) => setForm((f) => ({ ...f, quantity: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Eenheid" }, /* @__PURE__ */ React.createElement(Sel, { value: form.unit, onChange: (e) => setForm((f) => ({ ...f, unit: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), ["stuks", "g", "kg", "ml", "L", "kWh", "m\xB3", "m", "m\xB2", "verpakking"].map((u) => /* @__PURE__ */ React.createElement("option", { key: u, value: u }, u))))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", id: "promo", checked: form.isPromo, onChange: (e) => setForm((f) => ({ ...f, isPromo: e.target.checked })), className: "rounded" }), /* @__PURE__ */ React.createElement("label", { htmlFor: "promo", className: "text-sm text-slate-700" }, "In promotie")), form.isPromo && /* @__PURE__ */ React.createElement(FormField, { label: "Normale prijs (excl. promo)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", placeholder: "0,00", value: form.grossPrice, onChange: (e) => setForm((f) => ({ ...f, grossPrice: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Notities" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Toelichting", value: form.notes, onChange: (e) => setForm((f) => ({ ...f, notes: e.target.value })) }))),
     !initial && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mb-4 px-3 py-2 rounded-xl", style: { backgroundColor: T.tealBg } }, /* @__PURE__ */ React.createElement("span", { className: "text-sm" }, "\u{1F501}"), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-700 flex-1" }, "Herhalen"), /* @__PURE__ */ React.createElement(Sel, { className: "w-40", value: recurSel, onChange: (e) => setRecurSel(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "none" }, "Niet herhalen"), /* @__PURE__ */ React.createElement("option", { value: "weekly" }, "Wekelijks"), /* @__PURE__ */ React.createElement("option", { value: "monthly" }, "Maandelijks"), /* @__PURE__ */ React.createElement("option", { value: "yearly" }, "Jaarlijks"))),
@@ -2142,7 +2148,7 @@ const Dashboard = ({ data, onData, onQuickAdd, onDeleteTx, toast, profile }) => 
   const pieData = useMemo(() => {
     const m = {};
     thisMonth.filter((t) => isExpense(t) && t.hoofdtype !== "Sparen").forEach((t) => {
-      m[t.overkoepelend] = (m[t.overkoepelend] || 0) + t.amount;
+      ovAmountsForTx(t).forEach((e) => { m[e.ov] = (m[e.ov] || 0) + e.amount; });
     });
     return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name, value, color: OV_COLORS[name] || "#A08C77" }));
   }, [thisMonth]);
@@ -2285,6 +2291,262 @@ const TransactiesPage = ({ data, onData, onAdd, onUpdate, onDelete, toast }) => 
     onUpdate(tx);
     toast("Transactie bijgewerkt \u2713");
   }, onClose: () => setEditTx(null) }));
+};
+// ── Dossiers: gedeelde kosten (bv. co-ouderschap) met vrije verdeelsleutel ──
+// Een regel is een uitgave of een ontvangen terugbetaling (bv. mutualiteit),
+// telkens door "mij" of door de tegenpartij. De verdeling gebeurt op de NETTOKOST:
+// netto = uitgaven − terugbetalingen. Wie betaalde krijgt dat als krediet,
+// wie een terugbetaling ontving krijgt dat als debet. Zo klopt ook het geval
+// waarin ik de dokter betaal en de expartner de mutualiteit ontvangt.
+const dossierItemsVoor = (dossier, data) => {
+  const txItems = (data.transactions || []).filter((t) => t.dossierId === dossier.id).map((t) => ({
+    id: t.id, date: t.date, description: t.description || "(zonder omschrijving)", amount: t.amount,
+    party: "me", kind: isExpense(t) ? "expense" : "refund", source: "tx"
+  }));
+  const manItems = (data.dossierEntries || []).filter((e) => e.dossierId === dossier.id).map((e) => Object.assign({}, e, { source: "man" }));
+  return txItems.concat(manItems).sort((a, b) => (b.date || "") < (a.date || "") ? -1 : 1);
+};
+const berekenDossierStand = (dossier, data) => {
+  const settlements = (data.dossierSettlements || []).filter((s) => s.dossierId === dossier.id);
+  const settledIds = {};
+  settlements.forEach((s) => { (s.itemIds || []).forEach((i) => { settledIds[i] = true; }); });
+  const all = dossierItemsVoor(dossier, data);
+  const open = all.filter((i) => !settledIds[i.id]);
+  let uitgaven = 0, terug = 0, mijnBetaald = 0;
+  open.forEach((i) => {
+    const a = parseFloat(i.amount) || 0;
+    if (i.kind === "refund") { terug += a; if (i.party === "me") mijnBetaald -= a; }
+    else { uitgaven += a; if (i.party === "me") mijnBetaald += a; }
+  });
+  const netto = uitgaven - terug;
+  const pct = (parseFloat(dossier.mySharePct) || 0) / 100;
+  const mijnAandeel = netto * pct;
+  const saldoOpen = mijnBetaald - mijnAandeel;
+  const openSettlements = settlements.filter((s) => s.status !== "paid");
+  const openVorderingen = openSettlements.reduce((s2, s) => s2 + (parseFloat(s.amount) || 0), 0);
+  return { open, all, settlements, settledIds, uitgaven, terug, netto, mijnAandeel, mijnBetaald, saldoOpen, openVorderingen, totaal: saldoOpen + openVorderingen };
+};
+const DossiersPage = ({ data, onUpdate, toast }) => {
+  const dossiers = (data.dossiers || []).filter((d) => !d.archived);
+  const [selId, setSelId] = useState(null);
+  const [showDosForm, setShowDosForm] = useState(false);
+  const [editDos, setEditDos] = useState(null);
+  const [showEntry, setShowEntry] = useState(false);
+  const [editEntry, setEditEntry] = useState(null);
+  const [showSettle, setShowSettle] = useState(false);
+  const [confirmDelDos, setConfirmDelDos] = useState(false);
+  const [confirmDelRow, setConfirmDelRow] = useState(null);
+  const sel = dossiers.filter((d) => d.id === selId)[0] || null;
+  const stand = sel ? berekenDossierStand(sel, data) : null;
+  const partnerNaam = sel ? (sel.partnerName || "Tegenpartij") : "";
+  const richting = (bedrag, kort) => {
+    const b = Math.round(bedrag * 100) / 100;
+    if (Math.abs(b) < 0.005) return { txt: "In evenwicht", color: T.slate400 };
+    if (b > 0) return { txt: (kort ? "Te ontvangen: " : partnerNaam + " moet jou ") + fmtEUR(Math.abs(b)), color: T.green };
+    return { txt: (kort ? "Te betalen: " : "Jij moet " + partnerNaam + " ") + fmtEUR(Math.abs(b)), color: T.red };
+  };
+  // ── Dossier aanmaken/bewerken ──
+  const DosForm = ({ init, onClose }) => {
+    const [f, setF] = useState(init || { name: "", partnerName: "", mySharePct: "50", color: COLORS[0], notes: "" });
+    const save = () => {
+      const entry = { id: init ? init.id : generateId(), name: f.name, partnerName: f.partnerName, mySharePct: f.mySharePct, color: f.color, notes: f.notes, archived: init ? !!init.archived : false };
+      onUpdate((d) => {
+        const rest = (d.dossiers || []).filter((x) => x.id !== entry.id);
+        return { ...d, dossiers: rest.concat([entry]) };
+      });
+      toast(init ? "Dossier bijgewerkt \u2713" : "Dossier aangemaakt \u2713");
+      if (!init) setSelId(entry.id);
+      onClose();
+    };
+    const mijnPct = Math.min(100, Math.max(0, parseFloat(f.mySharePct) || 0));
+    return /* @__PURE__ */ React.createElement(Modal, { title: init ? "Dossier bewerken" : "Nieuw dossier", onClose },
+      /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Co-ouderschap kinderen", value: f.name, onChange: (e) => setF((x) => ({ ...x, name: e.target.value })) })),
+      /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" },
+        /* @__PURE__ */ React.createElement(FormField, { label: "Naam tegenpartij" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. An", value: f.partnerName, onChange: (e) => setF((x) => ({ ...x, partnerName: e.target.value })) })),
+        /* @__PURE__ */ React.createElement(FormField, { label: "Jouw aandeel (%)", hint: "Tegenpartij draagt automatisch " + (100 - mijnPct) + "%" }, /* @__PURE__ */ React.createElement(Input, { type: "number", min: "0", max: "100", step: "1", placeholder: "50", value: f.mySharePct, onChange: (e) => setF((x) => ({ ...x, mySharePct: e.target.value })) }))),
+      /* @__PURE__ */ React.createElement(FormField, { label: "Kleur" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, COLORS.map((c) => /* @__PURE__ */ React.createElement("button", { key: c, onClick: () => setF((x) => ({ ...x, color: c })), className: "w-7 h-7 rounded-full border-2 transition-all", style: { backgroundColor: c, borderColor: f.color === c ? "#0f2942" : "transparent" } })))),
+      /* @__PURE__ */ React.createElement(FormField, { label: "Notities" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Optioneel", value: f.notes, onChange: (e) => setF((x) => ({ ...x, notes: e.target.value })) })),
+      /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" },
+        /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: onClose }, "Annuleren"),
+        /* @__PURE__ */ React.createElement(Btn, { onClick: save, disabled: !f.name }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), init ? "Opslaan" : "Aanmaken")));
+  };
+  // ── Manuele regel toevoegen/bewerken (van mij of van de tegenpartij) ──
+  const EntryForm = ({ init, onClose }) => {
+    const [f, setF] = useState(init || { date: fmt(today), description: "", amount: "", party: "partner", kind: "expense" });
+    const save = () => {
+      const entry = { id: init ? init.id : generateId(), dossierId: sel.id, date: f.date, description: f.description, amount: parseFloat(f.amount), party: f.party, kind: f.kind };
+      onUpdate((d) => {
+        const rest = (d.dossierEntries || []).filter((x) => x.id !== entry.id);
+        return { ...d, dossierEntries: rest.concat([entry]) };
+      });
+      toast(init ? "Regel bijgewerkt \u2713" : "Regel toegevoegd \u2713");
+      onClose();
+    };
+    return /* @__PURE__ */ React.createElement(Modal, { title: init ? "Regel bewerken" : "Regel toevoegen", onClose },
+      /* @__PURE__ */ React.createElement("div", { className: "mb-4 p-3 rounded-xl text-sm", style: { backgroundColor: T.tealBg, color: T.teal } }, /* @__PURE__ */ React.createElement(Info, { size: 14, className: "inline mr-1.5" }), "Voeg hier kosten of ontvangen terugbetalingen toe die niet in jouw transacties zitten \u2014 bv. uitgaven van ", partnerNaam, " of een terugbetaling van de mutualiteit."),
+      /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" },
+        /* @__PURE__ */ React.createElement(FormField, { label: "Datum" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: f.date, onChange: (e) => setF((x) => ({ ...x, date: e.target.value })) })),
+        /* @__PURE__ */ React.createElement(FormField, { label: "Bedrag (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", placeholder: "0,00", value: f.amount, onChange: (e) => setF((x) => ({ ...x, amount: e.target.value })) }))),
+      /* @__PURE__ */ React.createElement(FormField, { label: "Omschrijving" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Dokter Jasper", value: f.description, onChange: (e) => setF((x) => ({ ...x, description: e.target.value })) })),
+      /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" },
+        /* @__PURE__ */ React.createElement(FormField, { label: "Type" }, /* @__PURE__ */ React.createElement(Sel, { value: f.kind, onChange: (e) => setF((x) => ({ ...x, kind: e.target.value })) },
+          /* @__PURE__ */ React.createElement("option", { value: "expense" }, "Uitgave"),
+          /* @__PURE__ */ React.createElement("option", { value: "refund" }, "Terugbetaling ontvangen (bv. mutualiteit)"))),
+        /* @__PURE__ */ React.createElement(FormField, { label: f.kind === "refund" ? "Ontvangen door" : "Betaald door" }, /* @__PURE__ */ React.createElement(Sel, { value: f.party, onChange: (e) => setF((x) => ({ ...x, party: e.target.value })) },
+          /* @__PURE__ */ React.createElement("option", { value: "me" }, "Ikzelf"),
+          /* @__PURE__ */ React.createElement("option", { value: "partner" }, partnerNaam)))),
+      /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" },
+        /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: onClose }, "Annuleren"),
+        /* @__PURE__ */ React.createElement(Btn, { onClick: save, disabled: !f.date || !f.amount || !f.description }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), init ? "Opslaan" : "Toevoegen")));
+  };
+  // ── Afrekening vastleggen: bevriest alle open regels in één vordering ──
+  const SettleForm = ({ onClose }) => {
+    const [note, setNote] = useState("");
+    const r = richting(stand.saldoOpen, false);
+    const save = () => {
+      const entry = { id: generateId(), dossierId: sel.id, date: fmt(today), note, amount: Math.round(stand.saldoOpen * 100) / 100, itemIds: stand.open.map((i) => i.id), itemCount: stand.open.length, status: "open" };
+      onUpdate((d) => ({ ...d, dossierSettlements: (d.dossierSettlements || []).concat([entry]) }));
+      toast("Afrekening vastgelegd \u2713");
+      onClose();
+    };
+    return /* @__PURE__ */ React.createElement(Modal, { title: "Afrekening opmaken", onClose },
+      /* @__PURE__ */ React.createElement("div", { className: "mb-4 p-4 rounded-xl border border-slate-100", style: { backgroundColor: "#FAFAF8" } },
+        /* @__PURE__ */ React.createElement("div", { className: "text-sm text-slate-500" }, stand.open.length, " open ", stand.open.length === 1 ? "regel wordt" : "regels worden", " samengevoegd tot \u00E9\u00E9n afrekening"),
+        /* @__PURE__ */ React.createElement("div", { className: "text-lg font-bold mt-1", style: { color: r.color } }, r.txt)),
+      /* @__PURE__ */ React.createElement("div", { className: "mb-4 p-3 rounded-xl text-sm", style: { backgroundColor: T.tealBg, color: T.teal } }, /* @__PURE__ */ React.createElement(Info, { size: 14, className: "inline mr-1.5" }), "De regels tellen daarna niet meer mee in het doorlopend saldo. De afrekening blijft openstaan tot jij ze als afgerekend markeert \u2014 ook als dat maanden duurt."),
+      /* @__PURE__ */ React.createElement(FormField, { label: "Notitie (optioneel)" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Afrekening januari\u2013juni", value: note, onChange: (e) => setNote(e.target.value) })),
+      /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" },
+        /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: onClose }, "Annuleren"),
+        /* @__PURE__ */ React.createElement(Btn, { onClick: save, disabled: !stand.open.length }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Vastleggen")));
+  };
+  const deleteDossier = () => {
+    const entryIds = (data.dossierEntries || []).filter((e) => e.dossierId === sel.id).map((e) => e.id);
+    const setIds = (data.dossierSettlements || []).filter((s) => s.dossierId === sel.id).map((s) => s.id);
+    onUpdate((d) => ({
+      ...d,
+      dossiers: (d.dossiers || []).filter((x) => x.id !== sel.id),
+      dossierEntries: (d.dossierEntries || []).filter((e) => e.dossierId !== sel.id),
+      dossierSettlements: (d.dossierSettlements || []).filter((s) => s.dossierId !== sel.id),
+      transactions: d.transactions.map((t) => t.dossierId === sel.id ? Object.assign({}, t, { dossierId: void 0 }) : t),
+      deletedIds: withDeleted(d, [sel.id].concat(entryIds).concat(setIds))
+    }));
+    setSelId(null);
+    setConfirmDelDos(false);
+    toast("Dossier verwijderd");
+  };
+  const deleteRow = (item) => {
+    if (item.source === "tx") {
+      onUpdate((d) => ({ ...d, transactions: d.transactions.map((t) => t.id === item.id ? Object.assign({}, t, { dossierId: void 0 }) : t) }));
+      toast("Transactie losgekoppeld van dossier");
+    } else {
+      onUpdate((d) => ({ ...d, dossierEntries: (d.dossierEntries || []).filter((e) => e.id !== item.id), deletedIds: withDeleted(d, [item.id]) }));
+      toast("Regel verwijderd");
+    }
+    setConfirmDelRow(null);
+  };
+  const toggleSettlement = (s) => onUpdate((d) => ({ ...d, dossierSettlements: (d.dossierSettlements || []).map((x) => x.id === s.id ? Object.assign({}, x, { status: x.status === "paid" ? "open" : "paid", paidDate: x.status === "paid" ? void 0 : fmt(today) }) : x) }));
+  const deleteSettlement = (s) => {
+    onUpdate((d) => ({ ...d, dossierSettlements: (d.dossierSettlements || []).filter((x) => x.id !== s.id), deletedIds: withDeleted(d, [s.id]) }));
+    toast("Afrekening verwijderd \u2014 de regels tellen weer mee in het saldo");
+  };
+  // ══ Overzicht: alle dossiers ══
+  if (!sel) return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-5xl mx-auto" },
+    /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" },
+      /* @__PURE__ */ React.createElement("div", null,
+        /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Dossiers"),
+        /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, "Gedeelde kosten bijhouden en afrekenen \u2014 bv. co-ouderschap")),
+      /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowDosForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Dossier")),
+    dossiers.length === 0 ? /* @__PURE__ */ React.createElement(Card, { className: "p-8 text-center" },
+      /* @__PURE__ */ React.createElement("div", { className: "text-4xl mb-3" }, "\u{1F4C2}"),
+      /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-2" }, "Nog geen dossiers"),
+      /* @__PURE__ */ React.createElement("p", { className: "text-sm text-slate-500 max-w-md mx-auto mb-4" }, "Een dossier bundelt gedeelde kosten met een vrije verdeelsleutel. Koppel je eigen transacties via het transactieformulier, voeg uitgaven van de tegenpartij manueel toe, en de module berekent doorlopend wie wat verschuldigd is \u2014 terugbetalingen van bv. de mutualiteit worden correct verrekend."),
+      /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowDosForm(true) }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Eerste dossier aanmaken")) :
+    /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 sm:grid-cols-2" }, dossiers.map((ds) => {
+      const st = berekenDossierStand(ds, data);
+      const r = richting(st.totaal, true);
+      const pct = parseFloat(ds.mySharePct) || 0;
+      return /* @__PURE__ */ React.createElement(Card, { key: ds.id, className: "p-5 cursor-pointer hover:shadow-md transition-shadow", onClick: () => setSelId(ds.id) },
+        /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" },
+          /* @__PURE__ */ React.createElement("div", { className: "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", style: { backgroundColor: (ds.color || T.teal) + "22" } }, /* @__PURE__ */ React.createElement(FolderOpen, { size: 20, style: { color: ds.color || T.teal } })),
+          /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" },
+            /* @__PURE__ */ React.createElement("div", { className: "font-semibold text-slate-800 truncate" }, ds.name),
+            /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, "Jij ", pct, "% \xB7 ", ds.partnerName || "Tegenpartij", " ", 100 - pct, "%")),
+          /* @__PURE__ */ React.createElement(ChevronRight, { size: 16, className: "text-slate-300 flex-shrink-0" })),
+        /* @__PURE__ */ React.createElement("div", { className: "mt-3 pt-3 border-t border-slate-50 flex items-center justify-between" },
+          /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, st.open.length, " open ", st.open.length === 1 ? "regel" : "regels", st.openVorderingen !== 0 ? " \xB7 onbetaalde afrekening" : ""),
+          /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold", style: { color: r.color } }, r.txt)));
+    })),
+    showDosForm && /* @__PURE__ */ React.createElement(DosForm, { onClose: () => setShowDosForm(false) }));
+  // ══ Detail: één dossier ══
+  const mijnPct = parseFloat(sel.mySharePct) || 0;
+  const rOpen = richting(stand.saldoOpen, false);
+  const rTot = richting(stand.totaal, true);
+  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-5xl mx-auto" },
+    /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-6" },
+      /* @__PURE__ */ React.createElement("button", { onClick: () => setSelId(null), className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500" }, /* @__PURE__ */ React.createElement(ArrowLeft, { size: 18 })),
+      /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" },
+        /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800 truncate" }, sel.name),
+        /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, "Jij draagt ", mijnPct, "% \xB7 ", partnerNaam, " draagt ", 100 - mijnPct, "%", sel.notes ? " \xB7 " + sel.notes : "")),
+      /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", size: "sm", onClick: () => setEditDos(sel) }, /* @__PURE__ */ React.createElement(Pencil, { size: 14 }), "Bewerken"),
+      confirmDelDos ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1" },
+        /* @__PURE__ */ React.createElement("button", { onClick: deleteDossier, className: "px-2 py-1.5 bg-red-600 text-white text-xs rounded-lg" }, "Ja, verwijder"),
+        /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDelDos(false), className: "px-2 py-1.5 bg-slate-100 text-slate-600 text-xs rounded-lg" }, "Nee")) :
+        /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDelDos(true), title: "Dossier verwijderen", className: "p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50" }, /* @__PURE__ */ React.createElement(Trash2, { size: 16 }))),
+    /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" },
+      /* @__PURE__ */ React.createElement(Card, { className: "p-4" },
+        /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, "Nettokosten (open)"),
+        /* @__PURE__ */ React.createElement("div", { className: "text-xl font-bold text-slate-800 mt-1 fk-num" }, fmtEUR(stand.netto)),
+        stand.terug > 0 && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 mt-0.5" }, fmtEUR(stand.uitgaven), " \u2212 ", fmtEUR(stand.terug), " terugbetaald")),
+      /* @__PURE__ */ React.createElement(Card, { className: "p-4" },
+        /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, "Jouw aandeel (", mijnPct, "%)"),
+        /* @__PURE__ */ React.createElement("div", { className: "text-xl font-bold text-slate-800 mt-1 fk-num" }, fmtEUR(stand.mijnAandeel))),
+      /* @__PURE__ */ React.createElement(Card, { className: "p-4" },
+        /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, "Netto door jou betaald"),
+        /* @__PURE__ */ React.createElement("div", { className: "text-xl font-bold text-slate-800 mt-1 fk-num" }, fmtEUR(stand.mijnBetaald))),
+      /* @__PURE__ */ React.createElement(Card, { className: "p-4" },
+        /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, "Doorlopend saldo"),
+        /* @__PURE__ */ React.createElement("div", { className: "text-sm font-bold mt-1.5", style: { color: rOpen.color } }, rOpen.txt))),
+    stand.openVorderingen !== 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-6 p-3 rounded-xl text-sm font-medium flex items-center gap-2", style: { backgroundColor: "#FDF6EC", color: "#B08A2E" } }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 16 }), "Onbetaalde afrekeningen: ", fmtEUR(Math.abs(stand.openVorderingen)), " \u2014 alles samen: ", /* @__PURE__ */ React.createElement("span", { style: { color: rTot.color } }, rTot.txt)),
+    /* @__PURE__ */ React.createElement(Card, { className: "p-5 mb-6" },
+      /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-4" },
+        /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Open regels"),
+        /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" },
+          /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", size: "sm", onClick: () => setShowSettle(true), disabled: !stand.open.length }, /* @__PURE__ */ React.createElement(Scale, { size: 14 }), "Afrekening opmaken"),
+          /* @__PURE__ */ React.createElement(Btn, { size: "sm", onClick: () => setShowEntry(true) }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Regel"))),
+      stand.open.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "py-6 text-center text-slate-400 text-sm" }, "Geen open regels. Koppel een transactie via het transactieformulier (veld \u201CDossier\u201D) of voeg hierboven een regel toe.") :
+      /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, stand.open.map((it) => {
+        const isRefund = it.kind === "refund";
+        return /* @__PURE__ */ React.createElement("div", { key: it.id, className: "flex items-center gap-3 py-2 border-b border-slate-50 last:border-0" },
+          /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0", style: { backgroundColor: isRefund ? T.greenBg : T.redBg }, title: it.source === "tx" ? "Gekoppelde transactie" : "Manuele regel" }, it.source === "tx" ? "\u{1F9FE}" : "\u270D\uFE0F"),
+          /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" },
+            /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800 truncate" }, it.description),
+            /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, fmtDateShort(it.date), " \xB7 ", isRefund ? "terugbetaling ontvangen door " : "betaald door ", it.party === "me" ? "jou" : partnerNaam, it.source === "tx" ? " \xB7 uit jouw transacties" : "")),
+          /* @__PURE__ */ React.createElement("div", { className: `text-sm font-semibold flex-shrink-0 ${isRefund ? "text-emerald-600" : "text-slate-800"}` }, isRefund ? "\u2212 " : "", fmtEUR(it.amount)),
+          confirmDelRow === it.id ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 flex-shrink-0" },
+            /* @__PURE__ */ React.createElement("button", { onClick: () => deleteRow(it), className: "px-2 py-1 bg-red-600 text-white text-xs rounded-lg" }, "Ja"),
+            /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDelRow(null), className: "px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg" }, "Nee")) :
+          /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 flex-shrink-0" },
+            it.source === "man" && /* @__PURE__ */ React.createElement("button", { onClick: () => setEditEntry((data.dossierEntries || []).filter((e) => e.id === it.id)[0]), title: "Regel bewerken", className: "p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" }, /* @__PURE__ */ React.createElement(Pencil, { size: 13 })),
+            /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDelRow(it.id), title: it.source === "tx" ? "Loskoppelen van dossier" : "Regel verwijderen", className: "p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50" }, it.source === "tx" ? /* @__PURE__ */ React.createElement(X, { size: 14 }) : /* @__PURE__ */ React.createElement(Trash2, { size: 13 }))));
+      })),
+      stand.open.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-3 pt-3 border-t border-slate-100 text-xs text-slate-400" }, "Terugbetalingen verlagen de nettokost v\u00F3\u00F3r de verdeling \u2014 zo wordt bv. een mutualiteitsuitkering bij ", partnerNaam, " correct in jouw voordeel verrekend.")),
+    stand.settlements.length > 0 && /* @__PURE__ */ React.createElement(Card, { className: "p-5" },
+      /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Afrekeningen"),
+      /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, stand.settlements.slice().sort((a, b) => (b.date || "") < (a.date || "") ? -1 : 1).map((s) => {
+        const paid = s.status === "paid";
+        const rs = richting(s.amount, false);
+        return /* @__PURE__ */ React.createElement("div", { key: s.id, className: "flex items-center gap-3 py-2 border-b border-slate-50 last:border-0" },
+          /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" },
+            /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800" }, fmtDateShort(s.date), " \xB7 ", s.itemCount || (s.itemIds || []).length, " regels", s.note ? " \xB7 " + s.note : ""),
+            /* @__PURE__ */ React.createElement("div", { className: "text-xs mt-0.5", style: { color: paid ? T.green : rs.color } }, paid ? "Afgerekend op " + fmtDateShort(s.paidDate || s.date) : rs.txt)),
+          /* @__PURE__ */ React.createElement("button", { onClick: () => toggleSettlement(s), className: "px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0", style: paid ? { backgroundColor: T.greenBg, color: T.green } : { backgroundColor: "#FDF6EC", color: "#B08A2E" }, title: "Klik om te wisselen" }, paid ? "Afgerekend \u2713" : "Openstaand"),
+          /* @__PURE__ */ React.createElement("button", { onClick: () => deleteSettlement(s), title: "Afrekening verwijderen (regels tellen weer mee)", className: "p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0" }, /* @__PURE__ */ React.createElement(Trash2, { size: 13 })));
+      }))),
+    showDosForm && /* @__PURE__ */ React.createElement(DosForm, { onClose: () => setShowDosForm(false) }),
+    editDos && /* @__PURE__ */ React.createElement(DosForm, { init: editDos, onClose: () => setEditDos(null) }),
+    showEntry && /* @__PURE__ */ React.createElement(EntryForm, { onClose: () => setShowEntry(false) }),
+    editEntry && /* @__PURE__ */ React.createElement(EntryForm, { init: editEntry, onClose: () => setEditEntry(null) }),
+    showSettle && /* @__PURE__ */ React.createElement(SettleForm, { onClose: () => setShowSettle(false) }));
 };
 const AflossingsPlanner = ({ data, onUpdate, toast, latestByAcc }) => {
   const loans = data.accounts.filter((a) => a.active && a.type === "loan");
@@ -3130,7 +3392,7 @@ function App({ data, onUpdate }) {
     addTx(tx);
   }, onUpdate: (tx) => {
     updateTx(tx);
-  }, onDelete: deleteTx, toast: addToast }), page === "rekeningen" && /* @__PURE__ */ React.createElement(RekeningenPage, { data, onUpdate: update, toast: addToast }), page === "spaardoelen" && /* @__PURE__ */ React.createElement(SpaardoelenPage, { data, onUpdate: update, toast: addToast }), page === "budgetten" && /* @__PURE__ */ React.createElement(BudgettenPage, { data, onUpdate: update, toast: addToast }), page === "analyse" && /* @__PURE__ */ React.createElement(AnalysePage, { data }), page === "categorieen" && /* @__PURE__ */ React.createElement(CategorieeenPage, { data, onUpdate: update, toast: addToast }), page === "instellingen" && /* @__PURE__ */ React.createElement(InstellingenPage, { data, onUpdate: update, onReset: () => update(() => SAMPLE_DATA), toast: addToast }))), showTxForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, onSave: (tx) => {
+  }, onDelete: deleteTx, toast: addToast }), page === "rekeningen" && /* @__PURE__ */ React.createElement(RekeningenPage, { data, onUpdate: update, toast: addToast }), page === "spaardoelen" && /* @__PURE__ */ React.createElement(SpaardoelenPage, { data, onUpdate: update, toast: addToast }), page === "budgetten" && /* @__PURE__ */ React.createElement(BudgettenPage, { data, onUpdate: update, toast: addToast }), page === "dossiers" && /* @__PURE__ */ React.createElement(DossiersPage, { data, onUpdate: update, toast: addToast }), page === "analyse" && /* @__PURE__ */ React.createElement(AnalysePage, { data }), page === "categorieen" && /* @__PURE__ */ React.createElement(CategorieeenPage, { data, onUpdate: update, toast: addToast }), page === "instellingen" && /* @__PURE__ */ React.createElement(InstellingenPage, { data, onUpdate: update, onReset: () => update(() => SAMPLE_DATA), toast: addToast }))), showTxForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, onSave: (tx) => {
     addTx(tx);
     addToast("Transactie opgeslagen \u2713");
     setShowTxForm(false);
@@ -3320,6 +3582,8 @@ function Root() {
               deletedIds: d.deletedIds || []
             });
           }
+          // Dossierlijsten altijd aanwezig maken (ook voor data van vóór deze versie)
+          d = Object.assign({}, d, { dossiers: d.dossiers || [], dossierEntries: d.dossierEntries || [], dossierSettlements: d.dossierSettlements || [] });
           var autoRes = processRecurringAutoBook(d);
           d = autoRes.data;
           if (autoRes.booked > 0) {
