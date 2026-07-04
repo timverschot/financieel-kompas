@@ -124,17 +124,127 @@ async function driveFindOrCreate() {
   return _fileId;
 }
 
+// Onthoudt welke versie van het Drive-bestand wij het laatst gezien hebben.
+// Zo merken we het als een ander toestel intussen heeft opgeslagen.
+var _lastKnownVersion = null;
+var _backupDoneFor = null;
+var BACKUP_PREFIX = 'financieel_kompas_backup_';
+
+async function _driveFetchRemote() {
+  const r = await gapi.client.drive.files.get({ fileId: _fileId, alt: 'media' });
+  return typeof r.result === 'object' ? r.result : JSON.parse(r.body);
+}
+
+async function _driveRemoteVersion() {
+  const r = await gapi.client.drive.files.get({ fileId: _fileId, fields: 'version' });
+  return r.result.version;
+}
+
 async function driveLoad() {
   const fid = await driveFindOrCreate();
   try {
-    const r = await gapi.client.drive.files.get({ fileId: fid, alt: 'media' });
-    return typeof r.result === 'object' ? r.result : JSON.parse(r.body);
+    const data = await _driveFetchRemote();
+    try { _lastKnownVersion = await _driveRemoteVersion(); } catch(e) {}
+    return data;
   } catch(e) { return null; }
+}
+
+// ── Samenvoegen van twee datasets (dit toestel + ander toestel) ──
+function _mergeArraysById(localArr, remoteArr, deletedIds) {
+  var seen = {}, out = [];
+  (localArr || []).forEach(function(x) { if (x && x.id && deletedIds.indexOf(x.id) < 0) { seen[x.id] = true; out.push(x); } });
+  (remoteArr || []).forEach(function(x) { if (x && x.id && !seen[x.id] && deletedIds.indexOf(x.id) < 0) out.push(x); });
+  return out;
+}
+function _mergeCategoryTrees(localCats, remoteCats, dels) {
+  var out = (localCats || []).map(function(ov) { return Object.assign({}, ov, { categories: (ov.categories || []).map(function(c) { return Object.assign({}, c, { items: (c.items || []).slice() }); }) }); });
+  (remoteCats || []).forEach(function(rOv) {
+    var lOv = out.find(function(o) { return o.id === rOv.id; });
+    if (!lOv) { out.push(rOv); return; }
+    (rOv.categories || []).forEach(function(rCat) {
+      var lCat = (lOv.categories || []).find(function(c) { return c.id === rCat.id; });
+      if (!lCat) { lOv.categories.push(rCat); return; }
+      var ids = lCat.items.map(function(i) { return i.id; });
+      (rCat.items || []).forEach(function(rIt) {
+        if (rIt.id && ids.indexOf(rIt.id) < 0 && dels.indexOf(rIt.id) < 0) lCat.items.push(rIt);
+      });
+    });
+  });
+  return out;
+}
+function mergeDatasets(remote, local) {
+  if (!remote || typeof remote !== 'object' || !remote.transactions) return local;
+  var dels = (local.deletedIds || []).concat(remote.deletedIds || []).filter(function(x, i, a) { return a.indexOf(x) === i; });
+  var catDels = (local.categoryDeletions || []).concat(remote.categoryDeletions || []).filter(function(x, i, a) { return a.indexOf(x) === i; });
+  var merged = Object.assign({}, remote, local);
+  ['transactions', 'balances', 'accounts', 'goals', 'budgets', 'recurring'].forEach(function(k) {
+    merged[k] = _mergeArraysById(local[k], remote[k], dels);
+  });
+  merged.categories = _mergeCategoryTrees(local.categories, remote.categories, catDels);
+  merged.categoryOverrides = Object.assign({}, remote.categoryOverrides || {}, local.categoryOverrides || {});
+  merged.categoryDeletions = catDels;
+  merged.deletedIds = dels.slice(-1000);
+  return merged;
+}
+
+// ── Dagelijkse reservekopie: bij de eerste opslag van de dag bewaren we
+//    eerst de bestaande Drive-inhoud als gedateerd bestand (max. 14 stuks) ──
+async function driveEnsureDailyBackup() {
+  var todayStr = new Date().toISOString().slice(0, 10);
+  if (_backupDoneFor === todayStr) return;
+  try {
+    var r = await gapi.client.drive.files.list({ q: "name contains '" + BACKUP_PREFIX + "' and trashed=false", fields: 'files(id,name)', spaces: 'drive', pageSize: 100 });
+    var files = (r.result.files || []).filter(function(f) { return f.name.indexOf(BACKUP_PREFIX) === 0; });
+    var todayName = BACKUP_PREFIX + todayStr + '.json';
+    if (!files.find(function(f) { return f.name === todayName; })) {
+      var current = null;
+      try { current = await _driveFetchRemote(); } catch(e) {}
+      if (current && current.transactions) {
+        var c = await gapi.client.drive.files.create({ resource: { name: todayName, mimeType: 'application/json' }, fields: 'id' });
+        await gapi.client.request({ path: '/upload/drive/v3/files/' + c.result.id, method: 'PATCH', params: { uploadType: 'media' }, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(current) });
+        files.push({ id: c.result.id, name: todayName });
+      }
+    }
+    _backupDoneFor = todayStr;
+    files.sort(function(a, b) { return a.name < b.name ? 1 : -1; });
+    for (var i = 14; i < files.length; i++) {
+      try { await gapi.client.drive.files.delete({ fileId: files[i].id }); } catch(e) {}
+    }
+  } catch(e) { console.error('Backup:', e); }
+}
+
+async function driveListBackups() {
+  var r = await gapi.client.drive.files.list({ q: "name contains '" + BACKUP_PREFIX + "' and trashed=false", fields: 'files(id,name)', spaces: 'drive', pageSize: 100 });
+  return (r.result.files || []).filter(function(f) { return f.name.indexOf(BACKUP_PREFIX) === 0; }).sort(function(a, b) { return a.name < b.name ? 1 : -1; });
+}
+async function driveLoadBackup(fileId) {
+  var r = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' });
+  return typeof r.result === 'object' ? r.result : JSON.parse(r.body);
+}
+
+// Herstellen uit een reservekopie: bewust volledig overschrijven (geen samenvoeging)
+async function driveRestoreOverwrite(data) {
+  if (!_fileId) await driveFindOrCreate();
+  var resp = await gapi.client.request({ path: `/upload/drive/v3/files/${_fileId}`, method: 'PATCH', params: { uploadType: 'media', fields: 'version' }, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  try { _lastKnownVersion = resp.result && resp.result.version ? resp.result.version : await _driveRemoteVersion(); } catch(e) {}
 }
 
 async function driveSave(data) {
   if (!_fileId) await driveFindOrCreate();
-  await gapi.client.request({ path: `/upload/drive/v3/files/${_fileId}`, method: 'PATCH', params: { uploadType: 'media' }, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  await driveEnsureDailyBackup();
+  var toSave = data;
+  // Conflictcontrole: heeft een ander toestel intussen opgeslagen?
+  try {
+    var remoteVersion = await _driveRemoteVersion();
+    if (_lastKnownVersion !== null && String(remoteVersion) !== String(_lastKnownVersion)) {
+      var remote = await _driveFetchRemote();
+      toSave = mergeDatasets(remote, data);
+      if (window._onRemoteMerge) window._onRemoteMerge(toSave);
+    }
+  } catch(e) {}
+  var resp = await gapi.client.request({ path: `/upload/drive/v3/files/${_fileId}`, method: 'PATCH', params: { uploadType: 'media', fields: 'version' }, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(toSave) });
+  try { _lastKnownVersion = resp.result && resp.result.version ? resp.result.version : await _driveRemoteVersion(); } catch(e) {}
+  return toSave;
 }
 
   </script>
@@ -1265,6 +1375,58 @@ const buildFlatItems = (cats) => {
   return flat;
 };
 const generateId = () => Math.random().toString(36).substr(2, 9);
+// Geeft per transactie de bedragen per hoofdcategorie terug.
+// Split-kassatickets worden daarbij netjes per regel uitgesplitst.
+const ovAmountsForTx = (t) => {
+  if (t.splits && t.splits.length > 0) {
+    const out = [];
+    t.splits.forEach((l) => { if (l.overkoepelend) out.push({ ov: l.overkoepelend, amount: parseFloat(l.amount) || 0 }); });
+    return out;
+  }
+  return t.overkoepelend ? [{ ov: t.overkoepelend, amount: t.amount }] : [];
+};
+// Zet een datum één periode vooruit (met maandeinde-correctie: 31 jan -> 28 feb)
+const advanceDate = (dateStr, interval) => {
+  const d = new Date(dateStr + "T12:00:00");
+  if (interval === "weekly") d.setDate(d.getDate() + 7);
+  else if (interval === "yearly") d.setFullYear(d.getFullYear() + 1);
+  else {
+    const day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + 1);
+    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(day, last));
+  }
+  const p = (n) => (n < 10 ? "0" : "") + n;
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+};
+// Houdt bij wat verwijderd is, zodat een samenvoeging met een ander
+// toestel verwijderde items niet per ongeluk terugbrengt.
+// Boekt bij het opstarten alle vervallen vaste lasten die op "automatisch" staan
+const processRecurringAutoBook = (d) => {
+  const todayStr = fmt(today);
+  let booked = 0;
+  const newTx = [];
+  const rec = (d.recurring || []).map((r) => {
+    if (!r.active || !r.autoBook || !r.nextDate) return r;
+    let nd = r.nextDate;
+    let guard = 0;
+    while (nd <= todayStr && guard < 24) {
+      newTx.push({ id: generateId(), date: nd, description: r.description, amount: r.amount, type: r.hoofdtype === "Inkomsten" ? "income" : "expense", hoofdtype: r.hoofdtype, overkoepelend: r.overkoepelend || "", category: r.category || "", itemName: r.itemName || "", accountId: r.accountId || "" });
+      nd = advanceDate(nd, r.interval);
+      booked++;
+      guard++;
+    }
+    return nd === r.nextDate ? r : Object.assign({}, r, { nextDate: nd });
+  });
+  if (!booked) return { data: d, booked: 0 };
+  return { data: Object.assign({}, d, { recurring: rec, transactions: newTx.concat(d.transactions || []) }), booked };
+};
+const withDeleted = (d, ids) => {
+  const cur = d.deletedIds || [];
+  const add = (ids || []).filter((x) => x && cur.indexOf(x) < 0);
+  return add.length ? cur.concat(add).slice(-1000) : cur;
+};
 const today = /* @__PURE__ */ new Date();
 const fmt = (d) => d.toISOString().slice(0, 10);
 const daysAgo = (n) => {
@@ -1289,6 +1451,7 @@ const getGreeting = () => {
 };
 const SAMPLE_DATA = {
   userProfile: { firstName: "Timothy", lastName: "Verschot" },
+  recurring: [],
   merchants: [],
   categories: INITIAL_CATEGORIES,
   accounts: [
@@ -1374,6 +1537,38 @@ const NAV = [
   { id: "categorieen", label: "Categorie\xEBn", icon: Tags },
   { id: "instellingen", label: "Instellingen", icon: Settings }
 ];
+
+// Mobiele tab-balk onderaan: Dashboard · Transacties · ➕ · Analyse · Meer
+// Op de computer (brede schermen) blijft het zijpaneel; deze balk verschijnt alleen op smalle schermen.
+const BottomNav = ({ current, onNav, onAdd }) => {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreTabs = NAV.filter((n) => ["rekeningen", "spaardoelen", "budgetten", "categorieen", "instellingen"].indexOf(n.id) >= 0);
+  const moreActive = moreTabs.some((t) => t.id === current);
+  const TabBtn = ({ id, label, icon: Icon, active, onClick }) => /* @__PURE__ */ React.createElement("button", {
+    onClick, className: "flex-1 flex flex-col items-center gap-0.5 py-2",
+    style: { color: active ? T.teal : T.slate400 }
+  }, /* @__PURE__ */ React.createElement(Icon, { size: 20 }), /* @__PURE__ */ React.createElement("span", { className: "text-[10px] font-medium" }, label));
+  return /* @__PURE__ */ React.createElement(React.Fragment, null,
+    moreOpen && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/30 z-40 lg:hidden", onClick: () => setMoreOpen(false) }),
+    moreOpen && /* @__PURE__ */ React.createElement("div", { className: "fixed z-50 lg:hidden bg-white rounded-2xl shadow-xl p-2 inset-x-3", style: { bottom: "calc(4.5rem + env(safe-area-inset-bottom))" } },
+      moreTabs.map(({ id, label, icon: Icon }) => /* @__PURE__ */ React.createElement("button", {
+        key: id,
+        onClick: () => { onNav(id); setMoreOpen(false); },
+        className: "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium",
+        style: { color: current === id ? T.teal : T.slate600, backgroundColor: current === id ? T.tealBg : "transparent" }
+      }, /* @__PURE__ */ React.createElement(Icon, { size: 18 }), label))),
+    /* @__PURE__ */ React.createElement("nav", { className: "fixed bottom-0 inset-x-0 z-40 lg:hidden bg-white border-t border-slate-100 flex items-stretch", style: { paddingBottom: "env(safe-area-inset-bottom)" } },
+      /* @__PURE__ */ React.createElement(TabBtn, { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, active: current === "dashboard", onClick: () => onNav("dashboard") }),
+      /* @__PURE__ */ React.createElement(TabBtn, { id: "transacties", label: "Transacties", icon: Receipt, active: current === "transacties", onClick: () => onNav("transacties") }),
+      /* @__PURE__ */ React.createElement("div", { className: "flex-1 flex items-center justify-center" },
+        /* @__PURE__ */ React.createElement("button", {
+          onClick: onAdd, title: "Nieuwe transactie",
+          className: "fk-press -mt-6 w-13 h-13 rounded-full flex items-center justify-center shadow-lg",
+          style: { width: 52, height: 52, backgroundColor: T.teal, boxShadow: "0 6px 16px -4px rgba(197,106,31,.55)" }
+        }, /* @__PURE__ */ React.createElement(Plus, { size: 26, className: "text-white" }))),
+      /* @__PURE__ */ React.createElement(TabBtn, { id: "analyse", label: "Analyse", icon: TrendingUp, active: current === "analyse", onClick: () => onNav("analyse") }),
+      /* @__PURE__ */ React.createElement(TabBtn, { id: "meer", label: "Meer", icon: Menu, active: moreActive || moreOpen, onClick: () => setMoreOpen((v) => !v) })));
+};
 const Sidebar = ({ current, onNav, open, onToggle, profile }) => /* @__PURE__ */ React.createElement(React.Fragment, null, open && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/40 z-30 lg:hidden", onClick: onToggle }), /* @__PURE__ */ React.createElement("aside", { className: `fixed top-0 left-0 h-full z-40 flex flex-col transition-transform duration-300 ${open ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:static lg:flex`, style: { width: 220, backgroundColor: T.navy, minHeight: "100vh" } }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 px-5 py-5 border-b border-white/10" }, /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 rounded-xl flex items-center justify-center text-lg", style: { backgroundColor: T.amber } }, "\u{1F9ED}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-white text-sm font-bold leading-tight" }, "Financieel"), /* @__PURE__ */ React.createElement("div", { className: "text-xs leading-tight", style: { color: "#D9A468" } }, "Kompas")), /* @__PURE__ */ React.createElement("button", { className: "ml-auto lg:hidden text-white/60 hover:text-white", onClick: onToggle }, /* @__PURE__ */ React.createElement(X, { size: 18 }))), /* @__PURE__ */ React.createElement("nav", { className: "flex-1 py-4 overflow-y-auto" }, NAV.map(({ id, label, icon: Icon }) => /* @__PURE__ */ React.createElement(
   "button",
   {
@@ -1402,6 +1597,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
     setHlIdxRaw(next);
   };
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [recurSel, setRecurSel] = useState("none");
   const [splitMode, setSplitMode] = useState(!!(initial && initial.splits && initial.splits.length));
   const splitSearchRefs = useRef({});
   const splitAmountRefs = useRef({});
@@ -1430,6 +1626,29 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
   const updateSplitLineFields = (id, fields) => setSplits((s) => s.map((l) => l.id === id ? Object.assign({}, l, fields) : l));
   const [qaForm, setQaForm] = useState({ name: "", overkoepelend: "", categorie: "" });
   const [showMerchant, setShowMerchant] = useState(false);
+  // Leert uit je transactiegeschiedenis: bij een gekende omschrijving wordt
+  // de vaakst gebruikte categorie voorgesteld (recent gebruik weegt dubbel)
+  const historySuggestion = useMemo(() => {
+    const q = (form.description || "").trim().toLowerCase();
+    if (q.length < 2 || splitMode || form.category || form.itemName) return null;
+    const cutoff = (() => { const d = new Date(today); d.setDate(d.getDate() - 90); return fmt(d); })();
+    const scores = {};
+    (data.transactions || []).forEach((t) => {
+      if ((t.description || "").trim().toLowerCase() !== q) return;
+      if (!t.overkoepelend && !t.itemName) return;
+      const key = (t.overkoepelend || "") + "|" + (t.category || "") + "|" + (t.itemName || "");
+      if (!scores[key]) scores[key] = { score: 0, ov: t.overkoepelend || "", cat: t.category || "", item: t.itemName || "", itemId: t.itemId || "" };
+      scores[key].score += t.date >= cutoff ? 2 : 1;
+    });
+    let best = null;
+    Object.values(scores).forEach((s) => { if (!best || s.score > best.score) best = s; });
+    return best && best.score >= 2 ? best : null;
+  }, [form.description, form.category, form.itemName, splitMode, data.transactions]);
+  const applyHistorySuggestion = () => {
+    if (!historySuggestion) return;
+    setForm((f) => ({ ...f, overkoepelend: historySuggestion.ov, category: historySuggestion.cat, itemName: historySuggestion.item, itemId: historySuggestion.itemId }));
+    setSearch(historySuggestion.item || historySuggestion.cat);
+  };
   const merchantSuggestions = useMemo(() => {
     if (!form.description || form.description.length < 1) return [];
     const q = form.description.toLowerCase();
@@ -1469,18 +1688,41 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
     setForm((f) => ({ ...f, type: t, hoofdtype: typeConfig[t].hoofdtype, itemId: "", itemName: "", category: "", overkoepelend: "" }));
     setSearch("");
   };
+  const buildTx = () => ({ ...form, _recurring: initial ? void 0 : recurSel, id: (initial == null ? void 0 : initial.id) || generateId(), amount: parseFloat(form.amount), quantity: form.quantity ? parseFloat(form.quantity) : void 0, grossPrice: form.grossPrice ? parseFloat(form.grossPrice) : void 0, splits: splitMode && splits.filter((l) => l.description && l.amount).length > 0 ? splits.filter((l) => l.description && l.amount).map((l) => ({ ...l, amount: parseFloat(l.amount) })) : void 0 });
   const handleSubmit = () => {
     if (!form.date || !form.amount || !form.description) return;
-    onSave({ ...form, id: (initial == null ? void 0 : initial.id) || generateId(), amount: parseFloat(form.amount), quantity: form.quantity ? parseFloat(form.quantity) : void 0, grossPrice: form.grossPrice ? parseFloat(form.grossPrice) : void 0, splits: splitMode && splits.filter((l) => l.description && l.amount).length > 0 ? splits.filter((l) => l.description && l.amount).map((l) => ({ ...l, amount: parseFloat(l.amount) })) : void 0 });
+    onSave(buildTx());
     onClose();
   };
+  const [session, setSession] = useState({ count: 0, total: 0 });
+  const descWrapRef = useRef(null);
+  // Opslaan en meteen klaarstaan voor het volgende ticket:
+  // datum, rekening en type blijven staan, de rest wordt leeggemaakt
+  const handleSubmitNext = () => {
+    if (!form.date || !form.amount || !form.description) return;
+    onSave(buildTx());
+    setSession((s) => ({ count: s.count + 1, total: s.total + (parseFloat(form.amount) || 0) }));
+    setForm((f) => ({ ...blank, date: f.date, accountId: f.accountId, type: f.type, hoofdtype: f.hoofdtype }));
+    setSearch("");
+    setShowRes(false);
+    setHlIdx(-1);
+    setRecurSel("none");
+    setSplits([{ id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false, hlIdx: -1 }]);
+    setTimeout(() => {
+      if (descWrapRef.current) {
+        const el = descWrapRef.current.querySelector("input");
+        if (el) el.focus();
+      }
+    }, 30);
+  };
+
   return /* @__PURE__ */ React.createElement(
     Modal,
     { title, onClose },
     /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 gap-2 mb-5" }, Object.entries(typeConfig).map(([key, cfg]) => /* @__PURE__ */ React.createElement("button", { key, onClick: () => handleTypeChange(key), className: "flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium border-2 transition-all", style: { borderColor: form.type === key ? cfg.color : "#E4D8C8", backgroundColor: form.type === key ? cfg.color + "15" : "white", color: form.type === key ? cfg.color : "#83705C" } }, /* @__PURE__ */ React.createElement("span", { className: "text-base" }, cfg.icon), cfg.label))),
     /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Datum" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: form.date, onChange: (e) => setForm((f) => ({ ...f, date: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Bedrag (\u20AC)", hint: "Altijd positief" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", placeholder: "0,00", value: form.amount, onChange: (e) => setForm((f) => ({ ...f, amount: e.target.value })) }))),
     /* @__PURE__ */ React.createElement(FormField, { label: "Beschrijving" },
-      /* @__PURE__ */ React.createElement("div", { className: "relative" },
+      /* @__PURE__ */ React.createElement("div", { className: "relative", ref: descWrapRef },
         /* @__PURE__ */ React.createElement(Input, {
           placeholder: "Bv. Colruyt boodschappen",
           value: form.description,
@@ -1502,7 +1744,13 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
           ),
           /* @__PURE__ */ React.createElement("div", { className: "text-xs text-teal-600 font-medium" }, "Vorig gebruik")
         )))
-      )
+      ),
+      historySuggestion && /* @__PURE__ */ React.createElement("button", {
+        type: "button",
+        onClick: applyHistorySuggestion,
+        className: "mt-1.5 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border border-dashed transition-colors hover:bg-teal-50",
+        style: { borderColor: "#F5CD9E", color: T.teal }
+      }, "\u{1F4A1} Vorige keren: ", historySuggestion.ov, historySuggestion.item || historySuggestion.cat ? " \u203A " + (historySuggestion.item || historySuggestion.cat) : "", /* @__PURE__ */ React.createElement("span", { className: "underline" }, "gebruik"))
     ),
     /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-1" },
       /* @__PURE__ */ React.createElement("span", { className: "text-sm font-medium text-slate-700" }, "Kassaticket splitsen"),
@@ -1627,7 +1875,13 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
     /* @__PURE__ */ React.createElement(FormField, { label: "Rekening" }, /* @__PURE__ */ React.createElement(Sel, { value: form.accountId, onChange: (e) => setForm((f) => ({ ...f, accountId: e.target.value })) }, data.accounts.filter((a) => a.active).map((a) => /* @__PURE__ */ React.createElement("option", { key: a.id, value: a.id }, a.name)))),
     /* @__PURE__ */ React.createElement("button", { onClick: () => setShowOpt((s) => !s), className: "flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 mb-4" }, showOpt ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 14 }) : /* @__PURE__ */ React.createElement(ChevronRight, { size: 14 }), showOpt ? "Minder" : "Optionele velden (merk, hoeveelheid, promo...)"),
     showOpt && /* @__PURE__ */ React.createElement("div", { className: "space-y-4 p-4 bg-slate-50 rounded-xl mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-3" }, /* @__PURE__ */ React.createElement(FormField, { label: "Merk" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Colruyt", value: form.brand, onChange: (e) => setForm((f) => ({ ...f, brand: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Hoeveelheid" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "any", min: "0", placeholder: "1", value: form.quantity, onChange: (e) => setForm((f) => ({ ...f, quantity: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Eenheid" }, /* @__PURE__ */ React.createElement(Sel, { value: form.unit, onChange: (e) => setForm((f) => ({ ...f, unit: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), ["stuks", "g", "kg", "ml", "L", "kWh", "m\xB3", "m", "m\xB2", "verpakking"].map((u) => /* @__PURE__ */ React.createElement("option", { key: u, value: u }, u))))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", id: "promo", checked: form.isPromo, onChange: (e) => setForm((f) => ({ ...f, isPromo: e.target.checked })), className: "rounded" }), /* @__PURE__ */ React.createElement("label", { htmlFor: "promo", className: "text-sm text-slate-700" }, "In promotie")), form.isPromo && /* @__PURE__ */ React.createElement(FormField, { label: "Normale prijs (excl. promo)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", placeholder: "0,00", value: form.grossPrice, onChange: (e) => setForm((f) => ({ ...f, grossPrice: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Notities" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Toelichting", value: form.notes, onChange: (e) => setForm((f) => ({ ...f, notes: e.target.value })) }))),
-    /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: onClose }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: handleSubmit, disabled: !form.date || !form.amount || !form.description }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan")),
+    !initial && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mb-4 px-3 py-2 rounded-xl", style: { backgroundColor: T.tealBg } }, /* @__PURE__ */ React.createElement("span", { className: "text-sm" }, "\u{1F501}"), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-700 flex-1" }, "Herhalen"), /* @__PURE__ */ React.createElement(Sel, { className: "w-40", value: recurSel, onChange: (e) => setRecurSel(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "none" }, "Niet herhalen"), /* @__PURE__ */ React.createElement("option", { value: "weekly" }, "Wekelijks"), /* @__PURE__ */ React.createElement("option", { value: "monthly" }, "Maandelijks"), /* @__PURE__ */ React.createElement("option", { value: "yearly" }, "Jaarlijks"))),
+    /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" },
+      session.count > 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium px-2.5 py-1.5 rounded-lg", style: { backgroundColor: T.greenBg, color: T.green } }, "Deze sessie: ", session.count, " \xB7 ", fmtEUR(session.total)),
+      /* @__PURE__ */ React.createElement("div", { className: "flex-1" }),
+      /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: onClose }, session.count > 0 ? "Klaar" : "Annuleren"),
+      !initial && /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: handleSubmitNext, disabled: !form.date || !form.amount || !form.description, className: "border border-teal-200 text-teal-700" }, "Opslaan + volgende"),
+      /* @__PURE__ */ React.createElement(Btn, { onClick: handleSubmit, disabled: !form.date || !form.amount || !form.description }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan")),
     showQuickAdd && /* @__PURE__ */ React.createElement(
       "div",
       { className: "fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center", style: { backgroundColor: "rgba(0,0,0,0.5)" } },
@@ -1697,8 +1951,21 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title = "Nieuwe
     )
   );
 };
-const Dashboard = ({ data, onQuickAdd, onDeleteTx, toast, profile }) => {
+const Dashboard = ({ data, onData, onQuickAdd, onDeleteTx, toast, profile }) => {
   const [confirmDelDash, setConfirmDelDash] = useState(null);
+  const dueRecurring = useMemo(() => (data.recurring || []).filter((r) => r.active && !r.autoBook && r.nextDate && r.nextDate <= fmt(today)), [data.recurring]);
+  const bookRecurring = (r) => {
+    onData((d) => ({
+      ...d,
+      transactions: [{ id: generateId(), date: r.nextDate, description: r.description, amount: r.amount, type: r.hoofdtype === "Inkomsten" ? "income" : "expense", hoofdtype: r.hoofdtype, overkoepelend: r.overkoepelend || "", category: r.category || "", itemName: r.itemName || "", accountId: r.accountId || "" }, ...d.transactions],
+      recurring: (d.recurring || []).map((x) => x.id === r.id ? { ...x, nextDate: advanceDate(r.nextDate, r.interval) } : x)
+    }));
+    toast("Geboekt \u2713");
+  };
+  const skipRecurring = (r) => {
+    onData((d) => ({ ...d, recurring: (d.recurring || []).map((x) => x.id === r.id ? { ...x, nextDate: advanceDate(r.nextDate, r.interval) } : x) }));
+    toast("Overgeslagen tot volgende vervaldag");
+  };
   const txs = data.transactions;
   const thisMonth = txs.filter((t) => getMonth(t.date) === currentMonth);
   const income = thisMonth.filter((t) => !isExpense(t)).reduce((s, t) => s + t.amount, 0);
@@ -1715,6 +1982,23 @@ const Dashboard = ({ data, onQuickAdd, onDeleteTx, toast, profile }) => {
   const totalAssets = Object.values(latestByAcc).filter((b) => b.amount > 0).reduce((s, b) => s + b.amount, 0);
   const totalDebts = Math.abs(Object.values(latestByAcc).filter((b) => b.amount < 0).reduce((s, b) => s + b.amount, 0));
   const netWorth = totalAssets - totalDebts;
+  // Vrij besteedbaar = saldo zichtrekeningen - nog te betalen vaste lasten - resterende budgetruimte
+  const vrijBesteedbaar = useMemo(() => {
+    const checkingSaldo = data.accounts.filter((a) => a.active && a.type === "checking").reduce((s, a) => {
+      const bal = latestByAcc[a.id];
+      return s + (bal ? bal.amount : 0);
+    }, 0);
+    const endOfMonth = fmt(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+    const upcomingFixed = (data.recurring || []).filter((r) => r.active && r.hoofdtype !== "Inkomsten" && r.nextDate && r.nextDate <= endOfMonth).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+    const spentByOv = {};
+    thisMonth.forEach((t) => {
+      if (!isExpense(t)) return;
+      ovAmountsForTx(t).forEach((e) => { spentByOv[e.ov] = (spentByOv[e.ov] || 0) + e.amount; });
+    });
+    const remainingBudget = data.budgets.filter((b) => b.period === "monthly").reduce((s, b) => s + Math.max(0, b.amount - (spentByOv[b.overkoepelend] || 0)), 0);
+    const hasCheckingBalance = data.accounts.some((a) => a.active && a.type === "checking" && latestByAcc[a.id]);
+    return { value: checkingSaldo - upcomingFixed - remainingBudget, checkingSaldo, upcomingFixed, remainingBudget, hasCheckingBalance };
+  }, [data.accounts, data.recurring, data.budgets, latestByAcc, thisMonth]);
   const chartData = useMemo(() => Array.from({ length: 6 }, (_, i) => {
     const d = new Date(today);
     d.setMonth(d.getMonth() - 5 + i);
@@ -1740,21 +2024,67 @@ const Dashboard = ({ data, onQuickAdd, onDeleteTx, toast, profile }) => {
   }).filter((b) => b.pct > 85).sort((a, z) => z.pct - a.pct), [data.budgets, thisMonth]);
   const recentTxs = useMemo(() => [...txs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5), [txs]);
   const firstName = (profile == null ? void 0 : profile.firstName) || "";
-  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-7xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, getGreeting(), firstName ? `, ${firstName}` : "", " \u{1F44B}"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, today.toLocaleDateString("nl-BE", { weekday: "long", day: "numeric", month: "long" }))), /* @__PURE__ */ React.createElement(Btn, { onClick: onQuickAdd, size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Transactie")), budgetAlerts.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-5 p-4 rounded-xl border border-amber-200 bg-amber-50 flex items-start gap-3" }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 18, className: "text-amber-600 mt-0.5 flex-shrink-0" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-semibold text-amber-800 mb-1" }, "Budgetwaarschuwing"), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-amber-700 space-y-0.5" }, budgetAlerts.map((b) => /* @__PURE__ */ React.createElement("div", { key: b.id }, b.label ? b.overkoepelend + " • " + b.label : b.overkoepelend, ": ", fmtEUR(b.spent), " van ", fmtEUR(b.amount), " (", b.pct.toFixed(0), "%)", b.pct >= 100 ? " — OVER BUDGET" : ""))))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" }, [
+  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-7xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, getGreeting(), firstName ? `, ${firstName}` : "", " \u{1F44B}"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, today.toLocaleDateString("nl-BE", { weekday: "long", day: "numeric", month: "long" }))), /* @__PURE__ */ React.createElement(Btn, { onClick: onQuickAdd, size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Transactie")), dueRecurring.length > 0 && /* @__PURE__ */ React.createElement(Card, { className: "mb-5 p-4" },
+    /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mb-3" }, /* @__PURE__ */ React.createElement("span", null, "\u{1F501}"), /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Klaargezet"), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, "vervallen vaste lasten")),
+    /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, dueRecurring.map((r) => /* @__PURE__ */ React.createElement("div", { key: r.id, className: "flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-xl" },
+      /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" },
+        /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800 truncate" }, r.description),
+        /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, "vervaldag ", fmtDateShort(r.nextDate))),
+      /* @__PURE__ */ React.createElement("span", { className: `text-sm font-semibold ${r.hoofdtype === "Inkomsten" ? "text-emerald-600" : "text-slate-700"}` }, fmtEUR(r.amount)),
+      /* @__PURE__ */ React.createElement(Btn, { size: "xs", onClick: () => bookRecurring(r) }, "Boek"),
+      /* @__PURE__ */ React.createElement(Btn, { size: "xs", variant: "ghost", onClick: () => skipRecurring(r) }, "Sla over"))))
+  ), budgetAlerts.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-5 p-4 rounded-xl border border-amber-200 bg-amber-50 flex items-start gap-3" }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 18, className: "text-amber-600 mt-0.5 flex-shrink-0" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-semibold text-amber-800 mb-1" }, "Budgetwaarschuwing"), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-amber-700 space-y-0.5" }, budgetAlerts.map((b) => /* @__PURE__ */ React.createElement("div", { key: b.id }, b.label ? b.overkoepelend + " • " + b.label : b.overkoepelend, ": ", fmtEUR(b.spent), " van ", fmtEUR(b.amount), " (", b.pct.toFixed(0), "%)", b.pct >= 100 ? " — OVER BUDGET" : ""))))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" }, [
     { label: "Netto Vermogen", value: /* @__PURE__ */ React.createElement(AnimNum, { value: netWorth }), sub: `Schulden: ${fmtEUR(totalDebts)}`, icon: "\u{1F48E}", accent: T.teal, bg: "#FDF3E7" },
     { label: "Inkomsten (maand)", value: /* @__PURE__ */ React.createElement(AnimNum, { value: income }), sub: "Deze maand", icon: "\u{1F4C8}", accent: T.green, bg: "#EEF6EF" },
     { label: "Uitgaven (maand)", value: /* @__PURE__ */ React.createElement(AnimNum, { value: expenses }), sub: "Excl. sparen", icon: "\u{1F4C9}", accent: T.red, bg: "#FBEFEC" },
     { label: "Spaarquote", value: /* @__PURE__ */ React.createElement(AnimNum, { value: spaarquote, format: "pct" }), sub: `${fmtEUR(savings)} gespaard`, icon: "\u{1F3AF}", accent: T.blue, bg: "#F6EEF4" }
-  ].map((k, i) => /* @__PURE__ */ React.createElement(Card, { key: i, className: "p-4 border-l-4", style: { borderLeftColor: k.accent } }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium text-slate-500 uppercase tracking-wide" }, k.label), /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, k.icon)), /* @__PURE__ */ React.createElement("div", { className: "text-xl font-bold text-slate-800 mb-1" }, k.value), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, k.sub)))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6" }, /* @__PURE__ */ React.createElement(Card, { className: "lg:col-span-2 p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-4" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Inkomsten vs Uitgaven"), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-full" }, "Laatste 6 maanden")), /* @__PURE__ */ React.createElement(SvgBarChart, { data: chartData, height: 180 })), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Uitgaven per categorie"), pieData.length > 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(SvgDonut, { data: pieData, size: 170, inner: 38, outer: 62 }), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5 mt-2" }, pieData.map((e, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "flex items-center justify-between" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-2 h-2 rounded-full flex-shrink-0", style: { backgroundColor: e.color } }), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-600 truncate max-w-24" }, e.name)), /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium text-slate-700" }, fmtEUR(e.value)))))) : /* @__PURE__ */ React.createElement("div", { className: "py-8 text-center text-slate-400 text-sm" }, "Nog geen uitgaven deze maand"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" }, /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Recente transacties"), recentTxs.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, recentTxs.map((t) => /* @__PURE__ */ React.createElement("div", { key: t.id, className: "flex items-center gap-3 group" }, /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0", style: { backgroundColor: isExpense(t) ? T.redBg : T.greenBg } }, isExpense(t) ? "\u{1F4B8}" : "\u{1F4B0}"), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800 truncate" }, t.description), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, t.category || t.overkoepelend || "\u2014", " \xB7 ", fmtDateShort(t.date))), /* @__PURE__ */ React.createElement("div", { className: `text-sm font-semibold flex-shrink-0 ${isExpense(t) ? "text-red-500" : "text-emerald-600"}` }, isExpense(t) ? "-" : "+", fmtEUR(t.amount)), confirmDelDash === t.id ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: () => { onDeleteTx(t.id); setConfirmDelDash(null); toast && toast("Transactie verwijderd"); }, className: "px-2 py-1 bg-red-600 text-white text-xs rounded-lg" }, "Ja"), /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDelDash(null), className: "px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg" }, "Nee")) : /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDelDash(t.id), title: "Transactie verwijderen", className: "p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, lineHeight: 1 } }, "\u{1F5D1}"))))) : /* @__PURE__ */ React.createElement("div", { className: "py-8 text-center text-slate-400 text-sm" }, "Nog geen transacties")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Spaardoelen"), goalsForDash.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, goalsForDash.slice(0, 4).map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-medium text-slate-700" }, g.name), /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold", style: { color: g.pct >= 100 ? T.green : g.color } }, g.pct.toFixed(0), "%")), /* @__PURE__ */ React.createElement(Progress, { value: g.current, max: g.targetAmount, color: g.color }), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between mt-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, fmtEUR(g.current)), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, fmtEUR(g.targetAmount)))))) : /* @__PURE__ */ React.createElement("div", { className: "py-8 text-center text-slate-400 text-sm" }, "Nog geen spaardoelen"))));
+  ].map((k, i) => /* @__PURE__ */ React.createElement(Card, { key: i, className: "p-4 border-l-4", style: { borderLeftColor: k.accent } }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium text-slate-500 uppercase tracking-wide" }, k.label), /* @__PURE__ */ React.createElement("span", { className: "text-xl" }, k.icon)), /* @__PURE__ */ React.createElement("div", { className: "text-xl font-bold text-slate-800 mb-1" }, k.value), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, k.sub)))), /* @__PURE__ */ React.createElement(Card, { className: "p-5 mb-6" },
+    /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-center gap-4" },
+      /* @__PURE__ */ React.createElement("div", { className: "flex-1" },
+        /* @__PURE__ */ React.createElement("div", { className: "text-xs font-medium text-slate-500 uppercase tracking-wide mb-1" }, "Vrij besteedbaar deze maand"),
+        /* @__PURE__ */ React.createElement("div", { className: `text-2xl font-bold ${vrijBesteedbaar.value < 0 ? "text-red-500" : "text-slate-800"}` }, /* @__PURE__ */ React.createElement(AnimNum, { value: vrijBesteedbaar.value })),
+        !vrijBesteedbaar.hasCheckingBalance && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 mt-1" }, "Tip: werk het saldo van je zichtrekening bij (tabblad Rekeningen) voor een accuraat beeld.")),
+      /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 space-y-1 sm:text-right" },
+        /* @__PURE__ */ React.createElement("div", null, "Saldo zichtrekeningen: ", /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-700 fk-num" }, fmtEUR(vrijBesteedbaar.checkingSaldo))),
+        /* @__PURE__ */ React.createElement("div", null, "\u2212 Nog te betalen vaste lasten: ", /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-700 fk-num" }, fmtEUR(vrijBesteedbaar.upcomingFixed))),
+        /* @__PURE__ */ React.createElement("div", null, "\u2212 Resterende budgetruimte: ", /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-700 fk-num" }, fmtEUR(vrijBesteedbaar.remainingBudget)))))
+  ), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6" }, /* @__PURE__ */ React.createElement(Card, { className: "lg:col-span-2 p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-4" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Inkomsten vs Uitgaven"), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-full" }, "Laatste 6 maanden")), /* @__PURE__ */ React.createElement(SvgBarChart, { data: chartData, height: 180 })), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Uitgaven per categorie"), pieData.length > 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(SvgDonut, { data: pieData, size: 170, inner: 38, outer: 62 }), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5 mt-2" }, pieData.map((e, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "flex items-center justify-between" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "w-2 h-2 rounded-full flex-shrink-0", style: { backgroundColor: e.color } }), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-600 truncate max-w-24" }, e.name)), /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium text-slate-700" }, fmtEUR(e.value)))))) : /* @__PURE__ */ React.createElement("div", { className: "py-8 text-center text-slate-400 text-sm" }, "Nog geen uitgaven deze maand"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" }, /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Recente transacties"), recentTxs.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, recentTxs.map((t) => /* @__PURE__ */ React.createElement("div", { key: t.id, className: "flex items-center gap-3 group" }, /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0", style: { backgroundColor: isExpense(t) ? T.redBg : T.greenBg } }, isExpense(t) ? "\u{1F4B8}" : "\u{1F4B0}"), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800 truncate" }, t.description), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, t.category || t.overkoepelend || "\u2014", " \xB7 ", fmtDateShort(t.date))), /* @__PURE__ */ React.createElement("div", { className: `text-sm font-semibold flex-shrink-0 ${isExpense(t) ? "text-red-500" : "text-emerald-600"}` }, isExpense(t) ? "-" : "+", fmtEUR(t.amount)), confirmDelDash === t.id ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: () => { onDeleteTx(t.id); setConfirmDelDash(null); toast && toast("Transactie verwijderd"); }, className: "px-2 py-1 bg-red-600 text-white text-xs rounded-lg" }, "Ja"), /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDelDash(null), className: "px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg" }, "Nee")) : /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDelDash(t.id), title: "Transactie verwijderen", className: "p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, lineHeight: 1 } }, "\u{1F5D1}"))))) : /* @__PURE__ */ React.createElement("div", { className: "py-8 text-center text-slate-400 text-sm" }, "Nog geen transacties")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-4" }, "Spaardoelen"), goalsForDash.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, goalsForDash.slice(0, 4).map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-medium text-slate-700" }, g.name), /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold", style: { color: g.pct >= 100 ? T.green : g.color } }, g.pct.toFixed(0), "%")), /* @__PURE__ */ React.createElement(Progress, { value: g.current, max: g.targetAmount, color: g.color }), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between mt-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, fmtEUR(g.current)), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, fmtEUR(g.targetAmount)))))) : /* @__PURE__ */ React.createElement("div", { className: "py-8 text-center text-slate-400 text-sm" }, "Nog geen spaardoelen"))));
 };
-const TransactiesPage = ({ data, onAdd, onUpdate, onDelete, toast }) => {
+const TransactiesPage = ({ data, onData, onAdd, onUpdate, onDelete, toast }) => {
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [recForm, setRecForm] = useState(null);
+  const INTERVAL_LABELS = { weekly: "Wekelijks", monthly: "Maandelijks", yearly: "Jaarlijks" };
+  const ovListRec = useMemo(() => data.categories.map((c) => c.name), [data.categories]);
+  const saveRec = () => {
+    if (!recForm.description || !recForm.amount || !recForm.nextDate) return;
+    const entry = { ...recForm, amount: parseFloat(recForm.amount) };
+    onData((d) => ({ ...d, recurring: entry.id ? (d.recurring || []).map((r) => r.id === entry.id ? entry : r) : (d.recurring || []).concat([{ ...entry, id: generateId() }]) }));
+    setRecForm(null);
+    toast(entry.id ? "Vaste last bijgewerkt \u2713" : "Vaste last toegevoegd \u2713");
+  };
+  const delRec = (r) => {
+    if (!window.confirm("Vaste last '" + r.description + "' verwijderen?")) return;
+    onData((d) => ({ ...d, recurring: (d.recurring || []).filter((x) => x.id !== r.id), deletedIds: withDeleted(d, [r.id]) }));
+    toast("Vaste last verwijderd");
+  };
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState(currentMonth);
+  const stepMonth = (delta) => {
+    const base = monthFilter || currentMonth;
+    const d = new Date(base + "-01T12:00:00");
+    d.setMonth(d.getMonth() + delta);
+    const p = (n) => (n < 10 ? "0" : "") + n;
+    setMonthFilter(d.getFullYear() + "-" + p(d.getMonth() + 1));
+  };
   const [showForm, setShowForm] = useState(false);
   const [editTx, setEditTx] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
-  const months = useMemo(() => [...new Set(data.transactions.map((t) => getMonth(t.date)))].sort().reverse(), [data.transactions]);
+  const months = useMemo(() => {
+    const s = new Set(data.transactions.map((t) => getMonth(t.date)));
+    if (monthFilter) s.add(monthFilter);
+    return [...s].sort().reverse();
+  }, [data.transactions, monthFilter]);
   const filtered = useMemo(() => [...data.transactions].sort((a, b) => b.date.localeCompare(a.date)).filter((t) => {
     if (monthFilter && getMonth(t.date) !== monthFilter) return false;
     if (filter === "income" && isExpense(t)) return false;
@@ -1768,14 +2098,40 @@ const TransactiesPage = ({ data, onAdd, onUpdate, onDelete, toast }) => {
   const accMap = useMemo(() => Object.fromEntries(data.accounts.map((a) => [a.id, a])), [data.accounts]);
   const totalIn = filtered.filter((t) => !isExpense(t)).reduce((s, t) => s + t.amount, 0);
   const totalOut = filtered.filter((t) => isExpense(t)).reduce((s, t) => s + t.amount, 0);
-  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-5xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Transacties"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Toevoegen")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-4 mb-4" }, /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.green } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Inkomsten"), /* @__PURE__ */ React.createElement("div", { className: "font-bold text-emerald-600" }, fmtEUR(totalIn))), /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.red } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Uitgaven"), /* @__PURE__ */ React.createElement("div", { className: "font-bold text-red-500" }, fmtEUR(totalOut))), /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.teal } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Saldo"), /* @__PURE__ */ React.createElement("div", { className: `font-bold ${totalIn - totalOut >= 0 ? "text-emerald-600" : "text-red-500"}` }, fmtEUR(totalIn - totalOut)))), /* @__PURE__ */ React.createElement(Card, { className: "mb-4 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "relative flex-1" }, /* @__PURE__ */ React.createElement(Search, { size: 14, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }), /* @__PURE__ */ React.createElement(Input, { className: "pl-8", placeholder: "Zoeken...", value: search, onChange: (e) => setSearch(e.target.value) })), /* @__PURE__ */ React.createElement(Sel, { value: monthFilter, onChange: (e) => setMonthFilter(e.target.value), className: "w-36" }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Alle maanden"), months.map((m) => /* @__PURE__ */ React.createElement("option", { key: m, value: m }, (/* @__PURE__ */ new Date(m + "-01")).toLocaleDateString("nl-BE", { month: "long", year: "numeric" })))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [["all", "Alle"], ["income", "Inkomsten"], ["expense", "Uitgaven"]].map(([k, l]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setFilter(k), className: `px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === k ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}` }, l))))), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-slate-50" }, filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "py-12 text-center text-slate-400 text-sm" }, "Geen transacties gevonden"), filtered.map((t) => {
+  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-5xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Transacties"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowRecurring(true), size: "md" }, "\u{1F501} Vaste lasten"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Toevoegen"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-4 mb-4" }, /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.green } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Inkomsten"), /* @__PURE__ */ React.createElement("div", { className: "font-bold text-emerald-600" }, fmtEUR(totalIn))), /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.red } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Uitgaven"), /* @__PURE__ */ React.createElement("div", { className: "font-bold text-red-500" }, fmtEUR(totalOut))), /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.teal } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Saldo"), /* @__PURE__ */ React.createElement("div", { className: `font-bold ${totalIn - totalOut >= 0 ? "text-emerald-600" : "text-red-500"}` }, fmtEUR(totalIn - totalOut)))), /* @__PURE__ */ React.createElement(Card, { className: "mb-4 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "relative flex-1" }, /* @__PURE__ */ React.createElement(Search, { size: 14, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }), /* @__PURE__ */ React.createElement(Input, { className: "pl-8", placeholder: "Zoeken...", value: search, onChange: (e) => setSearch(e.target.value) })), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1" },
+      /* @__PURE__ */ React.createElement("button", { onClick: () => stepMonth(-1), title: "Vorige maand", className: "px-2.5 py-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-bold fk-press" }, "\u2039"),
+      /* @__PURE__ */ React.createElement(Sel, { value: monthFilter, onChange: (e) => setMonthFilter(e.target.value), className: "w-36" }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Alle maanden"), months.map((m) => /* @__PURE__ */ React.createElement("option", { key: m, value: m }, (/* @__PURE__ */ new Date(m + "-01")).toLocaleDateString("nl-BE", { month: "long", year: "numeric" })))),
+      /* @__PURE__ */ React.createElement("button", { onClick: () => stepMonth(1), title: "Volgende maand", className: "px-2.5 py-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-bold fk-press" }, "\u203A")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [["all", "Alle"], ["income", "Inkomsten"], ["expense", "Uitgaven"]].map(([k, l]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setFilter(k), className: `px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === k ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}` }, l))))), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-slate-50" }, filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "py-12 text-center text-slate-400 text-sm" }, "Geen transacties gevonden"), filtered.map((t) => {
     const acc = accMap[t.accountId];
     return /* @__PURE__ */ React.createElement("div", { key: t.id, className: "flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/70 group transition-colors" }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 w-14 flex-shrink-0 font-mono" }, fmtDateShort(t.date)), /* @__PURE__ */ React.createElement("div", { className: "w-1.5 h-1.5 rounded-full flex-shrink-0", style: { backgroundColor: OV_COLORS[t.overkoepelend] || "#CDBBA6" } }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "font-medium text-slate-800 text-sm truncate" }, t.description, t.brand && /* @__PURE__ */ React.createElement("span", { className: "text-slate-400 font-normal ml-1" }, "\xB7 ", t.brand)), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 flex items-center gap-1 mt-0.5" }, /* @__PURE__ */ React.createElement("span", null, t.overkoepelend || "\u2014"), t.category && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(ChevronRight, { size: 10 }), /* @__PURE__ */ React.createElement("span", null, t.category)))), acc && /* @__PURE__ */ React.createElement(Badge, { color: acc.color, small: true }, acc.name), /* @__PURE__ */ React.createElement("div", { className: `text-sm font-semibold flex-shrink-0 ${isExpense(t) ? "text-red-500" : "text-emerald-600"}` }, isExpense(t) ? "-" : "+", fmtEUR(t.amount)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 transition-all" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setEditTx(t), title: "Transactie bewerken", className: "p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u270F\uFE0F")), confirmDel === t.id ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
       onDelete(t.id);
       setConfirmDel(null);
       toast("Transactie verwijderd");
     }, className: "px-2 py-1 bg-red-600 text-white text-xs rounded-lg" }, "Ja"), /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDel(null), className: "px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg" }, "Nee")) : /* @__PURE__ */ React.createElement("button", { onClick: () => setConfirmDel(t.id), title: "Transactie verwijderen", className: "p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u{1F5D1}"))));
-  }))), showForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, onSave: (tx) => {
+  }))), showRecurring && /* @__PURE__ */ React.createElement(Modal, { title: "Vaste lasten", wide: true, onClose: () => setShowRecurring(false) },
+    /* @__PURE__ */ React.createElement("p", { className: "text-sm text-slate-500 mb-4" }, "Abonnementen en vaste kosten die terugkeren. Op de vervaldag staan ze klaar op je Dashboard \u2014 of worden ze automatisch geboekt als je dat aanvinkt."),
+    (data.recurring || []).length === 0 && /* @__PURE__ */ React.createElement("div", { className: "py-8 text-center text-slate-400 text-sm" }, "Nog geen vaste lasten. Tip: bij het invoeren van een transactie kan je meteen \u2018Herhalen\u2019 aanzetten."),
+    /* @__PURE__ */ React.createElement("div", { className: "space-y-2 mb-4" }, (data.recurring || []).map((r) => /* @__PURE__ */ React.createElement("div", { key: r.id, className: "flex items-center gap-3 px-3 py-2.5 bg-slate-50 rounded-xl" },
+      /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" },
+        /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800 truncate" }, r.description, !r.active && /* @__PURE__ */ React.createElement("span", { className: "ml-2 text-xs text-slate-400" }, "(gepauzeerd)")),
+        /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, INTERVAL_LABELS[r.interval] || r.interval, " \xB7 volgende: ", fmtDateShort(r.nextDate), r.autoBook ? " \xB7 automatisch" : "")),
+      /* @__PURE__ */ React.createElement("span", { className: `text-sm font-semibold ${r.hoofdtype === "Inkomsten" ? "text-emerald-600" : "text-slate-700"}` }, fmtEUR(r.amount)),
+      /* @__PURE__ */ React.createElement("button", { onClick: () => setRecForm({ ...r, amount: String(r.amount) }), title: "Bewerken", className: "p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50" }, "\u270F\uFE0F"),
+      /* @__PURE__ */ React.createElement("button", { onClick: () => delRec(r), title: "Verwijderen", className: "p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50" }, "\u{1F5D1}")))),
+    /* @__PURE__ */ React.createElement(Btn, { onClick: () => setRecForm({ description: "", amount: "", hoofdtype: "Vaste Uitgaven", overkoepelend: "", category: "", itemName: "", accountId: (data.accounts[0] || {}).id || "", interval: "monthly", nextDate: fmt(today), autoBook: false, active: true }) }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Nieuwe vaste last")),
+  recForm && /* @__PURE__ */ React.createElement(Modal, { title: recForm.id ? "Vaste last bewerken" : "Nieuwe vaste last", onClose: () => setRecForm(null) },
+    /* @__PURE__ */ React.createElement(FormField, { label: "Omschrijving" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Netflix, Huishuur...", value: recForm.description, onChange: (e) => setRecForm((f) => ({ ...f, description: e.target.value })) })),
+    /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" },
+      /* @__PURE__ */ React.createElement(FormField, { label: "Bedrag (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", value: recForm.amount, onChange: (e) => setRecForm((f) => ({ ...f, amount: e.target.value })) })),
+      /* @__PURE__ */ React.createElement(FormField, { label: "Type" }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.hoofdtype, onChange: (e) => setRecForm((f) => ({ ...f, hoofdtype: e.target.value })) }, ["Vaste Uitgaven", "Variabele Uitgaven", "Sparen", "Inkomsten"].map((h) => /* @__PURE__ */ React.createElement("option", { key: h, value: h }, h))))),
+    /* @__PURE__ */ React.createElement(FormField, { label: "Hoofdcategorie" }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.overkoepelend, onChange: (e) => setRecForm((f) => ({ ...f, overkoepelend: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Kies..."), ovListRec.map((o) => /* @__PURE__ */ React.createElement("option", { key: o, value: o }, o)))),
+    /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" },
+      /* @__PURE__ */ React.createElement(FormField, { label: "Herhaling" }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.interval, onChange: (e) => setRecForm((f) => ({ ...f, interval: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "weekly" }, "Wekelijks"), /* @__PURE__ */ React.createElement("option", { value: "monthly" }, "Maandelijks"), /* @__PURE__ */ React.createElement("option", { value: "yearly" }, "Jaarlijks"))),
+      /* @__PURE__ */ React.createElement(FormField, { label: "Volgende vervaldag" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: recForm.nextDate, onChange: (e) => setRecForm((f) => ({ ...f, nextDate: e.target.value })) }))),
+    /* @__PURE__ */ React.createElement(FormField, { label: "Rekening" }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.accountId, onChange: (e) => setRecForm((f) => ({ ...f, accountId: e.target.value })) }, data.accounts.filter((a) => a.active).map((a) => /* @__PURE__ */ React.createElement("option", { key: a.id, value: a.id }, a.name)))),
+    /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-2 mb-3 cursor-pointer" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !!recForm.autoBook, onChange: (e) => setRecForm((f) => ({ ...f, autoBook: e.target.checked })) }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-700" }, "Automatisch boeken op de vervaldag")),
+    /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-2 mb-4 cursor-pointer" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !!recForm.active, onChange: (e) => setRecForm((f) => ({ ...f, active: e.target.checked })) }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-700" }, "Actief")),
+    /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setRecForm(null) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: saveRec, disabled: !recForm.description || !recForm.amount || !recForm.nextDate }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan"))), showForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, onSave: (tx) => {
     onAdd(tx);
     toast("Transactie opgeslagen \u2713");
   }, onClose: () => setShowForm(false) }), editTx && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, initial: { ...editTx, type: editTx.hoofdtype === "Inkomsten" ? "income" : editTx.hoofdtype === "Sparen" ? "saving" : editTx.hoofdtype === "Vaste Uitgaven" ? "fixed" : "expense" }, title: "Transactie bewerken", onSave: (tx) => {
@@ -1849,7 +2205,7 @@ const RekeningenPage = ({ data, onUpdate, toast }) => {
       /* @__PURE__ */ React.createElement("button", {
         onClick: () => {
           if (window.confirm("Rekening '" + acc.name + "' verwijderen?")) {
-            onUpdate((d) => ({ ...d, accounts: d.accounts.filter((a) => a.id !== acc.id), balances: d.balances.filter((b) => b.accountId !== acc.id) }));
+            onUpdate((d) => ({ ...d, accounts: d.accounts.filter((a) => a.id !== acc.id), balances: d.balances.filter((b) => b.accountId !== acc.id), deletedIds: withDeleted(d, [acc.id].concat(d.balances.filter((b) => b.accountId === acc.id).map((b) => b.id))) }));
             toast("Rekening verwijderd");
           }
         },
@@ -1908,7 +2264,7 @@ const SpaardoelenPage = ({ data, onUpdate, toast }) => {
     setForm({ name: "", targetAmount: "", targetDate: "", linkedAccountId: "", monthlyTarget: "", color: T.teal, notes: "" });
   };
   const delGoal = (id) => {
-    onUpdate((d) => ({ ...d, goals: d.goals.filter((g) => g.id !== id) }));
+    onUpdate((d) => ({ ...d, goals: d.goals.filter((g) => g.id !== id), deletedIds: withDeleted(d, [id]) }));
     toast("Doel verwijderd");
   };
   const doQuickUpdate = () => {
@@ -1934,15 +2290,55 @@ const BudgettenPage = ({ data, onUpdate, toast }) => {
   const [editBudgetId, setEditBudgetId] = useState(null);
   const [form, setForm] = useState({ overkoepelend: "", amount: "", period: "monthly", label: "" });
   const ovList = useMemo(() => [...new Set(data.categories.map((c) => c.name))], [data.categories]);
-  const budgetsWithSpent = useMemo(() => data.budgets.map((b) => {
+  // Uitgaven per hoofdcategorie per maand, mét split-tickets per regel geteld
+  // (voorheen telden gesplitste kassatickets niet mee in budgetten)
+  const spentByMonthOv = useMemo(() => {
+    const m = {};
+    data.transactions.forEach((t) => {
+      if (!isExpense(t)) return;
+      const mo = getMonth(t.date);
+      ovAmountsForTx(t).forEach((e) => {
+        if (!m[mo]) m[mo] = {};
+        m[mo][e.ov] = (m[mo][e.ov] || 0) + e.amount;
+      });
+    });
+    return m;
+  }, [data.transactions]);
+  const budgetsWithSpent = useMemo(() => {
     const year = fmt(today).slice(0, 4);
-    const relevant = data.transactions.filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend && (b.period === "monthly" ? getMonth(t.date) === currentMonth : t.date.startsWith(year)));
-    const spent = relevant.reduce((s, t) => s + t.amount, 0);
-    const pct = b.amount > 0 ? spent / b.amount * 100 : 0;
-    return { ...b, spent, pct };
-  }), [data.budgets, data.transactions]);
+    const dayOfMonth = today.getDate();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const prevMonths = [1, 2, 3].map((n) => {
+      const d = new Date(today);
+      d.setDate(1);
+      d.setMonth(d.getMonth() - n);
+      return fmt(d).slice(0, 7);
+    });
+    return data.budgets.map((b) => {
+      let spent;
+      if (b.period === "monthly") {
+        spent = (spentByMonthOv[currentMonth] || {})[b.overkoepelend] || 0;
+      } else {
+        spent = 0;
+        Object.keys(spentByMonthOv).forEach((mo) => {
+          if (mo.startsWith(year)) spent += (spentByMonthOv[mo] || {})[b.overkoepelend] || 0;
+        });
+      }
+      const pct = b.amount > 0 ? spent / b.amount * 100 : 0;
+      // Projectie (alleen maandbudgetten): mix van huidig tempo en 3-maands gemiddelde
+      let projected = null;
+      if (b.period === "monthly" && dayOfMonth >= 3) {
+        const naive = spent / dayOfMonth * daysInMonth;
+        const histVals = prevMonths.map((mo) => (spentByMonthOv[mo] || {})[b.overkoepelend] || 0).filter((v) => v > 0);
+        const hist = histVals.length ? histVals.reduce((s, v) => s + v, 0) / histVals.length : 0;
+        projected = Math.round(hist > 0 ? naive * 0.5 + hist * 0.5 : naive);
+      }
+      return { ...b, spent, pct, projected };
+    });
+  }, [data.budgets, spentByMonthOv]);
   const totBudget = budgetsWithSpent.reduce((s, b) => s + b.amount, 0);
   const totSpent = budgetsWithSpent.reduce((s, b) => s + b.spent, 0);
+  const totProjected = budgetsWithSpent.reduce((s, b) => s + (b.projected !== null ? b.projected : b.spent), 0);
   const addBudget = () => {
     if (!form.overkoepelend || !form.amount) return;
     if (editBudgetId) {
@@ -1961,7 +2357,7 @@ const BudgettenPage = ({ data, onUpdate, toast }) => {
     setForm({ overkoepelend: b.overkoepelend, label: b.label || "", amount: String(b.amount), period: b.period || "monthly" });
     setShowForm(true);
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-4xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Maandbudgetten"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, "Maximale uitgaven per categorie")), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Budget")), /* @__PURE__ */ React.createElement(Card, { className: "p-5 mb-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-slate-500" }, "Totaal deze maand"), /* @__PURE__ */ React.createElement("div", { className: "text-2xl font-bold text-slate-800 mt-0.5" }, /* @__PURE__ */ React.createElement(AnimNum, { value: totSpent }), " ", /* @__PURE__ */ React.createElement("span", { className: "text-slate-400 text-lg font-normal" }, "/ ", fmtEUR(totBudget)))), /* @__PURE__ */ React.createElement("div", { className: "text-right" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-slate-500" }, "Resterend"), /* @__PURE__ */ React.createElement("div", { className: `text-xl font-bold ${totSpent > totBudget ? "text-red-500" : "text-emerald-600"}` }, fmtEUR(totBudget - totSpent)))), /* @__PURE__ */ React.createElement(Progress, { value: totSpent, max: totBudget, h: 10 })), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3" }, budgetsWithSpent.map((b) => {
+  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-4xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Maandbudgetten"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, "Maximale uitgaven per categorie")), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Budget")), /* @__PURE__ */ React.createElement(Card, { className: "p-5 mb-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-slate-500" }, "Totaal deze maand"), /* @__PURE__ */ React.createElement("div", { className: "text-2xl font-bold text-slate-800 mt-0.5" }, /* @__PURE__ */ React.createElement(AnimNum, { value: totSpent }), " ", /* @__PURE__ */ React.createElement("span", { className: "text-slate-400 text-lg font-normal" }, "/ ", fmtEUR(totBudget)))), /* @__PURE__ */ React.createElement("div", { className: "text-right" }, /* @__PURE__ */ React.createElement("div", { className: "text-sm text-slate-500" }, "Resterend"), /* @__PURE__ */ React.createElement("div", { className: `text-xl font-bold ${totSpent > totBudget ? "text-red-500" : "text-emerald-600"}` }, fmtEUR(totBudget - totSpent)), totProjected > 0 && totProjected !== totSpent && /* @__PURE__ */ React.createElement("div", { className: "text-xs mt-0.5", style: { color: totProjected > totBudget ? T.red : T.slate400 } }, "verwacht: ", fmtEUR(totProjected)))), /* @__PURE__ */ React.createElement(Progress, { value: totSpent, max: totBudget, h: 10 })), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3" }, budgetsWithSpent.map((b) => {
     const over = b.pct > 100;
     const warn = b.pct > 85 && !over;
     return /* @__PURE__ */ React.createElement(Card, { key: b.id, className: "p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", null,
@@ -1969,9 +2365,9 @@ const BudgettenPage = ({ data, onUpdate, toast }) => {
           b.label && /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400 ml-1.5" }, "\u2022 ", b.label)
         ), /* @__PURE__ */ React.createElement(Badge, { color: b.period === "monthly" ? T.blue : T.purple }, b.period === "monthly" ? "Maandelijks" : "Jaarlijks"), over && /* @__PURE__ */ React.createElement(Badge, { color: T.red }, "Over budget"), warn && /* @__PURE__ */ React.createElement(Badge, { color: T.amber }, "Let op")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-semibold", style: { color: over ? T.red : warn ? T.amber : T.green } }, fmtEUR(b.spent)), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, "/ ", fmtEUR(b.amount)), /* @__PURE__ */ React.createElement("button", { onClick: () => startEditBudget(b), title: "Budget bewerken", className: "p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, lineHeight: 1 } }, "\u270F\uFE0F")), /* @__PURE__ */ React.createElement("button", { onClick: () => {
       if (!window.confirm("Budget '" + b.overkoepelend + (b.label ? " \u2022 " + b.label : "") + "' verwijderen?")) return;
-      onUpdate((d) => ({ ...d, budgets: d.budgets.filter((x) => x.id !== b.id) }));
+      onUpdate((d) => ({ ...d, budgets: d.budgets.filter((x) => x.id !== b.id), deletedIds: withDeleted(d, [b.id]) }));
       toast("Budget verwijderd");
-    }, title: "Budget verwijderen", className: "p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, lineHeight: 1 } }, "\u{1F5D1}")))), /* @__PURE__ */ React.createElement(Progress, { value: b.spent, max: b.amount, h: 8 }), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 mt-1" }, b.pct.toFixed(0), "% van budget"));
+    }, title: "Budget verwijderen", className: "p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, lineHeight: 1 } }, "\u{1F5D1}")))), /* @__PURE__ */ React.createElement(Progress, { value: b.spent, max: b.amount, h: 8 }), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mt-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-slate-400" }, b.pct.toFixed(0), "% van budget"), b.projected !== null && b.amount > 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs font-medium", style: { color: b.projected > b.amount ? T.red : b.projected > b.amount * 0.9 ? "#B08A2E" : T.slate400 } }, "verwacht einde maand: ", fmtEUR(b.projected), b.projected > b.amount ? " \u26A0" : "")));
   }), budgetsWithSpent.length === 0 && /* @__PURE__ */ React.createElement(Card, { className: "py-12 text-center" }, /* @__PURE__ */ React.createElement(PiggyBank, { size: 32, className: "mx-auto text-slate-200 mb-3" }), /* @__PURE__ */ React.createElement("p", { className: "text-slate-400 text-sm" }, "Geen budgetten ingesteld."))), showForm && /* @__PURE__ */ React.createElement(Modal, { title: editBudgetId ? "Budget bewerken" : "Budget toevoegen", onClose: () => { setShowForm(false); setEditBudgetId(null); setForm({ overkoepelend: "", label: "", amount: "", period: "monthly" }); } }, /* @__PURE__ */ React.createElement(FormField, { label: "Categorie" }, /* @__PURE__ */ React.createElement(Sel, { value: form.overkoepelend, onChange: (e) => setForm((f) => ({ ...f, overkoepelend: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Kies..."), ovList.map((o) => /* @__PURE__ */ React.createElement("option", { key: o, value: o }, o)))), /* @__PURE__ */ React.createElement(FormField, { label: "Omschrijving (optioneel)", hint: "bv. Huishuur, Nutsvoorzieningen..." }, /* @__PURE__ */ React.createElement(Input, { type: "text", placeholder: "bv. Huishuur", value: form.label, onChange: (e) => setForm((f) => ({ ...f, label: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Maximumbedrag (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "1", min: "0", placeholder: "400", value: form.amount, onChange: (e) => setForm((f) => ({ ...f, amount: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Periode" }, /* @__PURE__ */ React.createElement(Sel, { value: form.period, onChange: (e) => setForm((f) => ({ ...f, period: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "monthly" }, "Maandelijks"), /* @__PURE__ */ React.createElement("option", { value: "yearly" }, "Jaarlijks"))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowForm(false) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: addBudget, disabled: !form.overkoepelend || !form.amount }, editBudgetId ? /* @__PURE__ */ React.createElement(Check, { size: 14 }) : /* @__PURE__ */ React.createElement(Plus, { size: 14 }), editBudgetId ? "Bijwerken" : "Opslaan"))));
 };
 const AnalysePage = ({ data }) => {
@@ -2383,6 +2779,25 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
     onUpdate((d) => ({ ...d, userProfile: { ...d.userProfile, ...nameForm } }));
     toast("Profiel opgeslagen \u2713");
   };
+  const [backups, setBackups] = useState(null);
+  const [busyRestore, setBusyRestore] = useState(false);
+  const loadBackups = () => {
+    if (!window._driveConnected) { toast("Verbind eerst met Google Drive", "error"); return; }
+    driveListBackups().then(setBackups).catch(() => toast("Kon reservekopie\u00ebn niet ophalen", "error"));
+  };
+  const backupLabel = (f) => {
+    const raw = f.name.replace(BACKUP_PREFIX, "").replace(".json", "");
+    const dt = new Date(raw);
+    return isNaN(dt.getTime()) ? raw : dt.toLocaleDateString("nl-BE", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+  };
+  const doRestore = (f) => {
+    if (!window.confirm("Al je huidige gegevens vervangen door de reservekopie van " + backupLabel(f) + "? Dit kan niet ongedaan gemaakt worden.")) return;
+    setBusyRestore(true);
+    driveLoadBackup(f.id).then((d2) => driveRestoreOverwrite(d2)).then(() => {
+      toast("Reservekopie hersteld \u2713 \u2014 de app wordt herladen");
+      setTimeout(() => location.reload(), 1400);
+    }).catch(() => { setBusyRestore(false); toast("Herstellen mislukt", "error"); });
+  };
   const exportJSON = () => {
     const b = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
@@ -2432,7 +2847,7 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
       )
     : /* @__PURE__ */ React.createElement("div", { className: "p-4 rounded-xl border-2 border-dashed border-slate-200 text-center" },
         /* @__PURE__ */ React.createElement("p", { className: "text-sm text-slate-500" }, "Nog niet verbonden met Google Drive.")
-      )), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#F6EEF4" } }, "\u{1F4BE}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Export & Backup"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: exportJSON, className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-teal-200 hover:bg-teal-50 transition-all text-sm font-medium text-slate-700" }, /* @__PURE__ */ React.createElement(Download, { size: 16, className: "text-teal-600" }), "JSON Backup"), /* @__PURE__ */ React.createElement("button", { onClick: exportCSV, className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-amber-200 hover:bg-amber-50 transition-all text-sm font-medium text-slate-700" }, /* @__PURE__ */ React.createElement(Download, { size: 16, className: "text-amber-600" }), "CSV (Excel)"))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#EEF6EF" } }, "\u{1F4C2}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Importeren"))), /* @__PURE__ */ React.createElement("label", { className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-teal-300 cursor-pointer transition-colors" }, /* @__PURE__ */ React.createElement(Upload, { size: 16, className: "text-slate-400" }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-500" }, "Klik om JSON-backup te importeren"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".json", className: "hidden", onChange: importJSON }))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-3" }, "Overzicht data"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, [["Transacties", data.transactions.length], ["Rekeningen", data.accounts.length], ["Spaardoelen", data.goals.length], ["Budgetten", data.budgets.length], ["Categorie\xEBn", data.categories.length], ["Subcategorie\xEBn", data.categories.reduce((s, o) => s + o.categories.reduce((ss, c) => ss + c.items.length, 0), 0)]].map(([k, v]) => /* @__PURE__ */ React.createElement("div", { key: k, className: "bg-slate-50 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, k), /* @__PURE__ */ React.createElement("div", { className: "font-semibold text-slate-800 mt-0.5" }, v)))), /* @__PURE__ */ React.createElement("button", {
+      )), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#F6EEF4" } }, "\u{1F4BE}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Export & Backup"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: exportJSON, className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-teal-200 hover:bg-teal-50 transition-all text-sm font-medium text-slate-700" }, /* @__PURE__ */ React.createElement(Download, { size: 16, className: "text-teal-600" }), "JSON Backup"), /* @__PURE__ */ React.createElement("button", { onClick: exportCSV, className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-amber-200 hover:bg-amber-50 transition-all text-sm font-medium text-slate-700" }, /* @__PURE__ */ React.createElement(Download, { size: 16, className: "text-amber-600" }), "CSV (Excel)"))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#EEF6EF" } }, "\u{1F4C2}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Importeren"))), /* @__PURE__ */ React.createElement("label", { className: "flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-teal-300 cursor-pointer transition-colors" }, /* @__PURE__ */ React.createElement(Upload, { size: 16, className: "text-slate-400" }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-500" }, "Klik om JSON-backup te importeren"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: ".json", className: "hidden", onChange: importJSON }))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: "#FFF7E6" } }, "\u{1F6DF}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Reservekopie\u00ebn"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, "Elke dag wordt bij de eerste opslag automatisch een kopie bewaard in je Drive (max. 14)"))), backups === null ? /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: loadBackups }, "Toon reservekopie\u00ebn") : backups.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-slate-400" }, "Nog geen reservekopie\u00ebn \u2014 de eerste verschijnt bij de eerstvolgende opslag.") : /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, backups.map((f) => /* @__PURE__ */ React.createElement("div", { key: f.id, className: "flex items-center justify-between px-3 py-2 bg-slate-50 rounded-xl" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-700" }, backupLabel(f)), /* @__PURE__ */ React.createElement(Btn, { size: "xs", variant: "secondary", disabled: busyRestore, onClick: () => doRestore(f) }, "Herstel"))))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800 mb-3" }, "Overzicht data"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, [["Transacties", data.transactions.length], ["Rekeningen", data.accounts.length], ["Spaardoelen", data.goals.length], ["Budgetten", data.budgets.length], ["Categorie\xEBn", data.categories.length], ["Subcategorie\xEBn", data.categories.reduce((s, o) => s + o.categories.reduce((ss, c) => ss + c.items.length, 0), 0)]].map(([k, v]) => /* @__PURE__ */ React.createElement("div", { key: k, className: "bg-slate-50 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400" }, k), /* @__PURE__ */ React.createElement("div", { className: "font-semibold text-slate-800 mt-0.5" }, v)))), /* @__PURE__ */ React.createElement("button", {
     onClick: () => window._wisAlleTransacties && window._wisAlleTransacties(),
     className: "w-full mb-2 py-2 px-4 text-sm font-semibold text-white rounded-xl",
     style: { background: "#D64545" }
@@ -2457,14 +2872,27 @@ function App({ data, onUpdate }) {
     const existing = merchants.find((m) => m.name.toLowerCase() === (tx.description || "").toLowerCase());
     const newMerchant = { id: existing ? existing.id : generateId(), name: tx.description, overkoepelend: tx.overkoepelend, category: tx.category, itemId: tx.itemId, itemName: tx.itemName, color: tx.color || "#A08C77", lastUsed: tx.date };
     const updatedMerchants = existing ? merchants.map((m) => m.id === existing.id ? newMerchant : m) : (tx.description ? [...merchants, newMerchant] : merchants);
-    return { ...d, transactions: [tx, ...d.transactions], merchants: updatedMerchants };
+    let recurring = d.recurring || [];
+    if (tx._recurring && tx._recurring !== "none") {
+      // Maak meteen een vaste last aan; de volgende vervaldag is één periode verder
+      recurring = recurring.concat([{
+        id: generateId(),
+        description: tx.description, amount: tx.amount, hoofdtype: tx.hoofdtype,
+        overkoepelend: tx.overkoepelend || "", category: tx.category || "", itemName: tx.itemName || "",
+        accountId: tx.accountId || "", interval: tx._recurring,
+        nextDate: advanceDate(tx.date, tx._recurring), autoBook: false, active: true
+      }]);
+    }
+    const cleanTx = { ...tx };
+    delete cleanTx._recurring;
+    return { ...d, transactions: [cleanTx, ...d.transactions], merchants: updatedMerchants, recurring };
   }), [update]);
   const updateTx = useCallback((tx) => update((d) => ({ ...d, transactions: d.transactions.map((t) => t.id === tx.id ? tx : t) })), [update]);
-  const deleteTx = useCallback((id) => update((d) => ({ ...d, transactions: d.transactions.filter((t) => t.id !== id) })), [update]);
-  return /* @__PURE__ */ React.createElement("div", { className: "flex h-screen overflow-hidden", style: { backgroundColor: T.slate50, fontFamily: "Inter,system-ui,sans-serif" } }, /* @__PURE__ */ React.createElement(Sidebar, { current: page, onNav: setPage, open: sidebarOpen, onToggle: () => setSidebarOpen((s) => !s), profile: data.userProfile }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 flex flex-col min-w-0 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 px-4 py-3 bg-white border-b border-slate-100 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setSidebarOpen((s) => !s), className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500" }, /* @__PURE__ */ React.createElement(Menu, { size: 18 })), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }), /* @__PURE__ */ React.createElement(Btn, { size: "sm", onClick: () => setShowTxForm(true) }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Transactie"), /* @__PURE__ */ React.createElement("button", { className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500 relative" }, /* @__PURE__ */ React.createElement(Bell, { size: 18 }), data.budgets.some((b) => {
+  const deleteTx = useCallback((id) => update((d) => ({ ...d, transactions: d.transactions.filter((t) => t.id !== id), deletedIds: withDeleted(d, [id]) })), [update]);
+  return /* @__PURE__ */ React.createElement("div", { className: "flex h-screen overflow-hidden", style: { backgroundColor: T.slate50, fontFamily: "Inter,system-ui,sans-serif" } }, /* @__PURE__ */ React.createElement(Sidebar, { current: page, onNav: setPage, open: sidebarOpen, onToggle: () => setSidebarOpen((s) => !s), profile: data.userProfile }), /* @__PURE__ */ React.createElement(BottomNav, { current: page, onNav: setPage, onAdd: () => setShowTxForm(true) }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 flex flex-col min-w-0 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 px-4 py-3 bg-white border-b border-slate-100 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setSidebarOpen((s) => !s), className: "hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500" }, /* @__PURE__ */ React.createElement(Menu, { size: 18 })), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }), /* @__PURE__ */ React.createElement(Btn, { size: "sm", onClick: () => setShowTxForm(true) }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Transactie"), /* @__PURE__ */ React.createElement("button", { className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500 relative" }, /* @__PURE__ */ React.createElement(Bell, { size: 18 }), data.budgets.some((b) => {
     const spent = data.transactions.filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend && getMonth(t.date) === currentMonth).reduce((s, t) => s + t.amount, 0);
     return b.amount > 0 && spent / b.amount > 0.85;
-  }) && /* @__PURE__ */ React.createElement("span", { className: "absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" }))), /* @__PURE__ */ React.createElement("main", { className: "flex-1 overflow-y-auto" }, page === "dashboard" && /* @__PURE__ */ React.createElement(Dashboard, { data, onQuickAdd: () => setShowTxForm(true), onDeleteTx: deleteTx, toast: addToast, profile: data.userProfile }), page === "transacties" && /* @__PURE__ */ React.createElement(TransactiesPage, { data, onAdd: (tx) => {
+  }) && /* @__PURE__ */ React.createElement("span", { className: "absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" }))), /* @__PURE__ */ React.createElement("main", { className: "flex-1 overflow-y-auto pb-24 lg:pb-0" }, page === "dashboard" && /* @__PURE__ */ React.createElement(Dashboard, { data, onData: update, onQuickAdd: () => setShowTxForm(true), onDeleteTx: deleteTx, toast: addToast, profile: data.userProfile }), page === "transacties" && /* @__PURE__ */ React.createElement(TransactiesPage, { data, onData: update, onAdd: (tx) => {
     addTx(tx);
   }, onUpdate: (tx) => {
     updateTx(tx);
@@ -2537,9 +2965,21 @@ function Root() {
     saveTimer.current = setTimeout(function() {
       driveSave(next).catch(function(e) {
         console.error("Drive save:", e);
+        if (window._onSaveError) window._onSaveError();
       });
     }, 500);
   }, []);
+  useEffect(function() {
+    window._onRemoteMerge = function(merged) {
+      dataRef.current = merged;
+      setTick(function(t) { return t + 1; });
+      addToast("Wijzigingen van een ander toestel samengevoegd \u2713");
+    };
+    window._onSaveError = function() {
+      addToast("Opslaan naar Drive mislukt \u2014 controleer je internetverbinding", "error");
+    };
+    return function() { window._onRemoteMerge = null; window._onSaveError = null; };
+  }, [addToast]);
   window._addCategory = function(ovName, newItem) {
     update(function(d) {
       var cats = (d.categories || INITIAL_CATEGORIES).map(function(ov) {
@@ -2638,6 +3078,22 @@ function Root() {
             }) });
           });
           d = Object.assign({}, loaded, { categories: mergedCats });
+          if (!d.schemaVersion || d.schemaVersion < 3) {
+            // Migratiepunt: oudere data krijgt hier de nieuwe velden
+            d = Object.assign({}, d, {
+              schemaVersion: 3,
+              recurring: d.recurring || [],
+              deletedIds: d.deletedIds || []
+            });
+          }
+          var autoRes = processRecurringAutoBook(d);
+          d = autoRes.data;
+          if (autoRes.booked > 0) {
+            setTimeout(function() {
+              addToast(autoRes.booked + (autoRes.booked === 1 ? " vaste last" : " vaste lasten") + " automatisch geboekt \u2713");
+              driveSave(dataRef.current).catch(function() {});
+            }, 1200);
+          }
         } else {
           d = SAMPLE_DATA;
         }
