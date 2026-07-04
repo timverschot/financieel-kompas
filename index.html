@@ -2866,6 +2866,10 @@ function App({ data, onUpdate }) {
     setToasts((t) => [...t, { id, msg, type }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3e3);
   }, []);
+  useEffect(() => {
+    window._appToast = addToast;
+    return () => { window._appToast = null; };
+  }, [addToast]);
   const update = onUpdate;
   const addTx = useCallback((tx) => update((d) => {
     const merchants = d.merchants || [];
@@ -2973,13 +2977,13 @@ function Root() {
     window._onRemoteMerge = function(merged) {
       dataRef.current = merged;
       setTick(function(t) { return t + 1; });
-      addToast("Wijzigingen van een ander toestel samengevoegd \u2713");
+      if (window._appToast) window._appToast("Wijzigingen van een ander toestel samengevoegd \u2713");
     };
     window._onSaveError = function() {
-      addToast("Opslaan naar Drive mislukt \u2014 controleer je internetverbinding", "error");
+      if (window._appToast) window._appToast("Opslaan naar Drive mislukt \u2014 controleer je internetverbinding", "error");
     };
     return function() { window._onRemoteMerge = null; window._onSaveError = null; };
-  }, [addToast]);
+  }, []);
   window._addCategory = function(ovName, newItem) {
     update(function(d) {
       var cats = (d.categories || INITIAL_CATEGORIES).map(function(ov) {
@@ -3090,7 +3094,7 @@ function Root() {
           d = autoRes.data;
           if (autoRes.booked > 0) {
             setTimeout(function() {
-              addToast(autoRes.booked + (autoRes.booked === 1 ? " vaste last" : " vaste lasten") + " automatisch geboekt \u2713");
+              if (window._appToast) window._appToast(autoRes.booked + (autoRes.booked === 1 ? " vaste last" : " vaste lasten") + " automatisch geboekt \u2713");
               driveSave(dataRef.current).catch(function() {});
             }, 1200);
           }
