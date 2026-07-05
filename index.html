@@ -369,7 +369,7 @@ async function driveSave(data) {
 
   </script>
   <script>
-var _LR=window.LucideReact||{};
+var _LR=window.LucideReact||window.lucideReact||window.LucideIcons||{};
 // Als de icoonbibliotheek niet (op tijd) laadt, tonen we een leesbaar tekstteken
 // in plaats van een lege vorm — zo blijft bv. de "+"-knop altijd zichtbaar.
 var _FBmk=function(glyph){return function(p){return React.createElement('span',{style:{display:'inline-flex',alignItems:'center',justifyContent:'center',width:p.size||16,height:p.size||16,flexShrink:0,fontSize:Math.max(10,Math.round((p.size||16)*0.8)),lineHeight:1,fontWeight:700},className:p.className},glyph);};};
@@ -377,6 +377,34 @@ var _FB=_FBmk('\u2022');
 var LayoutDashboard=_LR.LayoutDashboard||_FBmk('\u25A6'),Receipt=_LR.Receipt||_FBmk('\u{1F9FE}'),Building2=_LR.Building2||_FBmk('\u{1F3E6}'),Target=_LR.Target||_FBmk('\u25CE'),PiggyBank=_LR.PiggyBank||_FBmk('\u{1F477}'),TrendingUp=_LR.TrendingUp||_FBmk('\u{1F4C8}'),Tags=_LR.Tags||_FBmk('\u{1F3F7}'),Settings=_LR.Settings||_FBmk('\u2699'),Menu=_LR.Menu||_FBmk('\u2261'),X=_LR.X||_FBmk('\u2715'),Plus=_LR.Plus||_FBmk('+'),Search=_LR.Search||_FBmk('\u{1F50D}'),ChevronRight=_LR.ChevronRight||_FBmk('\u203A'),ChevronDown=_LR.ChevronDown||_FBmk('\u2304'),Bell=_LR.Bell||_FBmk('\u{1F514}'),Download=_LR.Download||_FBmk('\u2B07'),Upload=_LR.Upload||_FBmk('\u2B06'),Trash2=_LR.Trash2||_FBmk('\u{1F5D1}'),Check=_LR.Check||_FBmk('\u2713'),Calendar=_LR.Calendar||_FBmk('\u{1F4C5}'),AlertCircle=_LR.AlertCircle||_FBmk('!'),Info=_LR.Info||_FBmk('i'),Pencil=_LR.Pencil||_LR.Edit||_FBmk('\u270F'),ArrowLeft=_LR.ArrowLeft||_FBmk('\u2190'),CheckCircle2=_LR.CheckCircle2||_LR.CheckCircle||_FBmk('\u2713');
 var useState=React.useState,useEffect=React.useEffect,useMemo=React.useMemo,useCallback=React.useCallback,useRef=React.useRef;
 var FolderOpen=_LR.FolderOpen||_FBmk('\u{1F4C1}'),Scale=_LR.Scale||_FBmk('\u2696');
+
+// ── Meertaligheid — fase 1: de "vertaalmachine" ──
+// CURRENT_LANG is de op dit moment actieve taal ("nl" | "en" | "fr"). Dit is een module-brede
+// variabele (naar het bestaande patroon van bv. _fileId), omdat er maar één app-instantie tegelijk
+// actief is. Ze wordt bij elke render van App() gesynchroniseerd met data.settings.language,
+// zodat alle datum-/bedragopmaak (die verderop in dezelfde render-cyclus gebeurt) meteen klopt.
+var CURRENT_LANG = 'nl';
+// Taal → regio-code voor datum- en getalnotatie (het toont eenzelfde bedrag/datum, maar in de
+// juiste taal — bv. "5 juli 2026" wordt "July 5, 2026"). De munteenheid blijft overal EUR.
+var LANG_LOCALES = { nl: 'nl-BE', en: 'en-GB', fr: 'fr-BE' };
+var LANG_NAMES = { nl: 'Nederlands', en: 'English', fr: 'Français' };
+function _locale() { return LANG_LOCALES[CURRENT_LANG] || 'nl-BE'; }
+// Woordenboek voor vaste schermteksten (knoppen, titels, foutmeldingen, ...).
+// Fase 1 bouwt enkel het fundament: dit object blijft voorlopig leeg (of minimaal gevuld),
+// de app toont dus nog overal Nederlands. Fase 2 vult STRINGS.en en STRINGS.fr verder aan.
+var STRINGS = {
+  nl: {},
+  en: {},
+  fr: {}
+};
+// t(key): haalt een vertaalde schermtekst op voor de huidige taal, met terugval naar Nederlands
+// en tenslotte de key zelf (zodat een ontbrekende vertaling nooit een lege knop oplevert).
+function t(key) {
+  var dict = STRINGS[CURRENT_LANG] || {};
+  if (dict[key] != null) return dict[key];
+  if (STRINGS.nl[key] != null) return STRINGS.nl[key];
+  return key;
+}
 function SvgBarChart({ data, height = 180 }) {
   if (!data || !data.length) return null;
   const maxVal = Math.max(1, ...data.flatMap((d) => [d.Inkomsten || 0, d.Uitgaven || 0]));
@@ -482,15 +510,15 @@ const INITIAL_CATEGORIES = [
         { id: "i-platte-kaas-kwark--fruit-8421", name: "Platte kaas/kwark (fruit)", synonyms: [], unit: "kg" },
         { id: "i-pudding-4120", name: "Pudding", synonyms: [], unit: "kg" },
         { id: "i-rijstpap-8182", name: "Rijstpap", synonyms: [], unit: "kg" },
-        { id: "i-roomijs-5240", name: "Roomijs", synonyms: [], unit: "kg" },
+        { id: "i-roomijs-5240", name: "Roomijs", synonyms: [], unit: "L" },
         { id: "i-eieren-4688", name: "Eieren", synonyms: [], unit: "kg" },
         { id: "i-smeerkaas-2467", name: "Smeerkaas", synonyms: [], unit: "kg" },
-        { id: "i-melk--mager-247", name: "Melk (mager)", synonyms: [], unit: "kg" },
-        { id: "i-melk--halfvol-3583", name: "Melk (halfvol)", synonyms: [], unit: "kg" },
-        { id: "i-melk--vol-7674", name: "Melk (vol)", synonyms: [], unit: "kg" },
-        { id: "i-room--kookroom-6460", name: "Room (kookroom)", synonyms: [], unit: "kg" },
-        { id: "i-room--slagroom-3333", name: "Room (slagroom)", synonyms: [], unit: "kg" },
-        { id: "i-room--zure-room-4720", name: "Room (zure room)", synonyms: [], unit: "kg" },
+        { id: "i-melk--mager-247", name: "Melk (mager)", synonyms: [], unit: "L" },
+        { id: "i-melk--halfvol-3583", name: "Melk (halfvol)", synonyms: [], unit: "L" },
+        { id: "i-melk--vol-7674", name: "Melk (vol)", synonyms: [], unit: "L" },
+        { id: "i-room--kookroom-6460", name: "Room (kookroom)", synonyms: [], unit: "L" },
+        { id: "i-room--slagroom-3333", name: "Room (slagroom)", synonyms: [], unit: "L" },
+        { id: "i-room--zure-room-4720", name: "Room (zure room)", synonyms: [], unit: "L" },
         { id: "i-yoghurt--mager-4807", name: "Yoghurt (mager)", synonyms: [], unit: "kg" },
         { id: "i-yoghurt--halfvol-7930", name: "Yoghurt (halfvol)", synonyms: [], unit: "kg" },
         { id: "i-yoghurt--vol-7784", name: "Yoghurt (vol)", synonyms: [], unit: "kg" },
@@ -668,7 +696,16 @@ const INITIAL_CATEGORIES = [
         { id: "i-wokmix-7907", name: "Wokmix", synonyms: [], unit: null },
         { id: "i-soepgroenten-6059", name: "Soepgroenten", synonyms: [], unit: null },
         { id: "i-ovengroenten-7906", name: "Ovengroenten", synonyms: [], unit: null },
-        { id: "i-schorseneren-3451", name: "Schorseneren", synonyms: [], unit: null }
+        { id: "i-schorseneren-3451", name: "Schorseneren", synonyms: [], unit: null },
+        { id: "i-komkommer-1042", name: "Komkommer", synonyms: ["komkommers"], unit: null },
+        { id: "i-tomaten-1043", name: "Tomaten", synonyms: ["tomaat"], unit: "kg" },
+        { id: "i-tomaten-trostomaten-1044", name: "Tomaten (trostomaten)", synonyms: ["trostomaten"], unit: null },
+        { id: "i-selder-1045", name: "Selder", synonyms: ["bleekselder"], unit: null },
+        { id: "i-erwten-1046", name: "Erwten", synonyms: [], unit: null },
+        { id: "i-taugé-1047", name: "Tauge", synonyms: ["taugé", "sojascheuten"], unit: null },
+        { id: "i-boontjes-1048", name: "Sperziebonen", synonyms: ["boontjes"], unit: null },
+        { id: "i-gember-1049", name: "Gember", synonyms: [], unit: null },
+        { id: "i-limoenblad-1050", name: "Citroengras", synonyms: [], unit: null }
       ] },
       { id: "cat-groenten--diepvries", name: "Groenten (diepvries)", items: [
         { id: "i-broccoli--diepvries-3504", name: "Broccoli (diepvries)", synonyms: [], unit: null },
@@ -770,19 +807,19 @@ const INITIAL_CATEGORIES = [
         { id: "i-parelcouscous-9543", name: "Parelcouscous", synonyms: [], unit: "kg" },
         { id: "i-soep-in-brik-3020", name: "Soep in brik", synonyms: [], unit: "kg" },
         { id: "i-soep-instant-5979", name: "Soep instant", synonyms: [], unit: "kg" },
-        { id: "i-azijn-natuur-8894", name: "Azijn natuur", synonyms: [], unit: "kg" },
-        { id: "i-olie-olijf-1767", name: "Olie olijf", synonyms: [], unit: "kg" },
-        { id: "i-olie-zonnebloem-2596", name: "Olie zonnebloem", synonyms: [], unit: "kg" },
-        { id: "i-olie-frituur-5031", name: "Olie Frituur", synonyms: [], unit: "kg" },
-        { id: "i-olie-balsamico-3965", name: "Olie balsamico", synonyms: [], unit: "kg" },
-        { id: "i-azijn-appel-2043", name: "Azijn appel", synonyms: [], unit: "kg" },
-        { id: "i-azijn-witte-wijn-9028", name: "Azijn witte wijn", synonyms: [], unit: "kg" },
-        { id: "i-olie-arachide-5693", name: "Olie arachide", synonyms: [], unit: "kg" },
-        { id: "i-olie-fondue-9852", name: "Olie fondue", synonyms: [], unit: "kg" },
-        { id: "i-olie-koolzaadolie-7075", name: "Olie koolzaadolie", synonyms: [], unit: "kg" },
-        { id: "i-azijn-rode-wijn-2002", name: "Azijn rode wijn", synonyms: [], unit: "kg" },
-        { id: "i-olie-wok-784", name: "Olie wok", synonyms: [], unit: "kg" },
-        { id: "i-azijn-framboos-4356", name: "Azijn framboos", synonyms: [], unit: "kg" },
+        { id: "i-azijn-natuur-8894", name: "Azijn natuur", synonyms: [], unit: "L" },
+        { id: "i-olie-olijf-1767", name: "Olie olijf", synonyms: [], unit: "L" },
+        { id: "i-olie-zonnebloem-2596", name: "Olie zonnebloem", synonyms: [], unit: "L" },
+        { id: "i-olie-frituur-5031", name: "Olie Frituur", synonyms: [], unit: "L" },
+        { id: "i-olie-balsamico-3965", name: "Olie balsamico", synonyms: [], unit: "L" },
+        { id: "i-azijn-appel-2043", name: "Azijn appel", synonyms: [], unit: "L" },
+        { id: "i-azijn-witte-wijn-9028", name: "Azijn witte wijn", synonyms: [], unit: "L" },
+        { id: "i-olie-arachide-5693", name: "Olie arachide", synonyms: [], unit: "L" },
+        { id: "i-olie-fondue-9852", name: "Olie fondue", synonyms: [], unit: "L" },
+        { id: "i-olie-koolzaadolie-7075", name: "Olie koolzaadolie", synonyms: [], unit: "L" },
+        { id: "i-azijn-rode-wijn-2002", name: "Azijn rode wijn", synonyms: [], unit: "L" },
+        { id: "i-olie-wok-784", name: "Olie wok", synonyms: [], unit: "L" },
+        { id: "i-azijn-framboos-4356", name: "Azijn framboos", synonyms: [], unit: "L" },
         { id: "i-paprikapoeder-8060", name: "Paprikapoeder", synonyms: [], unit: "kg" },
         { id: "i-knoflookpoeder-9177", name: "Knoflookpoeder", synonyms: [], unit: "kg" },
         { id: "i-uienpoeder-1693", name: "Uienpoeder", synonyms: [], unit: "kg" },
@@ -820,9 +857,9 @@ const INITIAL_CATEGORIES = [
         { id: "i-maizena-3646", name: "Maizena", synonyms: [], unit: "kg" },
         { id: "i-roux-wit-2342", name: "Roux wit", synonyms: [], unit: "kg" },
         { id: "i-rouw-bruin-7954", name: "Rouw bruin", synonyms: [], unit: "kg" },
-        { id: "i-gevogeltefond-4064", name: "Gevogeltefond", synonyms: [], unit: "kg" },
-        { id: "i-vleesfond-540", name: "Vleesfond", synonyms: [], unit: "kg" },
-        { id: "i-visbouillon-1474", name: "Visbouillon", synonyms: [], unit: "kg" },
+        { id: "i-gevogeltefond-4064", name: "Gevogeltefond", synonyms: [], unit: "L" },
+        { id: "i-vleesfond-540", name: "Vleesfond", synonyms: [], unit: "L" },
+        { id: "i-visbouillon-1474", name: "Visbouillon", synonyms: [], unit: "L" },
         { id: "i-pesto-8668", name: "Pesto", synonyms: [], unit: "kg" },
         { id: "i-ontbijtgranen-cornflakes-3592", name: "Ontbijtgranen/Cornflakes", synonyms: [], unit: "kg" },
         { id: "i-havermout-7034", name: "Havermout", synonyms: [], unit: "kg" }
@@ -1032,8 +1069,8 @@ const INITIAL_CATEGORIES = [
         { id: "i-muggenspray-895", name: "Muggenspray", synonyms: [], unit: "stuks" },
         { id: "i-allergie-medicatie-8488", name: "Allergie medicatie", synonyms: [], unit: "stuks" },
         { id: "i-vitaminen-en-supplementen-9328", name: "Vitaminen en supplementen", synonyms: [], unit: "stuks" },
-        { id: "i-rilatine-jasper-5184", name: "Rilatine Jasper", synonyms: [], unit: "stuks" },
-        { id: "i-rilatine-milo-6025", name: "Rilatine Milo", synonyms: [], unit: "stuks" },
+        { id: "i-rilatine-jasper-5184", name: "Rilatine Kind 1", synonyms: [], unit: "stuks" },
+        { id: "i-rilatine-milo-6025", name: "Rilatine Kind 3", synonyms: [], unit: "stuks" },
         { id: "i-cold-hot-packs-5920", name: "Cold/hot packs", synonyms: [], unit: "stuks" },
         { id: "i-bloeddrukmeter-7046", name: "Bloeddrukmeter", synonyms: [], unit: "stuks" },
         { id: "i-thermometer-7519", name: "Thermometer", synonyms: [], unit: "stuks" }
@@ -1062,43 +1099,43 @@ const INITIAL_CATEGORIES = [
     icon: "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}",
     categories: [
       { id: "cat-kinderen-school", name: "Kinderen school", items: [
-        { id: "i-schoolfactuur-jasper-95", name: "Schoolfactuur Jasper", synonyms: [], unit: null },
-        { id: "i-schoolfactuur-hanne-6123", name: "Schoolfactuur Hanne", synonyms: [], unit: null },
-        { id: "i-schoolfactuur-milo-9966", name: "Schoolfactuur Milo", synonyms: [], unit: null },
-        { id: "i-schoolboeken-jasper-46", name: "Schoolboeken Jasper", synonyms: [], unit: null },
-        { id: "i-schoolboeken-hanne-3901", name: "Schoolboeken Hanne", synonyms: [], unit: null },
-        { id: "i-schoolboeken-milo-8693", name: "Schoolboeken Milo", synonyms: [], unit: null },
-        { id: "i-laptop-jasper-185", name: "Laptop Jasper", synonyms: [], unit: null },
-        { id: "i-laptop-hanne-4647", name: "Laptop Hanne", synonyms: [], unit: null },
-        { id: "i-laptop-milo-8590", name: "Laptop Milo", synonyms: [], unit: null },
+        { id: "i-schoolfactuur-jasper-95", name: "Schoolfactuur Kind 1", synonyms: [], unit: null },
+        { id: "i-schoolfactuur-hanne-6123", name: "Schoolfactuur Kind 2", synonyms: [], unit: null },
+        { id: "i-schoolfactuur-milo-9966", name: "Schoolfactuur Kind 3", synonyms: [], unit: null },
+        { id: "i-schoolboeken-jasper-46", name: "Schoolboeken Kind 1", synonyms: [], unit: null },
+        { id: "i-schoolboeken-hanne-3901", name: "Schoolboeken Kind 2", synonyms: [], unit: null },
+        { id: "i-schoolboeken-milo-8693", name: "Schoolboeken Kind 3", synonyms: [], unit: null },
+        { id: "i-laptop-jasper-185", name: "Laptop Kind 1", synonyms: [], unit: null },
+        { id: "i-laptop-hanne-4647", name: "Laptop Kind 2", synonyms: [], unit: null },
+        { id: "i-laptop-milo-8590", name: "Laptop Kind 3", synonyms: [], unit: null },
         { id: "i-schoolmateriaal-3503", name: "Schoolmateriaal", synonyms: [], unit: null },
         { id: "i-boekentassen-6177", name: "Boekentassen", synonyms: [], unit: null },
         { id: "i-zakgeld-uitstappen-lunchgeld-8341", name: "Zakgeld uitstappen/lunchgeld", synonyms: [], unit: null },
-        { id: "i-schooluitstappen-jasper-6697", name: "Schooluitstappen Jasper", synonyms: [], unit: null },
-        { id: "i-schooluitstappen-hanne-9401", name: "Schooluitstappen Hanne", synonyms: [], unit: null },
-        { id: "i-schooluitstappen-milo-4464", name: "Schooluitstappen Milo", synonyms: [], unit: null }
+        { id: "i-schooluitstappen-jasper-6697", name: "Schooluitstappen Kind 1", synonyms: [], unit: null },
+        { id: "i-schooluitstappen-hanne-9401", name: "Schooluitstappen Kind 2", synonyms: [], unit: null },
+        { id: "i-schooluitstappen-milo-4464", name: "Schooluitstappen Kind 3", synonyms: [], unit: null }
       ] },
       { id: "cat-kinderen-kleding", name: "Kinderen Kleding", items: [
-        { id: "i-kleding-jasper-9943", name: "Kleding Jasper", synonyms: [], unit: null },
-        { id: "i-kleding-hanne-1781", name: "Kleding Hanne", synonyms: [], unit: null },
-        { id: "i-kleding-milo-1004", name: "Kleding Milo", synonyms: [], unit: null },
-        { id: "i-schoenen-jasper-3772", name: "Schoenen Jasper", synonyms: [], unit: null },
-        { id: "i-schoenen-hanne-9312", name: "Schoenen Hanne", synonyms: [], unit: null },
-        { id: "i-schoenen-milo-6932", name: "Schoenen Milo", synonyms: [], unit: null }
+        { id: "i-kleding-jasper-9943", name: "Kleding Kind 1", synonyms: [], unit: null },
+        { id: "i-kleding-hanne-1781", name: "Kleding Kind 2", synonyms: [], unit: null },
+        { id: "i-kleding-milo-1004", name: "Kleding Kind 3", synonyms: [], unit: null },
+        { id: "i-schoenen-jasper-3772", name: "Schoenen Kind 1", synonyms: [], unit: null },
+        { id: "i-schoenen-hanne-9312", name: "Schoenen Kind 2", synonyms: [], unit: null },
+        { id: "i-schoenen-milo-6932", name: "Schoenen Kind 3", synonyms: [], unit: null }
       ] },
       { id: "cat-kinderen-hobby", name: "Kinderen Hobby", items: [
-        { id: "i-hobbykosten-jasper-5011", name: "Hobbykosten Jasper", synonyms: [], unit: null },
-        { id: "i-hobbykosten-hanne-4644", name: "Hobbykosten Hanne", synonyms: [], unit: null },
-        { id: "i-hobbykosten-milo-2946", name: "Hobbykosten Milo", synonyms: [], unit: null }
+        { id: "i-hobbykosten-jasper-5011", name: "Hobbykosten Kind 1", synonyms: [], unit: null },
+        { id: "i-hobbykosten-hanne-4644", name: "Hobbykosten Kind 2", synonyms: [], unit: null },
+        { id: "i-hobbykosten-milo-2946", name: "Hobbykosten Kind 3", synonyms: [], unit: null }
       ] },
       { id: "cat-kinderen-varia", name: "Kinderen Varia", items: [
-        { id: "i-zakgeld-jasper-9805", name: "Zakgeld Jasper", synonyms: [], unit: null },
-        { id: "i-zakgeld-hanne-6347", name: "Zakgeld Hanne", synonyms: [], unit: null },
-        { id: "i-zakgeld-milo-4328", name: "Zakgeld Milo", synonyms: [], unit: null },
+        { id: "i-zakgeld-jasper-9805", name: "Zakgeld Kind 1", synonyms: [], unit: null },
+        { id: "i-zakgeld-hanne-6347", name: "Zakgeld Kind 2", synonyms: [], unit: null },
+        { id: "i-zakgeld-milo-4328", name: "Zakgeld Kind 3", synonyms: [], unit: null },
         { id: "i-verjaardagscadeaus-vrienden-2118", name: "Verjaardagscadeaus vrienden", synonyms: [], unit: null },
-        { id: "i-verjaardag-jasper-4240", name: "Verjaardag Jasper", synonyms: [], unit: null },
-        { id: "i-verjaardag-hanne-9130", name: "Verjaardag Hanne", synonyms: [], unit: null },
-        { id: "i-verjaardag-milo-7195", name: "Verjaardag Milo", synonyms: [], unit: null }
+        { id: "i-verjaardag-jasper-4240", name: "Verjaardag Kind 1", synonyms: [], unit: null },
+        { id: "i-verjaardag-hanne-9130", name: "Verjaardag Kind 2", synonyms: [], unit: null },
+        { id: "i-verjaardag-milo-7195", name: "Verjaardag Kind 3", synonyms: [], unit: null }
       ] }
     ]
   },
@@ -1674,7 +1711,7 @@ const fmtLooptijd = (m) => {
   const js = j + (j === 1 ? " jaar" : " jaar");
   return r > 0 ? js + " en " + r + (r === 1 ? " maand" : " maanden") : js;
 };
-const fmtMaandJaar = (d) => d ? d.toLocaleDateString("nl-BE", { month: "long", year: "numeric" }) : "";
+const fmtMaandJaar = (d) => d ? d.toLocaleDateString(_locale(), { month: "long", year: "numeric" }) : "";
 // ── Documentarchief: hulpjes voor de app-laag ──
 const openTxDocument = (docId) => {
   if (!window._driveConnected || typeof driveOpenDocumentLink !== "function") {
@@ -1726,9 +1763,9 @@ const monthsAgo = (n) => {
   return fmt(d).slice(0, 7);
 };
 const currentMonth = fmt(today).slice(0, 7);
-const fmtEUR = (n) => new Intl.NumberFormat("nl-BE", { style: "currency", currency: "EUR", minimumFractionDigits: Math.abs(n || 0) % 1 === 0 ? 0 : 2 }).format(n || 0);
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString("nl-BE", { day: "2-digit", month: "short", year: "numeric" }) : "";
-const fmtDateShort = (d) => d ? new Date(d).toLocaleDateString("nl-BE", { day: "2-digit", month: "2-digit" }) : "";
+const fmtEUR = (n) => new Intl.NumberFormat(_locale(), { style: "currency", currency: "EUR", minimumFractionDigits: Math.abs(n || 0) % 1 === 0 ? 0 : 2 }).format(n || 0);
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString(_locale(), { day: "2-digit", month: "short", year: "numeric" }) : "";
+const fmtDateShort = (d) => d ? new Date(d).toLocaleDateString(_locale(), { day: "2-digit", month: "2-digit" }) : "";
 const getMonth = (d) => d ? d.slice(0, 7) : "";
 const isExpense = (t) => t.hoofdtype !== "Inkomsten";
 const getGreeting = () => {
@@ -1762,7 +1799,7 @@ const SAMPLE_DATA = {
   dossierSettlements: [],
   goals: [
     { id: "goal-1", name: "Buffer persoonlijk", targetAmount: 5e3, targetDate: "2027-12-31", linkedAccountId: "acc-5", monthlyTarget: 100, color: T.teal, notes: "Noodfonds voor onverwachte uitgaven" },
-    { id: "goal-2", name: "Communie Jasper", targetAmount: 2500, targetDate: "2027-05-01", linkedAccountId: "acc-6", monthlyTarget: 150, color: "#B08A2E", notes: "Communie 2027" },
+    { id: "goal-2", name: "Communie Kind 1", targetAmount: 2500, targetDate: "2027-05-01", linkedAccountId: "acc-6", monthlyTarget: 150, color: "#B08A2E", notes: "Communie 2027" },
     { id: "goal-3", name: "Schuldenvrij", targetAmount: 6200, targetDate: "2030-01-01", linkedAccountId: "acc-3", monthlyTarget: 200, color: T.red, notes: "Budgetline volledig aflossen" },
     { id: "goal-4", name: "Beleggingsdoel", targetAmount: 2e4, targetDate: "2030-12-31", linkedAccountId: "acc-4", monthlyTarget: 300, color: T.purple, notes: "" }
   ],
@@ -1775,7 +1812,7 @@ const SAMPLE_DATA = {
     { id: "bud-6", overkoepelend: "Apotheek en gezondheid", amount: 60, period: "monthly" },
     { id: "bud-7", overkoepelend: "Kledij en Schoenen", amount: 80, period: "monthly" }
   ],
-  settings: { currency: "EUR", backupReminder: 7, lastBackup: null, googleConnected: false }
+  settings: { currency: "EUR", backupReminder: 7, lastBackup: null, googleConnected: false, language: "nl" }
 };
 const loadData = () => {
   try {
@@ -2420,7 +2457,7 @@ const Dashboard = ({ data, onData, onQuickAdd, onDeleteTx, toast, profile }) => 
     d.setMonth(d.getMonth() - 5 + i);
     const m = fmt(d).slice(0, 7);
     const mtx = txs.filter((t) => getMonth(t.date) === m);
-    return { name: d.toLocaleDateString("nl-BE", { month: "short" }), Inkomsten: mtx.filter((t) => !isExpense(t)).reduce((s, t) => s + t.amount, 0), Uitgaven: mtx.filter((t) => isExpense(t) && t.hoofdtype !== "Sparen").reduce((s, t) => s + t.amount, 0) };
+    return { name: d.toLocaleDateString(_locale(), { month: "short" }), Inkomsten: mtx.filter((t) => !isExpense(t)).reduce((s, t) => s + t.amount, 0), Uitgaven: mtx.filter((t) => isExpense(t) && t.hoofdtype !== "Sparen").reduce((s, t) => s + t.amount, 0) };
   }), [txs]);
   const pieData = useMemo(() => {
     const m = {};
@@ -2447,7 +2484,7 @@ const Dashboard = ({ data, onData, onQuickAdd, onDeleteTx, toast, profile }) => 
   }, [data.budgets, thisMonth]);
   const recentTxs = useMemo(() => [...txs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5), [txs]);
   const firstName = (profile == null ? void 0 : profile.firstName) || "";
-  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-7xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, getGreeting(), firstName ? `, ${firstName}` : "", " \u{1F44B}"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, today.toLocaleDateString("nl-BE", { weekday: "long", day: "numeric", month: "long" }))), /* @__PURE__ */ React.createElement(Btn, { onClick: onQuickAdd, size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Transactie")), insights.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-5 space-y-2" }, insights.map((ins) => /* @__PURE__ */ React.createElement("div", {
+  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-7xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, getGreeting(), firstName ? `, ${firstName}` : "", " \u{1F44B}"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, today.toLocaleDateString(_locale(), { weekday: "long", day: "numeric", month: "long" }))), /* @__PURE__ */ React.createElement(Btn, { onClick: onQuickAdd, size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Transactie")), insights.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-5 space-y-2" }, insights.map((ins) => /* @__PURE__ */ React.createElement("div", {
     key: ins.key,
     className: "flex items-start gap-3 px-4 py-3 rounded-xl border",
     style: { backgroundColor: ins.tone === "alert" ? T.redBg : ins.tone === "warn" ? T.amberBg : T.tealBg, borderColor: ins.tone === "alert" ? "#EFC3B9" : ins.tone === "warn" ? "#EFDCB2" : "#F5CD9E" }
@@ -2581,7 +2618,7 @@ const TransactiesPage = ({ data, onData, onAdd, onUpdate, onDelete, toast, initi
   const totalOut = filtered.filter((t) => isExpense(t)).reduce((s, t) => s + t.amount, 0);
   return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-5xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Transacties"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowRecurring(true), size: "md" }, "\u{1F501} Vaste lasten"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Toevoegen"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-4 mb-4" }, /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.green } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Inkomsten"), /* @__PURE__ */ React.createElement("div", { className: "font-bold text-emerald-600" }, fmtEUR(totalIn))), /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.red } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Uitgaven"), /* @__PURE__ */ React.createElement("div", { className: "font-bold text-red-500" }, fmtEUR(totalOut))), /* @__PURE__ */ React.createElement(Card, { className: "p-3 border-l-4", style: { borderLeftColor: T.teal } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 mb-1" }, "Saldo"), /* @__PURE__ */ React.createElement("div", { className: `font-bold ${totalIn - totalOut >= 0 ? "text-emerald-600" : "text-red-500"}` }, fmtEUR(totalIn - totalOut)))), /* @__PURE__ */ React.createElement(Card, { className: "mb-4 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "relative flex-1" }, /* @__PURE__ */ React.createElement(Search, { size: 14, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }), /* @__PURE__ */ React.createElement(Input, { className: "pl-8", placeholder: "Zoeken...", value: search, onChange: (e) => setSearch(e.target.value) })), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1" },
       /* @__PURE__ */ React.createElement("button", { onClick: () => stepMonth(-1), title: "Vorige maand", className: "px-2.5 py-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-bold fk-press" }, "\u2039"),
-      /* @__PURE__ */ React.createElement(Sel, { value: monthFilter, onChange: (e) => setMonthFilter(e.target.value), className: "w-36" }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Alle maanden"), months.map((m) => /* @__PURE__ */ React.createElement("option", { key: m, value: m }, (/* @__PURE__ */ new Date(m + "-01")).toLocaleDateString("nl-BE", { month: "long", year: "numeric" })))),
+      /* @__PURE__ */ React.createElement(Sel, { value: monthFilter, onChange: (e) => setMonthFilter(e.target.value), className: "w-36" }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Alle maanden"), months.map((m) => /* @__PURE__ */ React.createElement("option", { key: m, value: m }, (/* @__PURE__ */ new Date(m + "-01")).toLocaleDateString(_locale(), { month: "long", year: "numeric" })))),
       /* @__PURE__ */ React.createElement("button", { onClick: () => stepMonth(1), title: "Volgende maand", className: "px-2.5 py-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-bold fk-press" }, "\u203A")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [["all", "Alle"], ["income", "Inkomsten"], ["expense", "Uitgaven"]].map(([k, l]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setFilter(k), className: `px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === k ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}` }, l))))), selected.size > 0 && /* @__PURE__ */ React.createElement(Card, { className: "mb-3 p-3 flex items-center gap-3 flex-wrap", style: { backgroundColor: T.tealBg } }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-semibold", style: { color: T.teal } }, selected.size, " geselecteerd"), (data.dossiers || []).length > 0 && /* @__PURE__ */ React.createElement(Sel, { className: "w-auto text-xs", value: "", onChange: (e) => { if (e.target.value) bulkAssignDossier(e.target.value); } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Verplaats naar dossier..."), (data.dossiers || []).filter((d2) => !d2.archived).map((d2) => /* @__PURE__ */ React.createElement("option", { key: d2.id, value: d2.id }, d2.name))), /* @__PURE__ */ React.createElement("button", { onClick: bulkDelete, className: "px-3 py-1.5 rounded-lg text-xs font-medium bg-red-600 text-white hover:bg-red-700" }, "Verwijderen"), /* @__PURE__ */ React.createElement("button", { onClick: clearSel, className: "px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:bg-white" }, "Deselecteren")), /* @__PURE__ */ React.createElement("div", { className: "hidden sm:flex items-center gap-4 px-5 py-2 text-xs font-semibold text-slate-400" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: allVisibleSelected, onChange: toggleSelAll, className: "w-14 flex-shrink-0" }), /* @__PURE__ */ React.createElement("button", { onClick: () => toggleSort("date"), className: "flex items-center gap-0.5 hover:text-slate-600" }, "Datum", sortBy === "date" && /* @__PURE__ */ React.createElement(ChevronDown, { size: 11, style: { transform: sortDir === "asc" ? "rotate(180deg)" : "none" } })), /* @__PURE__ */ React.createElement("button", { onClick: () => toggleSort("description"), className: "flex-1 flex items-center gap-0.5 text-left hover:text-slate-600" }, "Omschrijving", sortBy === "description" && /* @__PURE__ */ React.createElement(ChevronDown, { size: 11, style: { transform: sortDir === "asc" ? "rotate(180deg)" : "none" } })), /* @__PURE__ */ React.createElement("button", { onClick: () => toggleSort("amount"), className: "flex items-center gap-0.5 hover:text-slate-600" }, "Bedrag", sortBy === "amount" && /* @__PURE__ */ React.createElement(ChevronDown, { size: 11, style: { transform: sortDir === "asc" ? "rotate(180deg)" : "none" } }))), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-slate-50" }, filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "py-12 text-center text-slate-400 text-sm" }, "Geen transacties gevonden"), filtered.map((t) => {
     const acc = accMap[t.accountId];
     return /* @__PURE__ */ React.createElement("div", { key: t.id, className: "flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/70 group transition-colors" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: selected.has(t.id), onChange: () => toggleSel(t.id), className: "w-14 flex-shrink-0" }), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 w-14 flex-shrink-0 font-mono" }, fmtDateShort(t.date)), /* @__PURE__ */ React.createElement("div", { className: "w-1.5 h-1.5 rounded-full flex-shrink-0", style: { backgroundColor: OV_COLORS[t.overkoepelend] || "#CDBBA6" } }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "font-medium text-slate-800 text-sm truncate" }, t.description, t.brand && /* @__PURE__ */ React.createElement("span", { className: "text-slate-400 font-normal ml-1" }, "\xB7 ", t.brand)), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 flex items-center gap-1 mt-0.5" }, /* @__PURE__ */ React.createElement("span", null, t.overkoepelend || "\u2014"), t.category && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(ChevronRight, { size: 10 }), /* @__PURE__ */ React.createElement("span", null, t.category)))), acc && /* @__PURE__ */ React.createElement(Badge, { color: acc.color, small: true }, acc.name), t.docId && /* @__PURE__ */ React.createElement("button", { onClick: () => openTxDocument(t.docId), title: "Document bekijken: " + (t.docName || ""), className: "p-1 rounded-lg text-slate-400 hover:text-teal-700 hover:bg-teal-50 flex-shrink-0" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, lineHeight: 1 } }, "\u{1F4CE}")), /* @__PURE__ */ React.createElement("div", { className: `text-sm font-semibold flex-shrink-0 ${isExpense(t) ? "text-red-500" : "text-emerald-600"}` }, isExpense(t) ? "-" : "+", fmtEUR(t.amount)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 transition-all" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setEditTx(t), title: "Transactie bewerken", className: "p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: Math.max(13, 13), lineHeight: 1 } }, "\u270F\uFE0F")), confirmDel === t.id ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
@@ -2726,7 +2763,7 @@ const DossiersPage = ({ data, onUpdate, toast }) => {
       /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" },
         /* @__PURE__ */ React.createElement(FormField, { label: "Datum" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: f.date, onChange: (e) => setF((x) => ({ ...x, date: e.target.value })) })),
         /* @__PURE__ */ React.createElement(FormField, { label: "Bedrag (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", placeholder: "0,00", value: f.amount, onChange: (e) => setF((x) => ({ ...x, amount: e.target.value })) }))),
-      /* @__PURE__ */ React.createElement(FormField, { label: "Omschrijving" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Dokter Jasper", value: f.description, onChange: (e) => setF((x) => ({ ...x, description: e.target.value })) })),
+      /* @__PURE__ */ React.createElement(FormField, { label: "Omschrijving" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Dokter Devos", value: f.description, onChange: (e) => setF((x) => ({ ...x, description: e.target.value })) })),
       /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" },
         /* @__PURE__ */ React.createElement(FormField, { label: "Type" }, /* @__PURE__ */ React.createElement(Sel, { value: f.kind, onChange: (e) => setF((x) => ({ ...x, kind: e.target.value })) },
           /* @__PURE__ */ React.createElement("option", { value: "expense" }, "Uitgave"),
@@ -3133,7 +3170,7 @@ const SpaardoelenPage = ({ data, onUpdate, toast }) => {
   };
   const GoalForm = ({ init, onSave, onClose }) => {
     const [f, setF] = useState(init || form);
-    return /* @__PURE__ */ React.createElement(Modal, { title: init ? "Doel bewerken" : "Spaardoel toevoegen", onClose }, /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Communie Jasper", value: f.name, onChange: (e) => setF((x) => ({ ...x, name: e.target.value })) })), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Doelbedrag (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "1", min: "0", placeholder: "5000", value: f.targetAmount, onChange: (e) => setF((x) => ({ ...x, targetAmount: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Doeldatum (optioneel)" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: f.targetDate, onChange: (e) => setF((x) => ({ ...x, targetDate: e.target.value })) }))), /* @__PURE__ */ React.createElement(FormField, { label: "Gekoppelde rekening (optioneel)" }, /* @__PURE__ */ React.createElement(Sel, { value: f.linkedAccountId, onChange: (e) => setF((x) => ({ ...x, linkedAccountId: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Geen \u2014 manueel bijhouden"), data.accounts.filter((a) => a.active).map((a) => /* @__PURE__ */ React.createElement("option", { key: a.id, value: a.id }, a.name)))), /* @__PURE__ */ React.createElement(FormField, { label: "Maandelijks streefbedrag (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "1", min: "0", placeholder: "100", value: f.monthlyTarget, onChange: (e) => setF((x) => ({ ...x, monthlyTarget: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Kleur" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, COLORS.map((c) => /* @__PURE__ */ React.createElement("button", { key: c, onClick: () => setF((x) => ({ ...x, color: c })), className: "w-7 h-7 rounded-full border-2 transition-all", style: { backgroundColor: c, borderColor: f.color === c ? "#0f2942" : "transparent" } })))), /* @__PURE__ */ React.createElement(FormField, { label: "Notities" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Optioneel", value: f.notes, onChange: (e) => setF((x) => ({ ...x, notes: e.target.value })) })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: onClose }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => onSave(f), disabled: !f.name || !f.targetAmount }, init ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Toevoegen"))));
+    return /* @__PURE__ */ React.createElement(Modal, { title: init ? "Doel bewerken" : "Spaardoel toevoegen", onClose }, /* @__PURE__ */ React.createElement(FormField, { label: "Naam" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Communie Kind 1", value: f.name, onChange: (e) => setF((x) => ({ ...x, name: e.target.value })) })), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Doelbedrag (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "1", min: "0", placeholder: "5000", value: f.targetAmount, onChange: (e) => setF((x) => ({ ...x, targetAmount: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Doeldatum (optioneel)" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: f.targetDate, onChange: (e) => setF((x) => ({ ...x, targetDate: e.target.value })) }))), /* @__PURE__ */ React.createElement(FormField, { label: "Gekoppelde rekening (optioneel)" }, /* @__PURE__ */ React.createElement(Sel, { value: f.linkedAccountId, onChange: (e) => setF((x) => ({ ...x, linkedAccountId: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Geen \u2014 manueel bijhouden"), data.accounts.filter((a) => a.active).map((a) => /* @__PURE__ */ React.createElement("option", { key: a.id, value: a.id }, a.name)))), /* @__PURE__ */ React.createElement(FormField, { label: "Maandelijks streefbedrag (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "1", min: "0", placeholder: "100", value: f.monthlyTarget, onChange: (e) => setF((x) => ({ ...x, monthlyTarget: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Kleur" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, COLORS.map((c) => /* @__PURE__ */ React.createElement("button", { key: c, onClick: () => setF((x) => ({ ...x, color: c })), className: "w-7 h-7 rounded-full border-2 transition-all", style: { backgroundColor: c, borderColor: f.color === c ? "#0f2942" : "transparent" } })))), /* @__PURE__ */ React.createElement(FormField, { label: "Notities" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Optioneel", value: f.notes, onChange: (e) => setF((x) => ({ ...x, notes: e.target.value })) })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end mt-2" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: onClose }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: () => onSave(f), disabled: !f.name || !f.targetAmount }, init ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), "Toevoegen"))));
   };
   return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-4xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Spaardoelen"), /* @__PURE__ */ React.createElement("p", { className: "text-slate-500 text-sm mt-0.5" }, "Langetermijndoelen \u2014 schuldenvrij, grote aankopen, buffers")), /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowForm(true), size: "md" }, /* @__PURE__ */ React.createElement(Plus, { size: 16 }), "Doel toevoegen")), /* @__PURE__ */ React.createElement("div", { className: "grid gap-4" }, goalsWithProgress.map((g) => /* @__PURE__ */ React.createElement(Card, { key: g.id, className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0", style: { backgroundColor: g.color + "22" } }, g.pct >= 100 ? "\u2705" : "\u{1F3AF}"), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-1" }, /* @__PURE__ */ React.createElement("h3", { className: "font-semibold text-slate-800" }, g.name), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1" }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setEditGoal(g);
@@ -3636,6 +3673,11 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
     onUpdate((d) => ({ ...d, userProfile: { ...d.userProfile, ...nameForm } }));
     toast("Profiel opgeslagen \u2713");
   };
+  const huidigeTaal = (data.settings && data.settings.language) || "nl";
+  const wijzigTaal = (nieuweTaal) => {
+    onUpdate((d) => ({ ...d, settings: { ...d.settings, language: nieuweTaal } }));
+    toast("Taal gewijzigd naar " + (LANG_NAMES[nieuweTaal] || nieuweTaal) + " \u2713");
+  };
   const [backups, setBackups] = useState(null);
   const [busyRestore, setBusyRestore] = useState(false);
   const loadBackups = () => {
@@ -3645,7 +3687,7 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
   const backupLabel = (f) => {
     const raw = f.name.replace(BACKUP_PREFIX, "").replace(".json", "");
     const dt = new Date(raw);
-    return isNaN(dt.getTime()) ? raw : dt.toLocaleDateString("nl-BE", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+    return isNaN(dt.getTime()) ? raw : dt.toLocaleDateString(_locale(), { weekday: "short", day: "numeric", month: "long", year: "numeric" });
   };
   const doRestore = (f) => {
     if (!window.confirm("Al je huidige gegevens vervangen door de reservekopie van " + backupLabel(f) + "? Dit kan niet ongedaan gemaakt worden.")) return;
@@ -3692,7 +3734,7 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
     };
     r.readAsText(file);
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-2xl mx-auto" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800 mb-6" }, "Instellingen"), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: T.tealBg } }, "\u{1F464}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Mijn profiel"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, "Naam die getoond wordt in de app"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Voornaam" }, /* @__PURE__ */ React.createElement(Input, { value: nameForm.firstName, onChange: (e) => setNameForm((f) => ({ ...f, firstName: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Achternaam" }, /* @__PURE__ */ React.createElement(Input, { value: nameForm.lastName, onChange: (e) => setNameForm((f) => ({ ...f, lastName: e.target.value })) }))), /* @__PURE__ */ React.createElement(Btn, { onClick: saveProfile }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: T.tealBg } }, "\u2601\uFE0F"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Google Drive Sync"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, "Koppel je account voor sync over alle toestellen"))), window._driveConnected
+  return /* @__PURE__ */ React.createElement("div", { className: "p-6 max-w-2xl mx-auto" }, /* @__PURE__ */ React.createElement("h1", { className: "text-2xl font-bold text-slate-800 mb-6" }, "Instellingen"), /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: T.tealBg } }, "\u{1F464}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Mijn profiel"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, "Naam die getoond wordt in de app"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: "Voornaam" }, /* @__PURE__ */ React.createElement(Input, { value: nameForm.firstName, onChange: (e) => setNameForm((f) => ({ ...f, firstName: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: "Achternaam" }, /* @__PURE__ */ React.createElement(Input, { value: nameForm.lastName, onChange: (e) => setNameForm((f) => ({ ...f, lastName: e.target.value })) }))), /* @__PURE__ */ React.createElement(Btn, { onClick: saveProfile }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan")), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: T.tealBg } }, "\u{1F310}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Taal"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, "Taal van de app (schermteksten volgen in een latere stap)"))), /* @__PURE__ */ React.createElement(Sel, { value: huidigeTaal, onChange: (e) => wijzigTaal(e.target.value), className: "max-w-xs" }, /* @__PURE__ */ React.createElement("option", { value: "nl" }, "Nederlands"), /* @__PURE__ */ React.createElement("option", { value: "en" }, "English"), /* @__PURE__ */ React.createElement("option", { value: "fr" }, "Français"))), /* @__PURE__ */ React.createElement(Card, { className: "p-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", { className: "w-9 h-9 rounded-xl flex items-center justify-center", style: { backgroundColor: T.tealBg } }, "\u2601\uFE0F"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "font-semibold text-slate-800" }, "Google Drive Sync"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, "Koppel je account voor sync over alle toestellen"))), window._driveConnected
     ? /* @__PURE__ */ React.createElement("div", { className: "p-4 rounded-xl border-2 border-slate-200 bg-slate-50" },
         /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" },
           /* @__PURE__ */ React.createElement("div", { className: "w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold", style: { background: "#C56A1F" } }, "\u2713"),
@@ -3714,6 +3756,9 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
   }, className: "mt-4 text-xs text-slate-400 hover:text-slate-600 underline" }, "Voorbeelddata herstellen"))))
 };
 function App({ data, onUpdate, syncStatus }) {
+  // Meertaligheid: de actieve taal wordt hier — vóór alle onderliggende schermen renderen —
+  // gesynchroniseerd met de bewaarde instelling, zodat datums en bedragen overal in de juiste taal staan.
+  CURRENT_LANG = (data.settings && data.settings.language) || "nl";
   const [page, setPage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showTxForm, setShowTxForm] = useState(false);
