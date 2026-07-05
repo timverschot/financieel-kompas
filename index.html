@@ -70,6 +70,16 @@
   .fk-press{transition:transform .12s ease,background-color .15s ease,box-shadow .15s ease;}
   .fk-press:active{transform:scale(.96);}
 
+  /* ---- Signatuurelement: zachte gouden gloed achter kerncijfers (saldo, vrij besteedbaar, doelbedragen) ---- */
+  .fk-halo{position:relative;display:inline-block;}
+  .fk-halo::before{
+    content:'';position:absolute;top:50%;left:50%;
+    width:170%;height:260%;transform:translate(-50%,-50%);
+    background:radial-gradient(closest-side, rgba(197,106,31,.14), rgba(197,106,31,0) 72%);
+    border-radius:50%;z-index:0;pointer-events:none;
+  }
+  .fk-halo>*{position:relative;z-index:1;}
+
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}
   }
@@ -2454,7 +2464,7 @@ const Dashboard = ({ data, onData, onQuickAdd, onDeleteTx, toast, profile }) => 
       /* @__PURE__ */ React.createElement(Btn, { size: "xs", onClick: () => bookRecurring(r) }, "Boek"),
       /* @__PURE__ */ React.createElement(Btn, { size: "xs", variant: "ghost", onClick: () => skipRecurring(r) }, "Sla over"))))
   ), budgetAlerts.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mb-5 p-4 rounded-xl border border-amber-200 bg-amber-50 flex items-start gap-3" }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 18, className: "text-amber-600 mt-0.5 flex-shrink-0" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-semibold text-amber-800 mb-1" }, "Budgetwaarschuwing"), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-amber-700 space-y-0.5" }, budgetAlerts.map((b) => /* @__PURE__ */ React.createElement("div", { key: b.id }, b.label ? b.overkoepelend + " • " + b.label : b.overkoepelend, ": ", fmtEUR(b.spent), " van ", fmtEUR(b.amount), " (", b.pct.toFixed(0), "%)", b.pct >= 100 ? " — OVER BUDGET" : ""))))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" }, [
-    { label: "Netto Vermogen", value: /* @__PURE__ */ React.createElement(AnimNum, { value: netWorth }), sub: `Schulden: ${fmtEUR(totalDebts)}`, icon: "\u{1F48E}", accent: T.teal, bg: "#FDF3E7" },
+    { label: "Netto Vermogen", value: /* @__PURE__ */ React.createElement("span", { className: "fk-halo" }, /* @__PURE__ */ React.createElement(AnimNum, { value: netWorth })), sub: `Schulden: ${fmtEUR(totalDebts)}`, icon: "\u{1F48E}", accent: T.teal, bg: "#FDF3E7" },
     { label: "Inkomsten (maand)", value: /* @__PURE__ */ React.createElement(AnimNum, { value: income }), sub: "Deze maand", icon: "\u{1F4C8}", accent: T.green, bg: "#EEF6EF" },
     { label: "Uitgaven (maand)", value: /* @__PURE__ */ React.createElement(AnimNum, { value: expenses }), sub: "Excl. sparen", icon: "\u{1F4C9}", accent: T.red, bg: "#FBEFEC" },
     { label: "Spaarquote", value: /* @__PURE__ */ React.createElement(AnimNum, { value: spaarquote, format: "pct" }), sub: `${fmtEUR(savings)} gespaard`, icon: "\u{1F3AF}", accent: T.blue, bg: "#F6EEF4" }
@@ -2462,7 +2472,7 @@ const Dashboard = ({ data, onData, onQuickAdd, onDeleteTx, toast, profile }) => 
     /* @__PURE__ */ React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-center gap-4" },
       /* @__PURE__ */ React.createElement("div", { className: "flex-1" },
         /* @__PURE__ */ React.createElement("div", { className: "text-xs font-medium text-slate-500 uppercase tracking-wide mb-1" }, "Vrij besteedbaar deze maand"),
-        /* @__PURE__ */ React.createElement("div", { className: `text-2xl font-bold ${vrijBesteedbaar.value < 0 ? "text-red-500" : "text-slate-800"}` }, /* @__PURE__ */ React.createElement(AnimNum, { value: vrijBesteedbaar.value })),
+        /* @__PURE__ */ React.createElement("div", { className: `text-2xl font-bold fk-halo ${vrijBesteedbaar.value < 0 ? "text-red-500" : "text-slate-800"}` }, /* @__PURE__ */ React.createElement(AnimNum, { value: vrijBesteedbaar.value })),
         !vrijBesteedbaar.hasCheckingBalance && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 mt-1" }, "Tip: werk het saldo van je zichtrekening bij (tabblad Rekeningen) voor een accuraat beeld.")),
       /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-500 space-y-1 sm:text-right" },
         /* @__PURE__ */ React.createElement("div", null, "Saldo zichtrekeningen: ", /* @__PURE__ */ React.createElement("span", { className: "font-medium text-slate-700 fk-num" }, fmtEUR(vrijBesteedbaar.checkingSaldo))),
