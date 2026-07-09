@@ -28,6 +28,7 @@
   <script crossorigin="anonymous" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin="anonymous" src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
   <style>
@@ -97,6 +98,64 @@
 const DRIVE_FILE_NAME = 'financieel_kompas_data.json';
 var _gapiReady = false, _gisReady = false, _tokenClient = null, _fileId = null;
 var _onDriveReady = null;
+// ── Token-vangnet ────────────────────────────────────────────────
+// Een Google-token vervalt na ± 1 uur. We houden het vervalmoment bij en
+// vernieuwen het stil (zonder pop-up, zolang de Google-sessie leeft) vóór
+// elke Drive-oproep die het nodig heeft. Faalt een oproep tóch met 401/403,
+// dan volgt één automatische hernieuwing + herhaling. Pas als ook dat niet
+// lukt, krijgt de gebruiker een "Opnieuw verbinden"-melding — en blijven
+// alle wijzigingen intussen veilig in het geheugen staan.
+var _tokenExpiresAt = 0;        // tijdstip (ms) waarop het huidige token vervalt
+var _tokenRefreshing = false;   // true = er loopt al een stille hernieuwing
+var _tokenRefreshWaiters = [];  // wie wacht er allemaal op een vers token?
+
+function _driveRefreshToken() {
+  return new Promise(function(resolve, reject) {
+    if (!_tokenClient) { reject(new Error('Drive is nog niet klaar')); return; }
+    _tokenRefreshWaiters.push({ resolve: resolve, reject: reject });
+    if (_tokenRefreshing) return; // er loopt al een hernieuwing; we wachten gewoon mee
+    _tokenRefreshing = true;
+    try {
+      _tokenClient.requestAccessToken({ prompt: '' });
+    } catch (e) {
+      _tokenRefreshing = false;
+      var w = _tokenRefreshWaiters; _tokenRefreshWaiters = [];
+      w.forEach(function(x) { x.reject(e); });
+    }
+  });
+}
+
+function _isAuthError(e) {
+  var code = e && (e.status || (e.result && e.result.error && e.result.error.code));
+  return code === 401 || code === 403;
+}
+
+function _tokenAlmostExpired() {
+  return _tokenExpiresAt > 0 && Date.now() > _tokenExpiresAt - 5 * 60 * 1000;
+}
+
+// Poortwachter: zorgt voor een vers token, voert de oproep uit, en geeft
+// bij een verlopen-sessiefout precies één tweede kans na hernieuwing.
+async function _withFreshToken(run) {
+  if (_tokenAlmostExpired()) {
+    try { await _driveRefreshToken(); } catch (e) { /* echte fout volgt zo dadelijk uit de oproep zelf */ }
+  }
+  try {
+    return await run();
+  } catch (e) {
+    if (!_isAuthError(e)) throw e;
+    await _driveRefreshToken(); // faalt dit, dan gaat de fout door naar de aanroeper
+    return await run();
+  }
+}
+
+// Lokale (Belgische) datum als "JJJJ-MM-DD" — bewust NIET via toISOString(),
+// want die geeft de wereldklok (UTC) en zit 's nachts een dag verkeerd.
+function _localDateStr(d) {
+  d = d || new Date();
+  var m = d.getMonth() + 1, dd = d.getDate();
+  return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (dd < 10 ? '0' : '') + dd;
+}
 
 window.gapiLoaded = () => {
   gapi.load('client', async () => {
@@ -114,8 +173,23 @@ window.gisLoaded = () => {
     client_id: GOOGLE_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/drive.file',
     callback: async (resp) => {
-      if (resp.error) { window._driveError && window._driveError(resp.error); return; }
-      window._driveAuthenticated && window._driveAuthenticated();
+      if (resp.error) {
+        var failed = _tokenRefreshing;
+        _tokenRefreshing = false;
+        var wf = _tokenRefreshWaiters; _tokenRefreshWaiters = [];
+        wf.forEach(function(x) { x.reject(new Error(String(resp.error))); });
+        if (!failed) { window._driveError && window._driveError(resp.error); }
+        return;
+      }
+      // Vervalmoment noteren, met 60 s veiligheidsmarge.
+      _tokenExpiresAt = Date.now() + ((parseInt(resp.expires_in, 10) || 3600) - 60) * 1000;
+      var wasRefreshing = _tokenRefreshing;
+      _tokenRefreshing = false;
+      var wo = _tokenRefreshWaiters; _tokenRefreshWaiters = [];
+      wo.forEach(function(x) { x.resolve(); });
+      // Enkel bij een échte (eerste) aanmelding de volledige laadcyclus starten;
+      // een stille hernieuwing mag de draaiende app niet herladen.
+      if (!wasRefreshing) { window._driveAuthenticated && window._driveAuthenticated(); }
     }
   });
   _gisReady = true;
@@ -194,6 +268,9 @@ function _readFileAsBase64(file) {
 }
 
 async function driveUploadDocument(file, niceName, year, dossierName) {
+  return _withFreshToken(function() { return _driveUploadDocumentInner(file, niceName, year, dossierName); });
+}
+async function _driveUploadDocumentInner(file, niceName, year, dossierName) {
   var folderId = dossierName ? await _ensureDossierFolder(dossierName) : await _ensureYearFolder(year);
   var base64 = await _readFileAsBase64(file);
   var boundary = '-------fk_doc_boundary_314159';
@@ -211,11 +288,17 @@ async function driveUploadDocument(file, niceName, year, dossierName) {
 }
 
 async function driveOpenDocumentLink(fileId) {
+  return _withFreshToken(function() { return _driveOpenDocumentLinkInner(fileId); });
+}
+async function _driveOpenDocumentLinkInner(fileId) {
   var r = await gapi.client.drive.files.get({ fileId: fileId, fields: 'webViewLink' });
   return r.result.webViewLink;
 }
 
 async function driveTrashDocument(fileId) {
+  return _withFreshToken(function() { return _driveTrashDocumentInner(fileId); });
+}
+async function _driveTrashDocumentInner(fileId) {
   await gapi.client.drive.files.update({ fileId: fileId, resource: { trashed: true } });
 }
 
@@ -247,12 +330,18 @@ async function _findDossierFolder(name) {
 }
 
 async function driveMoveDocument(fileId, newParentId) {
+  return _withFreshToken(function() { return _driveMoveDocumentInner(fileId, newParentId); });
+}
+async function _driveMoveDocumentInner(fileId, newParentId) {
   var r = await gapi.client.drive.files.get({ fileId: fileId, fields: 'parents' });
   var oldParents = (r.result.parents || []).join(',');
   await gapi.client.drive.files.update({ fileId: fileId, addParents: newParentId, removeParents: oldParents });
 }
 
 async function driveRenameDossierFolder(oldName, newName) {
+  return _withFreshToken(function() { return _driveRenameDossierFolderInner(oldName, newName); });
+}
+async function _driveRenameDossierFolderInner(oldName, newName) {
   var id = await _findDossierFolder(oldName);
   if (!id) return false; // map bestaat (nog) niet: niets te hernoemen
   await gapi.client.drive.files.update({ fileId: id, resource: { name: String(newName) } });
@@ -262,6 +351,9 @@ async function driveRenameDossierFolder(oldName, newName) {
 }
 
 async function driveTrashDossierFolder(name) {
+  return _withFreshToken(function() { return _driveTrashDossierFolderInner(name); });
+}
+async function _driveTrashDossierFolderInner(name) {
   var id = await _findDossierFolder(name);
   if (!id) return false;
   await gapi.client.drive.files.update({ fileId: id, resource: { trashed: true } });
@@ -310,7 +402,7 @@ function mergeDatasets(remote, local) {
 // ── Dagelijkse reservekopie: bij de eerste opslag van de dag bewaren we
 //    eerst de bestaande Drive-inhoud als gedateerd bestand (max. 14 stuks) ──
 async function driveEnsureDailyBackup() {
-  var todayStr = new Date().toISOString().slice(0, 10);
+  var todayStr = _localDateStr(); // Belgische kalenderdag, niet de UTC-dag
   if (_backupDoneFor === todayStr) return;
   try {
     var r = await gapi.client.drive.files.list({ q: "name contains '" + BACKUP_PREFIX + "' and trashed=false", fields: 'files(id,name)', spaces: 'drive', pageSize: 100 });
@@ -334,22 +426,34 @@ async function driveEnsureDailyBackup() {
 }
 
 async function driveListBackups() {
+  return _withFreshToken(function() { return _driveListBackupsInner(); });
+}
+async function _driveListBackupsInner() {
   var r = await gapi.client.drive.files.list({ q: "name contains '" + BACKUP_PREFIX + "' and trashed=false", fields: 'files(id,name)', spaces: 'drive', pageSize: 100 });
   return (r.result.files || []).filter(function(f) { return f.name.indexOf(BACKUP_PREFIX) === 0; }).sort(function(a, b) { return a.name < b.name ? 1 : -1; });
 }
 async function driveLoadBackup(fileId) {
+  return _withFreshToken(function() { return _driveLoadBackupInner(fileId); });
+}
+async function _driveLoadBackupInner(fileId) {
   var r = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' });
   return typeof r.result === 'object' ? r.result : JSON.parse(r.body);
 }
 
 // Herstellen uit een reservekopie: bewust volledig overschrijven (geen samenvoeging)
 async function driveRestoreOverwrite(data) {
+  return _withFreshToken(function() { return _driveRestoreOverwriteInner(data); });
+}
+async function _driveRestoreOverwriteInner(data) {
   if (!_fileId) await driveFindOrCreate();
   var resp = await gapi.client.request({ path: `/upload/drive/v3/files/${_fileId}`, method: 'PATCH', params: { uploadType: 'media', fields: 'version' }, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
   try { _lastKnownVersion = resp.result && resp.result.version ? resp.result.version : await _driveRemoteVersion(); } catch(e) {}
 }
 
 async function driveSave(data) {
+  return _withFreshToken(function() { return _driveSaveInner(data); });
+}
+async function _driveSaveInner(data) {
   if (!_fileId) await driveFindOrCreate();
   await driveEnsureDailyBackup();
   var toSave = data;
@@ -374,7 +478,7 @@ var _LR=window.LucideReact||window.lucideReact||window.LucideIcons||{};
 // in plaats van een lege vorm — zo blijft bv. de "+"-knop altijd zichtbaar.
 var _FBmk=function(glyph){return function(p){return React.createElement('span',{style:{display:'inline-flex',alignItems:'center',justifyContent:'center',width:p.size||16,height:p.size||16,flexShrink:0,fontSize:Math.max(10,Math.round((p.size||16)*0.8)),lineHeight:1,fontWeight:700},className:p.className},glyph);};};
 var _FB=_FBmk('\u2022');
-var LayoutDashboard=_LR.LayoutDashboard||_FBmk('\u25A6'),Receipt=_LR.Receipt||_FBmk('\u{1F9FE}'),Building2=_LR.Building2||_FBmk('\u{1F3E6}'),Target=_LR.Target||_FBmk('\u25CE'),PiggyBank=_LR.PiggyBank||_FBmk('\u{1F477}'),TrendingUp=_LR.TrendingUp||_FBmk('\u{1F4C8}'),Tags=_LR.Tags||_FBmk('\u{1F3F7}'),Settings=_LR.Settings||_FBmk('\u2699'),Menu=_LR.Menu||_FBmk('\u2261'),X=_LR.X||_FBmk('\u2715'),Plus=_LR.Plus||_FBmk('+'),Search=_LR.Search||_FBmk('\u{1F50D}'),ChevronRight=_LR.ChevronRight||_FBmk('\u203A'),ChevronDown=_LR.ChevronDown||_FBmk('\u2304'),Bell=_LR.Bell||_FBmk('\u{1F514}'),Download=_LR.Download||_FBmk('\u2B07'),Upload=_LR.Upload||_FBmk('\u2B06'),Trash2=_LR.Trash2||_FBmk('\u{1F5D1}'),Check=_LR.Check||_FBmk('\u2713'),Calendar=_LR.Calendar||_FBmk('\u{1F4C5}'),AlertCircle=_LR.AlertCircle||_FBmk('!'),Info=_LR.Info||_FBmk('i'),Pencil=_LR.Pencil||_LR.Edit||_FBmk('\u270F'),ArrowLeft=_LR.ArrowLeft||_FBmk('\u2190'),CheckCircle2=_LR.CheckCircle2||_LR.CheckCircle||_FBmk('\u2713');
+var LayoutDashboard=_LR.LayoutDashboard||_FBmk('\u25A6'),Receipt=_LR.Receipt||_FBmk('\u{1F9FE}'),Building2=_LR.Building2||_FBmk('\u{1F3E6}'),Target=_LR.Target||_FBmk('\u25CE'),PiggyBank=_LR.PiggyBank||_FBmk('\u{1F477}'),TrendingUp=_LR.TrendingUp||_FBmk('\u{1F4C8}'),Tags=_LR.Tags||_FBmk('\u{1F3F7}'),Settings=_LR.Settings||_FBmk('\u2699'),Menu=_LR.Menu||_FBmk('\u2261'),X=_LR.X||_FBmk('\u2715'),Plus=_LR.Plus||_FBmk('+'),Search=_LR.Search||_FBmk('\u{1F50D}'),ChevronRight=_LR.ChevronRight||_FBmk('\u203A'),ChevronDown=_LR.ChevronDown||_FBmk('\u2304'),Bell=_LR.Bell||_FBmk('\u{1F514}'),Download=_LR.Download||_FBmk('\u2B07'),Upload=_LR.Upload||_FBmk('\u2B06'),Trash2=_LR.Trash2||_FBmk('\u{1F5D1}'),Check=_LR.Check||_FBmk('\u2713'),Calendar=_LR.Calendar||_FBmk('\u{1F4C5}'),AlertCircle=_LR.AlertCircle||_FBmk('!'),Info=_LR.Info||_FBmk('i'),Pencil=_LR.Pencil||_LR.Edit||_FBmk('\u270F'),ArrowLeft=_LR.ArrowLeft||_FBmk('\u2190'),CheckCircle2=_LR.CheckCircle2||_LR.CheckCircle||_FBmk('\u2713'),LogOut=_LR.LogOut||_FBmk('\u{1F6AA}'),ScanLine=_LR.ScanLine||_FBmk('\u{1F4F7}');
 var useState=React.useState,useEffect=React.useEffect,useMemo=React.useMemo,useCallback=React.useCallback,useRef=React.useRef;
 var FolderOpen=_LR.FolderOpen||_FBmk('\u{1F4C1}'),Scale=_LR.Scale||_FBmk('\u2696');
 
@@ -1891,6 +1995,7 @@ var STRINGS = {
     "common.undo": "Ongedaan maken", "common.yes": "Ja", "common.no": "Nee",
     "common.viewDocument": "Document bekijken", "common.deleteTransaction": "Transactie verwijderen",
     "dashboard.newTransaction": "Transactie", "dashboard.hideInsight": "Verberg dit inzicht",
+    "dashboard.greetingMorning": "Goedemorgen", "dashboard.greetingAfternoon": "Goedemiddag", "dashboard.greetingEvening": "Goedenavond",
     "dashboard.readySectionTitle": "Klaargezet", "dashboard.readySectionSub": "vervallen vaste lasten",
     "dashboard.dueDatePrefix": "vervaldag", "dashboard.book": "Boek", "dashboard.skip": "Sla over",
     "dashboard.budgetWarning": "Budgetwaarschuwing", "dashboard.overBudget": "OVER BUDGET",
@@ -1920,6 +2025,21 @@ var STRINGS = {
     "recurring.paused": "gepauzeerd", "recurring.next": "volgende", "recurring.auto": "automatisch",
     "recurring.newBtn": "Nieuwe vaste last", "recurring.itemName": "Vaste last",
     "recurring.weekly": "Wekelijks", "recurring.monthly": "Maandelijks", "recurring.yearly": "Jaarlijks",
+    "recurring.editTitle": "Vaste last bewerken",
+    "recurring.descPlaceholder": "Bv. Netflix, Huishuur...",
+    "recurring.intervalLabel": "Herhaling", "recurring.nextDueLabel": "Volgende vervaldag",
+    "recurring.autoBookLabel": "Automatisch boeken op de vervaldag",
+    "common.mainCategory": "Hoofdcategorie", "common.account": "Rekening", "common.dossier": "Dossier",
+    "common.active": "Actief", "common.noDescription": "(zonder omschrijving)",
+    "palette.searchPlaceholder": "Zoek of navigeer... (bv. transacties, Colruyt, rekeningen)",
+    "hoofdtype.vasteUitgaven": "Vaste Uitgaven", "hoofdtype.variabeleUitgaven": "Variabele Uitgaven",
+    "hoofdtype.sparen": "Sparen", "hoofdtype.inkomsten": "Inkomsten",
+    "loginScreen.tagline": "Jouw persoonlijke budgetplanner",
+    "loginScreen.setupLabel": "Setup: ", "loginScreen.setupInstructions": "Vervang YOUR_GOOGLE_CLIENT_ID op regel 23.",
+    "loginScreen.signInBtn": "Aanmelden met Google", "loginScreen.storageNotice": "Je data wordt opgeslagen in jouw Google Drive.",
+    "loginScreen.loadingInit": "Laden...", "loginScreen.loadingData": "Data laden uit Google Drive...",
+    "loginScreen.connectionFailed": "Verbinding mislukt.", "loginScreen.retryBtn": "Opnieuw proberen",
+    "loginScreen.preparingData": "Gegevens worden voorbereid...",
     "toast.recurringUpdated": "Vaste last bijgewerkt \u2713", "toast.recurringAdded": "Vaste last toegevoegd \u2713",
     "toast.deleted": "verwijderd", "toast.recurringRestored": "Vaste last hersteld \u2713",
     "toast.txDeletedSingular": "transactie verwijderd", "toast.txDeletedPlural": "transacties verwijderd",
@@ -1937,8 +2057,16 @@ var STRINGS = {
     "toast.docMovedToTrash": "Document naar de Drive-prullenbak verplaatst",
     "toast.docNotFoundMaybeDeleted": "Document niet gevonden \u2014 mogelijk al verwijderd",
     "toast.noDriveConnectionKept": "Geen Drive-verbinding \u2014 document blijft staan",
+    "toast.driveSessionExpired": "Je Drive-verbinding is verlopen \u2014 je wijzigingen staan veilig klaar en worden na het herverbinden opgeslagen",
+    "toast.reconnectAction": "Opnieuw verbinden",
+    "toast.reconnectedSaved": "Opnieuw verbonden \u2014 alles is opgeslagen \u2713",
+    "toast.reconnectFailed": "Opnieuw verbinden is niet gelukt \u2014 probeer het nog eens of herlaad de pagina",
+    "toast.saveFailedNetwork": "Opslaan naar Drive mislukt \u2014 controleer je internetverbinding",
+    "toast.noDriveConnectionTxKept": "Geen Drive-verbinding \u2014 de transactie is niet verwijderd. Kies 'document laten staan' of probeer straks opnieuw",
+    "toast.docTrashFailedTxKept": "Document kon niet naar de prullenbak \u2014 de transactie is niet verwijderd. Probeer opnieuw",
+    "docAsk.busy": "Bezig met verplaatsen\u2026",
     "common.month": "maand", "common.months": "maanden", "common.year": "jaar", "common.years": "jaar", "common.and": "en",
-    "common.notes": "Notities", "common.optional": "Optioneel", "common.cancel": "Annuleren", "common.save": "Opslaan",
+    "common.notes": "Notities", "common.optional": "Optioneel", "common.cancel": "Annuleren", "common.logout": "Uitloggen", "common.save": "Opslaan",
     "common.name": "Naam", "common.type": "Type", "common.assets": "Bezittingen",
     "rekeningen.title": "Rekeningen & Vermogen", "rekeningen.addBtn": "Rekening", "rekeningen.itemName": "Rekening",
     "rekeningen.type.checking": "Zichtrekening", "rekeningen.type.savings": "Spaarrekening",
@@ -2127,6 +2255,16 @@ var STRINGS = {
     "txform.dossierHintExpense": "Koppel deze uitgave aan een gedeeld dossier",
     "txform.less": "Minder", "txform.optionalFields": "Optionele velden (merk, hoeveelheid, promo...)",
     "txform.quantity": "Hoeveelheid", "txform.unit": "Eenheid", "txform.onPromo": "In promotie",
+    "txform.scanBtn": "Barcode scannen", "txform.scanTitle": "Barcode scannen",
+    "txform.scanManualLabel": "Of voer de barcode handmatig in", "txform.scanConfirmBtn": "Bevestigen",
+    "txform.scanLibMissing": "Scanfunctie kon niet geladen worden. Voer de barcode handmatig in.",
+    "txform.scanCameraError": "Geen toegang tot de camera. Voer de barcode handmatig in.",
+    "txform.scanFoundLocal": "Herkend uit je eigen productendatabase \u2713",
+    "txform.scanFoundOff": "Gevonden in Open Food Facts \u2014 controleer en kies de juiste categorie",
+    "txform.scanNotFound": "Onbekende barcode \u2014 vul zelf aan, dit wordt onthouden voor de volgende keer",
+    "txform.scanTabCamera": "Camera", "txform.scanTabSearch": "Zoeken op naam",
+    "txform.scanSearchPlaceholder": "Zoek product... (bv. cornflakes kellogg\u2019s)", "txform.scanSearchBtn": "Zoeken",
+    "txform.scanSearching": "Bezig met zoeken...", "txform.scanNoResults": "Geen resultaten gevonden",
     "txform.regularPrice": "Normale prijs (excl. promo)", "txform.notesPlaceholder": "Toelichting",
     "txform.repeat": "Herhalen", "txform.noRepeat": "Niet herhalen",
     "txform.receiptSection": "\uD83D\uDCCE Bon of factuur (optioneel)", "txform.whatWithDoc": "Wat met het document?",
@@ -2154,6 +2292,7 @@ var STRINGS = {
     "common.undo": "Undo", "common.yes": "Yes", "common.no": "No",
     "common.viewDocument": "View document", "common.deleteTransaction": "Delete transaction",
     "dashboard.newTransaction": "Transaction", "dashboard.hideInsight": "Hide this insight",
+    "dashboard.greetingMorning": "Good morning", "dashboard.greetingAfternoon": "Good afternoon", "dashboard.greetingEvening": "Good evening",
     "dashboard.readySectionTitle": "Ready to book", "dashboard.readySectionSub": "due recurring expenses",
     "dashboard.dueDatePrefix": "due", "dashboard.book": "Book", "dashboard.skip": "Skip",
     "dashboard.budgetWarning": "Budget warning", "dashboard.overBudget": "OVER BUDGET",
@@ -2183,6 +2322,21 @@ var STRINGS = {
     "recurring.paused": "paused", "recurring.next": "next", "recurring.auto": "automatic",
     "recurring.newBtn": "New recurring expense", "recurring.itemName": "Recurring expense",
     "recurring.weekly": "Weekly", "recurring.monthly": "Monthly", "recurring.yearly": "Yearly",
+    "recurring.editTitle": "Edit recurring expense",
+    "recurring.descPlaceholder": "E.g. Netflix, Rent...",
+    "recurring.intervalLabel": "Recurrence", "recurring.nextDueLabel": "Next due date",
+    "recurring.autoBookLabel": "Book automatically on the due date",
+    "common.mainCategory": "Main category", "common.account": "Account", "common.dossier": "Dossier",
+    "common.active": "Active", "common.noDescription": "(no description)",
+    "palette.searchPlaceholder": "Search or navigate... (e.g. transactions, Colruyt, accounts)",
+    "hoofdtype.vasteUitgaven": "Fixed expenses", "hoofdtype.variabeleUitgaven": "Variable expenses",
+    "hoofdtype.sparen": "Savings", "hoofdtype.inkomsten": "Income",
+    "loginScreen.tagline": "Your personal budget planner",
+    "loginScreen.setupLabel": "Setup: ", "loginScreen.setupInstructions": "Replace YOUR_GOOGLE_CLIENT_ID on line 23.",
+    "loginScreen.signInBtn": "Sign in with Google", "loginScreen.storageNotice": "Your data is stored in your Google Drive.",
+    "loginScreen.loadingInit": "Loading...", "loginScreen.loadingData": "Loading data from Google Drive...",
+    "loginScreen.connectionFailed": "Connection failed.", "loginScreen.retryBtn": "Try again",
+    "loginScreen.preparingData": "Preparing data...",
     "toast.recurringUpdated": "Recurring expense updated \u2713", "toast.recurringAdded": "Recurring expense added \u2713",
     "toast.deleted": "deleted", "toast.recurringRestored": "Recurring expense restored \u2713",
     "toast.txDeletedSingular": "transaction deleted", "toast.txDeletedPlural": "transactions deleted",
@@ -2200,8 +2354,16 @@ var STRINGS = {
     "toast.docMovedToTrash": "Document moved to Drive trash",
     "toast.docNotFoundMaybeDeleted": "Document not found \u2014 maybe already deleted",
     "toast.noDriveConnectionKept": "No Drive connection \u2014 document remains",
+    "toast.driveSessionExpired": "Your Drive connection has expired \u2014 your changes are kept safe and will be saved after reconnecting",
+    "toast.reconnectAction": "Reconnect",
+    "toast.reconnectedSaved": "Reconnected \u2014 everything is saved \u2713",
+    "toast.reconnectFailed": "Reconnecting failed \u2014 try again or reload the page",
+    "toast.saveFailedNetwork": "Saving to Drive failed \u2014 check your internet connection",
+    "toast.noDriveConnectionTxKept": "No Drive connection \u2014 the transaction was not deleted. Choose 'leave the document in Drive' or try again later",
+    "toast.docTrashFailedTxKept": "Could not move the document to the trash \u2014 the transaction was not deleted. Please try again",
+    "docAsk.busy": "Moving\u2026",
     "common.month": "month", "common.months": "months", "common.year": "year", "common.years": "years", "common.and": "and",
-    "common.notes": "Notes", "common.optional": "Optional", "common.cancel": "Cancel", "common.save": "Save",
+    "common.notes": "Notes", "common.optional": "Optional", "common.cancel": "Cancel", "common.logout": "Log out", "common.save": "Save",
     "common.name": "Name", "common.type": "Type", "common.assets": "Assets",
     "rekeningen.title": "Accounts & Net Worth", "rekeningen.addBtn": "Account", "rekeningen.itemName": "Account",
     "rekeningen.type.checking": "Checking account", "rekeningen.type.savings": "Savings account",
@@ -2390,6 +2552,16 @@ var STRINGS = {
     "txform.dossierHintExpense": "Link this expense to a shared dossier",
     "txform.less": "Less", "txform.optionalFields": "Optional fields (brand, quantity, promo...)",
     "txform.quantity": "Quantity", "txform.unit": "Unit", "txform.onPromo": "On promotion",
+    "txform.scanBtn": "Scan barcode", "txform.scanTitle": "Scan barcode",
+    "txform.scanManualLabel": "Or enter the barcode manually", "txform.scanConfirmBtn": "Confirm",
+    "txform.scanLibMissing": "Scanner could not load. Enter the barcode manually.",
+    "txform.scanCameraError": "Could not access the camera. Enter the barcode manually.",
+    "txform.scanFoundLocal": "Recognized from your own product database \u2713",
+    "txform.scanFoundOff": "Found in Open Food Facts \u2014 check and choose the right category",
+    "txform.scanNotFound": "Unknown barcode \u2014 fill in manually, this will be remembered next time",
+    "txform.scanTabCamera": "Camera", "txform.scanTabSearch": "Search by name",
+    "txform.scanSearchPlaceholder": "Search product... (e.g. cornflakes kellogg\u2019s)", "txform.scanSearchBtn": "Search",
+    "txform.scanSearching": "Searching...", "txform.scanNoResults": "No results found",
     "txform.regularPrice": "Regular price (excl. promo)", "txform.notesPlaceholder": "Notes",
     "txform.repeat": "Repeat", "txform.noRepeat": "Don't repeat",
     "txform.receiptSection": "\uD83D\uDCCE Receipt or invoice (optional)", "txform.whatWithDoc": "What about the document?",
@@ -2417,6 +2589,7 @@ var STRINGS = {
     "common.undo": "Annuler", "common.yes": "Oui", "common.no": "Non",
     "common.viewDocument": "Voir le document", "common.deleteTransaction": "Supprimer la transaction",
     "dashboard.newTransaction": "Transaction", "dashboard.hideInsight": "Masquer cette info",
+    "dashboard.greetingMorning": "Bonjour", "dashboard.greetingAfternoon": "Bon apr\xE8s-midi", "dashboard.greetingEvening": "Bonsoir",
     "dashboard.readySectionTitle": "Pr\xEAt \xE0 enregistrer", "dashboard.readySectionSub": "charges fixes \xE9chues",
     "dashboard.dueDatePrefix": "\xE9ch\xE9ance", "dashboard.book": "Enregistrer", "dashboard.skip": "Passer",
     "dashboard.budgetWarning": "Alerte budget", "dashboard.overBudget": "D\xC9PASSEMENT",
@@ -2446,6 +2619,21 @@ var STRINGS = {
     "recurring.paused": "en pause", "recurring.next": "prochaine", "recurring.auto": "automatique",
     "recurring.newBtn": "Nouvelle charge fixe", "recurring.itemName": "Charge fixe",
     "recurring.weekly": "Hebdomadaire", "recurring.monthly": "Mensuel", "recurring.yearly": "Annuel",
+    "recurring.editTitle": "Modifier la charge fixe",
+    "recurring.descPlaceholder": "Ex. Netflix, Loyer...",
+    "recurring.intervalLabel": "R\xE9currence", "recurring.nextDueLabel": "Prochaine \xE9ch\xE9ance",
+    "recurring.autoBookLabel": "Enregistrer automatiquement \xE0 l'\xE9ch\xE9ance",
+    "common.mainCategory": "Cat\xE9gorie principale", "common.account": "Compte", "common.dossier": "Dossier",
+    "common.active": "Actif", "common.noDescription": "(sans description)",
+    "palette.searchPlaceholder": "Rechercher ou naviguer... (ex. transactions, Colruyt, comptes)",
+    "hoofdtype.vasteUitgaven": "Charges fixes", "hoofdtype.variabeleUitgaven": "D\xE9penses variables",
+    "hoofdtype.sparen": "\xC9pargne", "hoofdtype.inkomsten": "Revenus",
+    "loginScreen.tagline": "Votre planificateur budg\xE9taire personnel",
+    "loginScreen.setupLabel": "Configuration : ", "loginScreen.setupInstructions": "Remplacez YOUR_GOOGLE_CLIENT_ID \xE0 la ligne 23.",
+    "loginScreen.signInBtn": "Se connecter avec Google", "loginScreen.storageNotice": "Vos donn\xE9es sont stock\xE9es dans votre Google Drive.",
+    "loginScreen.loadingInit": "Chargement...", "loginScreen.loadingData": "Chargement des donn\xE9es depuis Google Drive...",
+    "loginScreen.connectionFailed": "\xC9chec de la connexion.", "loginScreen.retryBtn": "R\xE9essayer",
+    "loginScreen.preparingData": "Pr\xE9paration des donn\xE9es...",
     "toast.recurringUpdated": "Charge fixe mise \xE0 jour \u2713", "toast.recurringAdded": "Charge fixe ajout\xE9e \u2713",
     "toast.deleted": "supprim\xE9(e)", "toast.recurringRestored": "Charge fixe restaur\xE9e \u2713",
     "toast.txDeletedSingular": "transaction supprim\xE9e", "toast.txDeletedPlural": "transactions supprim\xE9es",
@@ -2463,8 +2651,16 @@ var STRINGS = {
     "toast.docMovedToTrash": "Document d\xE9plac\xE9 vers la corbeille Drive",
     "toast.docNotFoundMaybeDeleted": "Document introuvable \u2014 peut-\xEAtre d\xE9j\xE0 supprim\xE9",
     "toast.noDriveConnectionKept": "Pas de connexion Drive \u2014 le document reste en place",
+    "toast.driveSessionExpired": "Votre connexion Drive a expir\xE9 \u2014 vos modifications sont conserv\xE9es et seront enregistr\xE9es apr\xE8s la reconnexion",
+    "toast.reconnectAction": "Reconnecter",
+    "toast.reconnectedSaved": "Reconnect\xE9 \u2014 tout est enregistr\xE9 \u2713",
+    "toast.reconnectFailed": "La reconnexion a \xE9chou\xE9 \u2014 r\xE9essayez ou rechargez la page",
+    "toast.saveFailedNetwork": "\xC9chec de l'enregistrement sur Drive \u2014 v\xE9rifiez votre connexion internet",
+    "toast.noDriveConnectionTxKept": "Pas de connexion Drive \u2014 la transaction n'a pas \xE9t\xE9 supprim\xE9e. Choisissez \xAB laisser le document \xBB ou r\xE9essayez plus tard",
+    "toast.docTrashFailedTxKept": "Impossible de d\xE9placer le document vers la corbeille \u2014 la transaction n'a pas \xE9t\xE9 supprim\xE9e. R\xE9essayez",
+    "docAsk.busy": "D\xE9placement en cours\u2026",
     "common.month": "mois", "common.months": "mois", "common.year": "an", "common.years": "ans", "common.and": "et",
-    "common.notes": "Notes", "common.optional": "Optionnel", "common.cancel": "Annuler", "common.save": "Enregistrer",
+    "common.notes": "Notes", "common.optional": "Optionnel", "common.cancel": "Annuler", "common.logout": "D\xE9connexion", "common.save": "Enregistrer",
     "common.name": "Nom", "common.type": "Type", "common.assets": "Actifs",
     "rekeningen.title": "Comptes et patrimoine", "rekeningen.addBtn": "Compte", "rekeningen.itemName": "Compte",
     "rekeningen.type.checking": "Compte courant", "rekeningen.type.savings": "Compte d'\xE9pargne",
@@ -2653,6 +2849,16 @@ var STRINGS = {
     "txform.dossierHintExpense": "Liez cette d\xE9pense \xE0 un dossier partag\xE9",
     "txform.less": "Moins", "txform.optionalFields": "Champs optionnels (marque, quantit\xE9, promo...)",
     "txform.quantity": "Quantit\xE9", "txform.unit": "Unit\xE9", "txform.onPromo": "En promotion",
+    "txform.scanBtn": "Scanner le code-barres", "txform.scanTitle": "Scanner le code-barres",
+    "txform.scanManualLabel": "Ou saisissez le code-barres manuellement", "txform.scanConfirmBtn": "Confirmer",
+    "txform.scanLibMissing": "Le scanner n\u2019a pas pu se charger. Saisissez le code-barres manuellement.",
+    "txform.scanCameraError": "Impossible d\u2019acc\xE9der \xE0 la cam\xE9ra. Saisissez le code-barres manuellement.",
+    "txform.scanFoundLocal": "Reconnu dans votre propre base de produits \u2713",
+    "txform.scanFoundOff": "Trouv\xE9 dans Open Food Facts \u2014 v\xE9rifiez et choisissez la bonne cat\xE9gorie",
+    "txform.scanNotFound": "Code-barres inconnu \u2014 compl\xE9tez manuellement, ce sera m\xE9moris\xE9 pour la prochaine fois",
+    "txform.scanTabCamera": "Cam\xE9ra", "txform.scanTabSearch": "Rechercher par nom",
+    "txform.scanSearchPlaceholder": "Rechercher un produit... (ex. cornflakes kellogg\u2019s)", "txform.scanSearchBtn": "Rechercher",
+    "txform.scanSearching": "Recherche en cours...", "txform.scanNoResults": "Aucun r\xE9sultat trouv\xE9",
     "txform.regularPrice": "Prix normal (hors promo)", "txform.notesPlaceholder": "Pr\xE9cisions",
     "txform.repeat": "R\xE9p\xE9ter", "txform.noRepeat": "Ne pas r\xE9p\xE9ter",
     "txform.receiptSection": "\uD83D\uDCCE Ticket ou facture (optionnel)", "txform.whatWithDoc": "Que faire du document\xA0?",
@@ -3830,6 +4036,55 @@ const buildFlatItems = (cats) => {
   return flat;
 };
 const generateId = () => Math.random().toString(36).substr(2, 9);
+function parseOFFQuantity(qStr) {
+  if (!qStr) return { quantity: "", unit: "" };
+  var m = String(qStr).toLowerCase().replace(",", ".").match(/([\d.]+)\s*(kg|g|ml|cl|l)\b/);
+  if (!m) return { quantity: "", unit: "" };
+  var num = parseFloat(m[1]);
+  var u = m[2];
+  if (isNaN(num)) return { quantity: "", unit: "" };
+  if (u === "cl") { num = num * 10; u = "ml"; }
+  else if (u === "l") { u = "L"; }
+  return { quantity: String(num), unit: u };
+}
+async function lookupBarcode(code, data) {
+  var local = (data && data.barcodes) ? data.barcodes[code] : null;
+  if (local) return Object.assign({ source: "local" }, local);
+  try {
+    var res = await fetch("https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(code) + ".json");
+    var json = await res.json();
+    if (json && json.status === 1 && json.product) {
+      var p = json.product;
+      var name = p.product_name_nl || p.product_name || p.generic_name_nl || p.generic_name || "";
+      var brand = ((p.brands || "").split(",")[0] || "").trim();
+      var q = parseOFFQuantity(p.quantity);
+      return { source: "off", name: name, brand: brand, quantity: q.quantity, unit: q.unit };
+    }
+    return { source: "notfound" };
+  } catch (e) {
+    return { source: "error" };
+  }
+}
+async function searchOFF(query) {
+  if (!query || query.trim().length < 2) return [];
+  try {
+    var url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(query.trim()) + "&search_simple=1&action=process&json=1&page_size=8&fields=code,product_name,product_name_nl,brands,quantity,image_front_small_url,image_small_url";
+    var res = await fetch(url);
+    var json = await res.json();
+    var products = (json && json.products) || [];
+    return products.map(function(p) {
+      return {
+        code: p.code,
+        name: p.product_name_nl || p.product_name || "",
+        brand: ((p.brands || "").split(",")[0] || "").trim(),
+        quantity: p.quantity || "",
+        image: p.image_front_small_url || p.image_small_url || ""
+      };
+    }).filter(function(p) { return p.code && p.name; });
+  } catch (e) {
+    return [];
+  }
+}
 // Geeft per transactie de bedragen per hoofdcategorie terug.
 // Split-kassatickets worden daarbij netjes per regel uitgesplitst.
 const ovAmountsForTx = (t) => {
@@ -3972,8 +4227,14 @@ const withDeleted = (d, ids) => {
   const add = (ids || []).filter((x) => x && cur.indexOf(x) < 0);
   return add.length ? cur.concat(add).slice(-1000) : cur;
 };
-const today = /* @__PURE__ */ new Date();
-const fmt = (d) => d.toISOString().slice(0, 10);
+// "today" is een module-brede variabele (patroon van CURRENT_LANG): ze wordt bij
+// datumwissel — middernacht, of de app die na dagen weer naar voren komt op je
+// telefoon — ververst via refreshTodayIfNeeded() hieronder.
+var today = /* @__PURE__ */ new Date();
+// Datum als "JJJJ-MM-DD" volgens de LOKALE klok. Bewust niet via toISOString():
+// die geeft UTC, waardoor een invoer tussen middernacht en 01:00/02:00 Belgische
+// tijd de datum van gísteren zou krijgen (en in het verkeerde maandbudget belandt).
+const fmt = (d) => { const m = d.getMonth() + 1, dd = d.getDate(); return d.getFullYear() + "-" + (m < 10 ? "0" : "") + m + "-" + (dd < 10 ? "0" : "") + dd; };
 // ── Aflossingsplanner: simuleert maand per maand hoe een schuld daalt ──
 // rente = JKP (jaarlijks kostenpercentage, effectief) → maandfactor via 12e-machtswortel
 const berekenAflossing = (saldo, jkpPct, maandbedrag) => {
@@ -4057,7 +4318,18 @@ const monthsAgo = (n) => {
   d.setMonth(d.getMonth() - n);
   return fmt(d).slice(0, 7);
 };
-const currentMonth = fmt(today).slice(0, 7);
+var currentMonth = fmt(today).slice(0, 7);
+// Kijkt of de kalenderdag intussen gewisseld is (app bleef openstaan tot na
+// middernacht, of kwam op de telefoon terug naar voren na een tijd op de
+// achtergrond). Zo ja: "today" en "currentMonth" bijwerken. Geeft true terug
+// als er iets veranderde, zodat de aanroeper kan hertekenen en vaste lasten boeken.
+function refreshTodayIfNeeded() {
+  var now = new Date();
+  if (fmt(now) === fmt(today)) return false;
+  today = now;
+  currentMonth = fmt(today).slice(0, 7);
+  return true;
+}
 const fmtEUR = (n) => new Intl.NumberFormat(_locale(), { style: "currency", currency: "EUR", minimumFractionDigits: Math.abs(n || 0) % 1 === 0 ? 0 : 2 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString(_locale(), { day: "2-digit", month: "short", year: "numeric" }) : "";
 const fmtDateShort = (d) => d ? new Date(d).toLocaleDateString(_locale(), { day: "2-digit", month: "2-digit" }) : "";
@@ -4065,12 +4337,18 @@ const getMonth = (d) => d ? d.slice(0, 7) : "";
 const isExpense = (t) => t.hoofdtype !== "Inkomsten";
 const getGreeting = () => {
   const h = (/* @__PURE__ */ new Date()).getHours();
-  return h < 12 ? "Goedemorgen" : h < 18 ? "Goedemiddag" : "Goedenavond";
+  return h < 12 ? tt("dashboard.greetingMorning") : h < 18 ? tt("dashboard.greetingAfternoon") : tt("dashboard.greetingEvening");
 };
+// De vier hoofdtype-waarden ("Vaste Uitgaven", ...) blijven overal in de data
+// en in vergelijkingen (t.hoofdtype !== "Inkomsten") gewoon Nederlands — enkel de
+// wéérgave in dit ene keuzemenu verandert per taal. Zelfde patroon als OV_TRANSLATIONS.
+const HOOFDTYPE_KEYS = { "Vaste Uitgaven": "hoofdtype.vasteUitgaven", "Variabele Uitgaven": "hoofdtype.variabeleUitgaven", "Sparen": "hoofdtype.sparen", "Inkomsten": "hoofdtype.inkomsten" };
+const hoofdtypeLabel = (h) => HOOFDTYPE_KEYS[h] ? tt(HOOFDTYPE_KEYS[h]) : h;
 const SAMPLE_DATA = {
   userProfile: { firstName: "Timothy", lastName: "Verschot" },
   recurring: [],
   merchants: [],
+  barcodes: {},
   categories: INITIAL_CATEGORIES,
   accounts: [
     { id: "acc-1", name: "Zichtrekening", type: "checking", institution: "ING", iban: "BE68539007547034", color: T.teal, active: true },
@@ -4147,6 +4425,100 @@ const Modal = ({ title, onClose, children, wide }) => {
   }, [onClose]);
   return ReactDOM.createPortal(/* @__PURE__ */ React.createElement("div", { className: "fk-backdrop fixed inset-0 z-50 flex items-center justify-center p-4", style: { backgroundColor: "rgba(44,33,27,0.5)" } }, /* @__PURE__ */ React.createElement("div", { className: `fk-modal bg-white rounded-2xl shadow-xl w-full ${wide ? "max-w-3xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto` }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between p-6 border-b border-slate-100" }, /* @__PURE__ */ React.createElement("h2", { className: "text-lg font-bold text-slate-800" }, title), /* @__PURE__ */ React.createElement("button", { onClick: onClose, className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500" }, /* @__PURE__ */ React.createElement(X, { size: 18 }))), /* @__PURE__ */ React.createElement("div", { className: "p-6" }, children))), document.body);
 };
+const BarcodeScanModal = ({ onDetected, onClose }) => {
+  const [mode, setMode] = useState("camera");
+  const [manual, setManual] = useState("");
+  const [scanError, setScanError] = useState("");
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
+  const [searching, setSearching] = useState(false);
+  const scannerRef = useRef(null);
+  const doneRef = useRef(false);
+  useEffect(() => {
+    if (mode !== "camera") return;
+    if (!window.Html5Qrcode) { setScanError(tt("txform.scanLibMissing")); return; }
+    var qr = new window.Html5Qrcode("fk-barcode-reader");
+    scannerRef.current = qr;
+    var fmts = window.Html5QrcodeSupportedFormats ? [
+      window.Html5QrcodeSupportedFormats.EAN_13,
+      window.Html5QrcodeSupportedFormats.EAN_8,
+      window.Html5QrcodeSupportedFormats.UPC_A,
+      window.Html5QrcodeSupportedFormats.UPC_E
+    ] : void 0;
+    qr.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 260, height: 160 }, formatsToSupport: fmts },
+      function(decodedText) {
+        if (doneRef.current) return;
+        doneRef.current = true;
+        onDetected(decodedText);
+      },
+      function() {}
+    ).catch(function(err) {
+      setScanError(tt("txform.scanCameraError"));
+    });
+    return function() {
+      if (scannerRef.current) {
+        try {
+          scannerRef.current.stop().then(function() {
+            try { scannerRef.current.clear(); } catch (e) {}
+          }).catch(function() {});
+        } catch (e) {}
+      }
+    };
+  }, [mode]);
+  const runSearch = () => {
+    if (!query.trim()) return;
+    setSearching(true);
+    searchOFF(query).then(function(r) {
+      setSearchResults(r);
+      setSearching(false);
+    });
+  };
+  const TabBtn = ({ id, label }) => /* @__PURE__ */ React.createElement("button", {
+    type: "button", onClick: () => setMode(id),
+    className: "flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+    style: { backgroundColor: mode === id ? T.teal : "transparent", color: mode === id ? "#fff" : T.slate600 }
+  }, label);
+  return /* @__PURE__ */ React.createElement(Modal, { title: tt("txform.scanTitle"), onClose },
+    /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 p-1 bg-slate-100 rounded-lg mb-4" },
+      /* @__PURE__ */ React.createElement(TabBtn, { id: "camera", label: tt("txform.scanTabCamera") }),
+      /* @__PURE__ */ React.createElement(TabBtn, { id: "search", label: tt("txform.scanTabSearch") })
+    ),
+    mode === "camera" && /* @__PURE__ */ React.createElement(React.Fragment, null,
+      /* @__PURE__ */ React.createElement("div", { id: "fk-barcode-reader", style: { width: "100%", minHeight: 220, borderRadius: 12, overflow: "hidden", backgroundColor: "#F5EFE6" } }),
+      scanError && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500 mt-2" }, scanError),
+      /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-slate-100" },
+        /* @__PURE__ */ React.createElement(FormField, { label: tt("txform.scanManualLabel") },
+          /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" },
+            /* @__PURE__ */ React.createElement(Input, { value: manual, inputMode: "numeric", onChange: (e) => setManual(e.target.value), placeholder: "5410013222567" }),
+            /* @__PURE__ */ React.createElement(Btn, { size: "sm", onClick: () => manual.trim() && onDetected(manual.trim()), disabled: !manual.trim() }, tt("txform.scanConfirmBtn"))
+          )
+        )
+      )
+    ),
+    mode === "search" && /* @__PURE__ */ React.createElement("div", null,
+      /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mb-3" },
+        /* @__PURE__ */ React.createElement(Input, { value: query, onChange: (e) => setQuery(e.target.value), placeholder: tt("txform.scanSearchPlaceholder"), onKeyDown: (e) => { if (e.key === "Enter") { e.preventDefault(); runSearch(); } } }),
+        /* @__PURE__ */ React.createElement(Btn, { size: "sm", onClick: runSearch, disabled: !query.trim() || searching }, tt("txform.scanSearchBtn"))
+      ),
+      searching && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, tt("txform.scanSearching")),
+      !searching && searchResults && searchResults.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-slate-400" }, tt("txform.scanNoResults")),
+      !searching && searchResults && searchResults.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { maxHeight: 320, overflowY: "auto" } },
+        searchResults.map((p) => /* @__PURE__ */ React.createElement("button", {
+          key: p.code, type: "button", onClick: () => onDetected(p.code),
+          className: "w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-slate-50 text-left border-b border-slate-50 last:border-0"
+        },
+          p.image ? /* @__PURE__ */ React.createElement("img", { src: p.image, alt: "", className: "w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-slate-100" }) : /* @__PURE__ */ React.createElement("div", { className: "w-10 h-10 rounded-lg bg-slate-100 flex-shrink-0" }),
+          /* @__PURE__ */ React.createElement("div", { className: "min-w-0" },
+            /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium text-slate-800 truncate" }, p.name),
+            /* @__PURE__ */ React.createElement("div", { className: "text-xs text-slate-400 truncate" }, [p.brand, p.quantity].filter(Boolean).join(" \u00B7 "))
+          )
+        ))
+      )
+    )
+  );
+};
 const CommandPalette = ({ data, onNav, onNewTx, onClose, onSearchTx }) => {
   const [q, setQ] = useState("");
   const inputRef = useRef(null);
@@ -4157,11 +4529,11 @@ const CommandPalette = ({ data, onNav, onNewTx, onClose, onSearchTx }) => {
   const accMatches = ql ? data.accounts.filter((a) => a.name.toLowerCase().includes(ql)).slice(0, 4) : [];
   const dosMatches = ql ? (data.dossiers || []).filter((d) => d.name.toLowerCase().includes(ql)).slice(0, 4) : [];
   const rows = [
-    { kind: "action", label: "Nieuwe transactie", hint: "N", run: onNewTx },
+    { kind: "action", label: tt("txform.newTitle"), hint: "N", run: onNewTx },
     ...navMatches.map((n) => ({ kind: "nav", label: tt(n.labelKey), icon: n.icon, run: () => onNav(n.id) })),
-    ...txMatches.map((t) => ({ kind: "tx", label: t.description || "(zonder omschrijving)", hint: fmtEUR(t.amount), run: () => onSearchTx(t.description) })),
-    ...accMatches.map((a) => ({ kind: "acc", label: a.name, hint: "Rekening", run: () => onNav("rekeningen") })),
-    ...dosMatches.map((d2) => ({ kind: "dos", label: d2.name, hint: "Dossier", run: () => onNav("dossiers") }))
+    ...txMatches.map((t) => ({ kind: "tx", label: t.description || tt("common.noDescription"), hint: fmtEUR(t.amount), run: () => onSearchTx(t.description) })),
+    ...accMatches.map((a) => ({ kind: "acc", label: a.name, hint: tt("common.account"), run: () => onNav("rekeningen") })),
+    ...dosMatches.map((d2) => ({ kind: "dos", label: d2.name, hint: tt("common.dossier"), run: () => onNav("dossiers") }))
   ];
   const [hi, setHi] = useState(0);
   useEffect(() => { setHi(0); }, [q]);
@@ -4171,7 +4543,7 @@ const CommandPalette = ({ data, onNav, onNewTx, onClose, onSearchTx }) => {
       /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-slate-100" },
         /* @__PURE__ */ React.createElement(Search, { size: 16, className: "text-slate-400 flex-shrink-0" }),
         /* @__PURE__ */ React.createElement("input", {
-          ref: inputRef, value: q, onChange: (e) => setQ(e.target.value), placeholder: "Zoek of navigeer... (bv. transacties, Colruyt, rekeningen)",
+          ref: inputRef, value: q, onChange: (e) => setQ(e.target.value), placeholder: tt("palette.searchPlaceholder"),
           className: "flex-1 text-sm outline-none",
           onKeyDown: (e) => {
             if (e.key === "ArrowDown") { e.preventDefault(); setHi((i) => Math.min(rows.length - 1, i + 1)); }
@@ -4262,7 +4634,7 @@ const Sidebar = ({ current, onNav, open, onToggle, profile }) => /* @__PURE__ */
 const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title }) => {
   var _a;
   title = title || tt("txform.newTitle");
-  const blank = { date: fmt(today), description: "", amount: "", type: "expense", hoofdtype: "Variabele Uitgaven", overkoepelend: "", category: "", itemName: "", itemId: "", accountId: ((_a = data.accounts[0]) == null ? void 0 : _a.id) || "", brand: "", quantity: "", unit: "", notes: "", isPromo: false, grossPrice: "", dossierId: "", docId: "", docName: "" };
+  const blank = { date: fmt(today), description: "", amount: "", type: "expense", hoofdtype: "Variabele Uitgaven", overkoepelend: "", category: "", itemName: "", itemId: "", accountId: ((_a = data.accounts[0]) == null ? void 0 : _a.id) || "", brand: "", quantity: "", unit: "", notes: "", isPromo: false, grossPrice: "", dossierId: "", docId: "", docName: "", barcode: "" };
   const [form, setForm] = useState(initial || blank);
   const [search, setSearch] = useState((initial == null ? void 0 : initial.itemName) || "");
   const [showRes, setShowRes] = useState(false);
@@ -4279,7 +4651,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title }) => {
   const splitSearchRefs = useRef({});
   const splitAmountRefs = useRef({});
   const splitHlRefs = useRef({});
-  const [splits, setSplits] = useState((initial && initial.splits) || [{ id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false, hlIdx: -1, quantity: "", unit: "" }]);
+  const [splits, setSplits] = useState((initial && initial.splits) || [{ id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false, hlIdx: -1, quantity: "", unit: "", barcode: "" }]);
   const splitTotal = splits.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
   const splitDiff = (parseFloat(form.amount) || 0) - splitTotal;
   const getSplitResults = (q2) => {
@@ -4289,11 +4661,13 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title }) => {
   };
   const selectSplitItem = (lineId, it) => {
     splitHlRefs.current[lineId] = -1;
+    var curLine = splits.find((l) => l.id === lineId);
+    if (curLine && curLine.barcode) window._saveBarcodeMapping && window._saveBarcodeMapping(curLine.barcode, { itemId: it.id, itemName: it.name, category: it.category, overkoepelend: it.overkoepelend, unit: curLine.unit || it.unit || "" });
     setSplits((s) => s.map((l) => l.id === lineId ? Object.assign({}, l, { description: it.name, overkoepelend: it.overkoepelend, category: it.category, itemName: it.name, search: it.name, showRes: false, hlIdx: -1, unit: l.unit || it.unit || "" }) : l));
     setTimeout(() => { var el = splitAmountRefs.current[lineId]; if (el) el.focus(); }, 30);
   };
   const addSplitLine = () => {
-    const nl = { id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false, hlIdx: -1, quantity: "", unit: "" };
+    const nl = { id: generateId(), description: "", amount: "", overkoepelend: "", category: "", itemName: "", search: "", showRes: false, hlIdx: -1, quantity: "", unit: "", barcode: "" };
     setSplits((s) => [...s, nl]);
     setTimeout(() => { var el = splitSearchRefs.current[nl.id]; if (el) el.focus(); }, 30);
     return nl.id;
@@ -4303,6 +4677,41 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title }) => {
   const updateSplitLineFields = (id, fields) => setSplits((s) => s.map((l) => l.id === id ? Object.assign({}, l, fields) : l));
   const [qaForm, setQaForm] = useState({ name: "", overkoepelend: "", categorie: "" });
   const [showMerchant, setShowMerchant] = useState(false);
+  const [showScan, setShowScan] = useState(false);
+  const [scanLineId, setScanLineId] = useState(null);
+  const handleMainScanDetected = async (code) => {
+    setShowScan(false);
+    const res = await lookupBarcode(code, data);
+    if (res.source === "local") {
+      setForm((f) => ({ ...f, barcode: code, itemId: res.itemId || "", itemName: res.itemName || "", category: res.category || "", overkoepelend: res.overkoepelend || "", unit: res.unit || f.unit || "", brand: res.brand || f.brand || "" }));
+      setSearch(res.itemName || "");
+      window._appToast && window._appToast(tt("txform.scanFoundLocal"));
+    } else if (res.source === "off") {
+      setForm((f) => ({ ...f, barcode: code, brand: res.brand || f.brand, quantity: res.quantity || f.quantity, unit: res.unit || f.unit }));
+      setSearch(res.name || "");
+      setShowRes(true);
+      window._appToast && window._appToast(tt("txform.scanFoundOff"));
+    } else {
+      setForm((f) => ({ ...f, barcode: code }));
+      setSearch("");
+      window._appToast && window._appToast(tt("txform.scanNotFound"), res.source === "error" ? "error" : "success");
+    }
+  };
+  const handleSplitScanDetected = async (code) => {
+    var lineId = scanLineId;
+    setScanLineId(null);
+    const res = await lookupBarcode(code, data);
+    if (res.source === "local") {
+      updateSplitLineFields(lineId, { barcode: code, itemId: res.itemId || "", itemName: res.itemName || "", description: res.itemName || "", search: res.itemName || "", category: res.category || "", overkoepelend: res.overkoepelend || "", unit: res.unit || "" });
+      window._appToast && window._appToast(tt("txform.scanFoundLocal"));
+    } else if (res.source === "off") {
+      updateSplitLineFields(lineId, { barcode: code, description: res.name || "", search: res.name || "", showRes: true, unit: res.unit || "", quantity: res.quantity || "" });
+      window._appToast && window._appToast(tt("txform.scanFoundOff"));
+    } else {
+      updateSplitLineFields(lineId, { barcode: code });
+      window._appToast && window._appToast(tt("txform.scanNotFound"), res.source === "error" ? "error" : "success");
+    }
+  };
   // Leert uit je transactiegeschiedenis: bij een gekende omschrijving wordt
   // de vaakst gebruikte categorie voorgesteld (recent gebruik weegt dubbel)
   const historySuggestion = useMemo(() => {
@@ -4357,7 +4766,10 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title }) => {
     }).slice(0, 8);
   }, [search, flatItems, form.type]);
   const selectItem = (it) => {
-    setForm((f) => ({ ...f, itemId: it.id, itemName: it.name, category: it.category, overkoepelend: it.overkoepelend, hoofdtype: it.hoofdtype, unit: f.unit || it.unit || "" }));
+    setForm((f) => {
+      if (f.barcode) window._saveBarcodeMapping && window._saveBarcodeMapping(f.barcode, { itemId: it.id, itemName: it.name, category: it.category, overkoepelend: it.overkoepelend, unit: f.unit || it.unit || "", brand: f.brand || "" });
+      return { ...f, itemId: it.id, itemName: it.name, category: it.category, overkoepelend: it.overkoepelend, hoofdtype: it.hoofdtype, unit: f.unit || it.unit || "" };
+    });
     setSearch(it.name);
     setShowRes(false);
   };
@@ -4436,6 +4848,8 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title }) => {
   return /* @__PURE__ */ React.createElement(
     Modal,
     { title, onClose },
+    showScan && /* @__PURE__ */ React.createElement(BarcodeScanModal, { onDetected: handleMainScanDetected, onClose: () => setShowScan(false) }),
+    scanLineId && /* @__PURE__ */ React.createElement(BarcodeScanModal, { onDetected: handleSplitScanDetected, onClose: () => setScanLineId(null) }),
     /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5" }, Object.entries(typeConfig).map(([key, cfg]) => /* @__PURE__ */ React.createElement("button", { key, onClick: () => handleTypeChange(key), className: "flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium border-2 transition-all", style: { borderColor: form.type === key ? cfg.color : "#E4D8C8", backgroundColor: form.type === key ? cfg.color + "15" : "white", color: form.type === key ? cfg.color : "#83705C" } }, /* @__PURE__ */ React.createElement("span", { className: "text-base" }, cfg.icon), cfg.label))),
     /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement(FormField, { label: tt("common.date") }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: form.date, onChange: (e) => setForm((f) => ({ ...f, date: e.target.value })) })), /* @__PURE__ */ React.createElement(FormField, { label: tt("common.amount") + " (\u20AC)", hint: tt("txform.amountHint") }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", placeholder: "0,00", value: form.amount, onChange: (e) => setForm((f) => ({ ...f, amount: e.target.value })) }))),
     /* @__PURE__ */ React.createElement(FormField, { label: tt("common.description") },
@@ -4488,6 +4902,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title }) => {
         const lineHl = line.hlIdx || -1;
         return /* @__PURE__ */ React.createElement("div", { key: line.id, className: "mb-2 p-2 bg-white rounded-lg border border-slate-200" },
           /* @__PURE__ */ React.createElement("div", { className: "relative mb-1.5" },
+            /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setScanLineId(line.id), title: tt("txform.scanBtn"), className: "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-teal-600 hover:bg-teal-50 z-10" }, /* @__PURE__ */ React.createElement(ScanLine, { size: 15 })),
             /* @__PURE__ */ React.createElement("input", {
               type: "text", placeholder: tt("txform.searchProductPlaceholder"),
               value: line.search || line.description,
@@ -4517,7 +4932,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title }) => {
                   if (target) { e.preventDefault(); selectSplitItem(line.id, target); }
                 }
               },
-              className: "w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-400"
+              className: "w-full pr-8 px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-400"
             }),
             line.showRes && (splitRes.length > 0 || (line.search || line.description)) && /* @__PURE__ */ React.createElement("div", {
               className: "absolute z-50 w-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden",
@@ -4566,7 +4981,7 @@ const TxForm = ({ data, initial, onSave, onClose, onAddCategory, title }) => {
       }),
       /* @__PURE__ */ React.createElement("button", { type: "button", onClick: addSplitLine, className: "text-xs text-teal-600 hover:text-teal-800 font-medium mt-1" }, tt("txform.addLineBtn"))
     ),
-    /* @__PURE__ */ React.createElement(FormField, { label: tt("common.category"), hint: tt("txform.categoryHint") }, /* @__PURE__ */ React.createElement("div", { className: "relative", ref: searchRef }, /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(Search, { size: 14, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }), /* @__PURE__ */ React.createElement("input", { className: "pl-8 w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white", placeholder: tt("txform.typeToSearchPlaceholder"), value: search, autoComplete: "off",
+    /* @__PURE__ */ React.createElement(FormField, { label: tt("common.category"), hint: tt("txform.categoryHint") }, /* @__PURE__ */ React.createElement("div", { className: "relative", ref: searchRef }, /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(Search, { size: 14, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setShowScan(true), title: tt("txform.scanBtn"), className: "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-teal-600 hover:bg-teal-50" }, /* @__PURE__ */ React.createElement(ScanLine, { size: 16 })), /* @__PURE__ */ React.createElement("input", { className: "pl-8 pr-9 w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white", placeholder: tt("txform.typeToSearchPlaceholder"), value: search, autoComplete: "off",
       onChange: function(e) { setSearch(e.target.value); setHlIdx(-1); setShowRes(true); if (!e.target.value) setForm(function(f) { return Object.assign({}, f, { itemId: "", itemName: "", category: "", overkoepelend: "" }); }); },
       onFocus: function() { setShowRes(true); },
       onKeyDown: function(e) {
@@ -4937,19 +5352,19 @@ const TransactiesPage = ({ data, onData, onAdd, onUpdate, onDelete, toast, initi
       /* @__PURE__ */ React.createElement("button", { onClick: () => setRecForm({ ...r, amount: String(r.amount) }), title: tt("common.edit"), className: "p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50" }, "\u270F\uFE0F"),
       /* @__PURE__ */ React.createElement("button", { onClick: () => delRec(r), title: tt("common.delete"), className: "p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50" }, "\u{1F5D1}")))),
     /* @__PURE__ */ React.createElement(Btn, { onClick: () => setRecForm({ description: "", amount: "", hoofdtype: "Vaste Uitgaven", overkoepelend: "", category: "", itemName: "", accountId: (data.accounts[0] || {}).id || "", interval: "monthly", nextDate: fmt(today), autoBook: false, active: true }) }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), tt("recurring.newBtn"))),
-  recForm && /* @__PURE__ */ React.createElement(Modal, { title: recForm.id ? "Vaste last bewerken" : "Nieuwe vaste last", onClose: () => setRecForm(null) },
-    /* @__PURE__ */ React.createElement(FormField, { label: "Omschrijving" }, /* @__PURE__ */ React.createElement(Input, { placeholder: "Bv. Netflix, Huishuur...", value: recForm.description, onChange: (e) => setRecForm((f) => ({ ...f, description: e.target.value })) })),
+  recForm && /* @__PURE__ */ React.createElement(Modal, { title: recForm.id ? tt("recurring.editTitle") : tt("recurring.newBtn"), onClose: () => setRecForm(null) },
+    /* @__PURE__ */ React.createElement(FormField, { label: tt("common.description") }, /* @__PURE__ */ React.createElement(Input, { placeholder: tt("recurring.descPlaceholder"), value: recForm.description, onChange: (e) => setRecForm((f) => ({ ...f, description: e.target.value })) })),
     /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" },
-      /* @__PURE__ */ React.createElement(FormField, { label: "Bedrag (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", value: recForm.amount, onChange: (e) => setRecForm((f) => ({ ...f, amount: e.target.value })) })),
-      /* @__PURE__ */ React.createElement(FormField, { label: "Type" }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.hoofdtype, onChange: (e) => setRecForm((f) => ({ ...f, hoofdtype: e.target.value })) }, ["Vaste Uitgaven", "Variabele Uitgaven", "Sparen", "Inkomsten"].map((h) => /* @__PURE__ */ React.createElement("option", { key: h, value: h }, h))))),
-    /* @__PURE__ */ React.createElement(FormField, { label: "Hoofdcategorie" }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.overkoepelend, onChange: (e) => setRecForm((f) => ({ ...f, overkoepelend: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Kies..."), ovListRec.map((o) => /* @__PURE__ */ React.createElement("option", { key: o, value: o }, o)))),
+      /* @__PURE__ */ React.createElement(FormField, { label: tt("common.amount") + " (\u20AC)" }, /* @__PURE__ */ React.createElement(Input, { type: "number", step: "0.01", min: "0", value: recForm.amount, onChange: (e) => setRecForm((f) => ({ ...f, amount: e.target.value })) })),
+      /* @__PURE__ */ React.createElement(FormField, { label: tt("common.type") }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.hoofdtype, onChange: (e) => setRecForm((f) => ({ ...f, hoofdtype: e.target.value })) }, ["Vaste Uitgaven", "Variabele Uitgaven", "Sparen", "Inkomsten"].map((h) => /* @__PURE__ */ React.createElement("option", { key: h, value: h }, hoofdtypeLabel(h)))))),
+    /* @__PURE__ */ React.createElement(FormField, { label: tt("common.mainCategory") }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.overkoepelend, onChange: (e) => setRecForm((f) => ({ ...f, overkoepelend: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "" }, tt("common.choose")), ovListRec.map((o) => /* @__PURE__ */ React.createElement("option", { key: o, value: o }, ovName(o))))),
     /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-4" },
-      /* @__PURE__ */ React.createElement(FormField, { label: "Herhaling" }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.interval, onChange: (e) => setRecForm((f) => ({ ...f, interval: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "weekly" }, "Wekelijks"), /* @__PURE__ */ React.createElement("option", { value: "monthly" }, "Maandelijks"), /* @__PURE__ */ React.createElement("option", { value: "yearly" }, "Jaarlijks"))),
-      /* @__PURE__ */ React.createElement(FormField, { label: "Volgende vervaldag" }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: recForm.nextDate, onChange: (e) => setRecForm((f) => ({ ...f, nextDate: e.target.value })) }))),
-    /* @__PURE__ */ React.createElement(FormField, { label: "Rekening" }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.accountId, onChange: (e) => setRecForm((f) => ({ ...f, accountId: e.target.value })) }, data.accounts.filter((a) => a.active).map((a) => /* @__PURE__ */ React.createElement("option", { key: a.id, value: a.id }, a.name)))),
-    /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-2 mb-3 cursor-pointer" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !!recForm.autoBook, onChange: (e) => setRecForm((f) => ({ ...f, autoBook: e.target.checked })) }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-700" }, "Automatisch boeken op de vervaldag")),
-    /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-2 mb-4 cursor-pointer" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !!recForm.active, onChange: (e) => setRecForm((f) => ({ ...f, active: e.target.checked })) }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-700" }, "Actief")),
-    /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setRecForm(null) }, "Annuleren"), /* @__PURE__ */ React.createElement(Btn, { onClick: saveRec, disabled: !recForm.description || !recForm.amount || !recForm.nextDate }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Opslaan"))), showForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, onSave: (tx) => {
+      /* @__PURE__ */ React.createElement(FormField, { label: tt("recurring.intervalLabel") }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.interval, onChange: (e) => setRecForm((f) => ({ ...f, interval: e.target.value })) }, /* @__PURE__ */ React.createElement("option", { value: "weekly" }, tt("recurring.weekly")), /* @__PURE__ */ React.createElement("option", { value: "monthly" }, tt("recurring.monthly")), /* @__PURE__ */ React.createElement("option", { value: "yearly" }, tt("recurring.yearly")))),
+      /* @__PURE__ */ React.createElement(FormField, { label: tt("recurring.nextDueLabel") }, /* @__PURE__ */ React.createElement(Input, { type: "date", value: recForm.nextDate, onChange: (e) => setRecForm((f) => ({ ...f, nextDate: e.target.value })) }))),
+    /* @__PURE__ */ React.createElement(FormField, { label: tt("common.account") }, /* @__PURE__ */ React.createElement(Sel, { value: recForm.accountId, onChange: (e) => setRecForm((f) => ({ ...f, accountId: e.target.value })) }, data.accounts.filter((a) => a.active).map((a) => /* @__PURE__ */ React.createElement("option", { key: a.id, value: a.id }, a.name)))),
+    /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-2 mb-3 cursor-pointer" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !!recForm.autoBook, onChange: (e) => setRecForm((f) => ({ ...f, autoBook: e.target.checked })) }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-700" }, tt("recurring.autoBookLabel"))),
+    /* @__PURE__ */ React.createElement("label", { className: "flex items-center gap-2 mb-4 cursor-pointer" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !!recForm.active, onChange: (e) => setRecForm((f) => ({ ...f, active: e.target.checked })) }), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-slate-700" }, tt("common.active"))),
+    /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-end" }, /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setRecForm(null) }, tt("common.cancel")), /* @__PURE__ */ React.createElement(Btn, { onClick: saveRec, disabled: !recForm.description || !recForm.amount || !recForm.nextDate }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), tt("common.save")))), showForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, onSave: (tx) => {
     onAdd(tx);
     toast(tt("toast.txSaved"));
   }, onClose: () => setShowForm(false) }), editTx && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, initial: { ...editTx, type: editTx.hoofdtype === "Inkomsten" ? "income" : editTx.hoofdtype === "Sparen" ? "saving" : editTx.hoofdtype === "Vaste Uitgaven" ? "fixed" : "expense" }, title: tt("transacties.editTitle"), onSave: (tx) => {
@@ -4965,7 +5380,7 @@ const TransactiesPage = ({ data, onData, onAdd, onUpdate, onDelete, toast, initi
 // waarin ik de dokter betaal en de expartner de mutualiteit ontvangt.
 const dossierItemsVoor = (dossier, data) => {
   const txItems = (data.transactions || []).filter((t) => t.dossierId === dossier.id).map((t) => ({
-    id: t.id, date: t.date, description: t.description || "(zonder omschrijving)", amount: t.amount,
+    id: t.id, date: t.date, description: t.description || tt("common.noDescription"), amount: t.amount,
     party: "me", kind: isExpense(t) ? "expense" : "refund", source: "tx", docId: t.docId, docName: t.docName
   }));
   const manItems = (data.dossierEntries || []).filter((e) => e.dossierId === dossier.id).map((e) => Object.assign({}, e, { source: "man" }));
@@ -5574,7 +5989,7 @@ const AnalysePage = ({ data }) => {
     const d = new Date(today);
     d.setDate(1);
     d.setMonth(d.getMonth() - 1);
-    return d.toISOString().slice(0, 7);
+    return fmt(d).slice(0, 7); // lokale klok — toISOString() zat rond middernacht een maand fout
   }, []);
   const COLORS2 = [T.teal, T.amber, "#96588A", "#3E7C7B", "#3F8A58", "#C97B8B", "#B08A2E", "#83705C"];
   const SUB_COLORS = ["#C56A1F","#F59E0B","#96588A","#3E7C7B","#3F8A58","#C97B8B","#C1502E","#D64545","#4E8D8C","#7A8B3E","#A34A5E","#83705C"];
@@ -6056,7 +6471,7 @@ const InstellingenPage = ({ data, onUpdate, onReset, toast }) => {
     toast(tt("toast.sampleDataRestored"));
   }, className: "mt-4 text-xs text-slate-400 hover:text-slate-600 underline" }, tt("instellingen.restoreSampleData")))))
 };
-function App({ data, onUpdate, syncStatus }) {
+function App({ data, onUpdate, syncStatus, onLogout }) {
   // Meertaligheid: de actieve taal wordt hier — vóór alle onderliggende schermen renderen —
   // gesynchroniseerd met de bewaarde instelling, zodat datums en bedragen overal in de juiste taal staan.
   CURRENT_LANG = (data.settings && data.settings.language) || "nl";
@@ -6123,37 +6538,60 @@ function App({ data, onUpdate, syncStatus }) {
   // "Vraag het telkens even": bij een transactie mét document eerst kiezen
   // wat er met het bestand in Drive moet gebeuren.
   const [docAsk, setDocAsk] = useState(null);
+  const [docAskBusy, setDocAskBusy] = useState(false);
   const deleteTxSmart = useCallback((id) => {
     const t = data.transactions.filter((x) => x.id === id)[0];
     if (t && t.docId) setDocAsk({ id, docId: t.docId, docName: t.docName || "document" });
     else deleteTx(id);
   }, [data.transactions, deleteTx]);
+  // Veilige volgorde: de transactie wordt pas gewist NADAT Drive bevestigd
+  // heeft dat het document in de prullenbak zit. Valt de verbinding weg, dan
+  // blijft de transactie gewoon staan (met foutmelding) — zo kunnen er geen
+  // "weesbestanden" in Drive achterblijven waar geen transactie meer naar wijst.
   const resolveDocAsk = (naarPrullenbak) => {
-    if (naarPrullenbak) {
-      if (window._driveConnected && typeof driveTrashDocument === "function") {
-        driveTrashDocument(docAsk.docId).then(function() {
-          if (window._appToast) window._appToast(tt("toast.docMovedToTrash"));
-        }).catch(function() {
-          if (window._appToast) window._appToast(tt("toast.docNotFoundMaybeDeleted"), "error");
-        });
-      } else if (window._appToast) window._appToast(tt("toast.noDriveConnectionKept"), "error");
+    if (docAskBusy) return;
+    if (!naarPrullenbak) { deleteTx(docAsk.id); setDocAsk(null); return; }
+    if (!(window._driveConnected && typeof driveTrashDocument === "function")) {
+      // Gebruiker koos uitdrukkelijk "naar de prullenbak", maar er is geen
+      // verbinding: dan wissen we ook de transactie niet. De keuzes
+      // "document laten staan" en "annuleren" blijven beschikbaar.
+      addToast(tt("toast.noDriveConnectionTxKept"), "error");
+      return;
     }
-    deleteTx(docAsk.id);
-    setDocAsk(null);
+    setDocAskBusy(true);
+    const ask = docAsk;
+    driveTrashDocument(ask.docId).then(function() {
+      setDocAskBusy(false);
+      setDocAsk(null);
+      addToast(tt("toast.docMovedToTrash"));
+      deleteTx(ask.id);
+    }).catch(function(e) {
+      setDocAskBusy(false);
+      const notFound = e && (e.status === 404 || (e.result && e.result.error && e.result.error.code === 404));
+      if (notFound) {
+        // Document bestond al niet meer in Drive: er kán geen wees ontstaan,
+        // dus de transactie mag gewoon weg.
+        setDocAsk(null);
+        addToast(tt("toast.docNotFoundMaybeDeleted"));
+        deleteTx(ask.id);
+        return;
+      }
+      addToast(tt("toast.docTrashFailedTxKept"), "error");
+    });
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "flex h-screen overflow-hidden", style: { backgroundColor: T.slate50, fontFamily: "Inter,system-ui,sans-serif" } }, /* @__PURE__ */ React.createElement(Sidebar, { current: page, onNav: setPage, open: sidebarOpen, onToggle: () => setSidebarOpen((s) => !s), profile: data.userProfile }), /* @__PURE__ */ React.createElement(BottomNav, { current: page, onNav: setPage, onAdd: () => setShowTxForm(true) }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 flex flex-col min-w-0 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 px-4 py-3 bg-white border-b border-slate-100 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setSidebarOpen((s) => !s), className: "hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500" }, /* @__PURE__ */ React.createElement(Menu, { size: 18 })), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }), /* @__PURE__ */ React.createElement(SyncIndicator, { status: syncStatus }), /* @__PURE__ */ React.createElement(Btn, { size: "sm", onClick: () => setShowTxForm(true) }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), tt("dashboard.newTransaction")), /* @__PURE__ */ React.createElement("button", { className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500 relative" }, /* @__PURE__ */ React.createElement(Bell, { size: 18 }), data.budgets.some((b) => {
+  return /* @__PURE__ */ React.createElement("div", { className: "flex h-screen overflow-hidden", style: { backgroundColor: T.slate50, fontFamily: "Inter,system-ui,sans-serif" } }, /* @__PURE__ */ React.createElement(Sidebar, { current: page, onNav: setPage, open: sidebarOpen, onToggle: () => setSidebarOpen((s) => !s), profile: data.userProfile }), /* @__PURE__ */ React.createElement(BottomNav, { current: page, onNav: setPage, onAdd: () => setShowTxForm(true) }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 flex flex-col min-w-0 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 px-4 py-3 bg-white border-b border-slate-100 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setSidebarOpen((s) => !s), className: "hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500" }, /* @__PURE__ */ React.createElement(Menu, { size: 18 })), /* @__PURE__ */ React.createElement("div", { className: "flex-1" }), /* @__PURE__ */ React.createElement(SyncIndicator, { status: syncStatus }), /* @__PURE__ */ React.createElement(Btn, { size: "sm", onClick: () => setShowTxForm(true) }, /* @__PURE__ */ React.createElement(Plus, { size: 14 }), tt("dashboard.newTransaction")), /* @__PURE__ */ React.createElement("button", { className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500 relative" }, /* @__PURE__ */ React.createElement(Bell, { size: 27 }), data.budgets.some((b) => {
     const spent = data.transactions.filter((t) => isExpense(t) && t.overkoepelend === b.overkoepelend && getMonth(t.date) === currentMonth).reduce((s, t) => s + t.amount, 0);
     return b.amount > 0 && spent / b.amount > 0.85;
-  }) && /* @__PURE__ */ React.createElement("span", { className: "absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" }))), /* @__PURE__ */ React.createElement("main", { className: "flex-1 overflow-y-auto pb-24 lg:pb-0" }, page === "dashboard" && /* @__PURE__ */ React.createElement(Dashboard, { data, onData: update, onQuickAdd: () => setShowTxForm(true), onDeleteTx: deleteTxSmart, toast: addToast, profile: data.userProfile }), page === "transacties" && /* @__PURE__ */ React.createElement(TransactiesPage, { data, onData: update, onAdd: (tx) => {
+  }) && /* @__PURE__ */ React.createElement("span", { className: "absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" })), /* @__PURE__ */ React.createElement("button", { onClick: () => onLogout && onLogout(), className: "p-2 rounded-lg hover:bg-slate-100 text-slate-500", title: tt("common.logout") }, /* @__PURE__ */ React.createElement(LogOut, { size: 27 }))), /* @__PURE__ */ React.createElement("main", { className: "flex-1 overflow-y-auto pb-24 lg:pb-0" }, page === "dashboard" && /* @__PURE__ */ React.createElement(Dashboard, { data, onData: update, onQuickAdd: () => setShowTxForm(true), onDeleteTx: deleteTxSmart, toast: addToast, profile: data.userProfile }), page === "transacties" && /* @__PURE__ */ React.createElement(TransactiesPage, { data, onData: update, onAdd: (tx) => {
     addTx(tx);
   }, onUpdate: (tx) => {
     updateTx(tx);
-  }, onDelete: deleteTxSmart, toast: addToast, initialSearch: txSearchPrefill, onConsumeInitialSearch: () => setTxSearchPrefill(null) }), page === "rekeningen" && /* @__PURE__ */ React.createElement(RekeningenPage, { data, onUpdate: update, toast: addToast }), page === "spaardoelen" && /* @__PURE__ */ React.createElement(SpaardoelenPage, { data, onUpdate: update, toast: addToast }), page === "budgetten" && /* @__PURE__ */ React.createElement(BudgettenPage, { data, onUpdate: update, toast: addToast }), page === "dossiers" && /* @__PURE__ */ React.createElement(DossiersPage, { data, onUpdate: update, toast: addToast }), page === "analyse" && /* @__PURE__ */ React.createElement(AnalysePage, { data }), page === "categorieen" && /* @__PURE__ */ React.createElement(CategorieeenPage, { data, onUpdate: update, toast: addToast }), page === "instellingen" && /* @__PURE__ */ React.createElement(InstellingenPage, { data, onUpdate: update, onReset: () => update(() => SAMPLE_DATA), toast: addToast }))), docAsk && /* @__PURE__ */ React.createElement(Modal, { title: tt("docAsk.title"), onClose: () => setDocAsk(null) },
+  }, onDelete: deleteTxSmart, toast: addToast, initialSearch: txSearchPrefill, onConsumeInitialSearch: () => setTxSearchPrefill(null) }), page === "rekeningen" && /* @__PURE__ */ React.createElement(RekeningenPage, { data, onUpdate: update, toast: addToast }), page === "spaardoelen" && /* @__PURE__ */ React.createElement(SpaardoelenPage, { data, onUpdate: update, toast: addToast }), page === "budgetten" && /* @__PURE__ */ React.createElement(BudgettenPage, { data, onUpdate: update, toast: addToast }), page === "dossiers" && /* @__PURE__ */ React.createElement(DossiersPage, { data, onUpdate: update, toast: addToast }), page === "analyse" && /* @__PURE__ */ React.createElement(AnalysePage, { data }), page === "categorieen" && /* @__PURE__ */ React.createElement(CategorieeenPage, { data, onUpdate: update, toast: addToast }), page === "instellingen" && /* @__PURE__ */ React.createElement(InstellingenPage, { data, onUpdate: update, onReset: () => update(() => SAMPLE_DATA), toast: addToast }))), docAsk && /* @__PURE__ */ React.createElement(Modal, { title: tt("docAsk.title"), onClose: () => { if (!docAskBusy) setDocAsk(null); } },
     /* @__PURE__ */ React.createElement("p", { className: "text-sm text-slate-600 mb-4" }, tt("docAsk.explainPrefix") + " \u201C", docAsk.docName, "\u201D " + tt("docAsk.explainSuffix")),
     /* @__PURE__ */ React.createElement("div", { className: "flex flex-col gap-2" },
-      /* @__PURE__ */ React.createElement(Btn, { variant: "danger", onClick: () => resolveDocAsk(true) }, /* @__PURE__ */ React.createElement(Trash2, { size: 14 }), tt("docAsk.toTrash")),
-      /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => resolveDocAsk(false) }, tt("docAsk.keep")),
-      /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: () => setDocAsk(null) }, tt("docAsk.cancel")))), showTxForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, onSave: (tx) => {
+      /* @__PURE__ */ React.createElement(Btn, { variant: "danger", disabled: docAskBusy, onClick: () => resolveDocAsk(true) }, /* @__PURE__ */ React.createElement(Trash2, { size: 14 }), docAskBusy ? tt("docAsk.busy") : tt("docAsk.toTrash")),
+      /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", disabled: docAskBusy, onClick: () => resolveDocAsk(false) }, tt("docAsk.keep")),
+      /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", disabled: docAskBusy, onClick: () => setDocAsk(null) }, tt("docAsk.cancel")))), showTxForm && /* @__PURE__ */ React.createElement(TxForm, { data, onAddCategory: window._addCategory, onSave: (tx) => {
     addTx(tx);
     addToast(tt("toast.txSaved"));
     setShowTxForm(false);
@@ -6175,12 +6613,12 @@ function LoginScreen(props) {
       { style: { background: "white", borderRadius: "24px", boxShadow: "0 25px 50px rgba(0,0,0,0.4)", padding: "32px", maxWidth: "360px", width: "100%", textAlign: "center" } },
       ce("div", { style: { width: 64, height: 64, borderRadius: 16, backgroundColor: "#F59E0B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px" } }, "\u{1F48E}"),
       ce("h1", { style: { fontSize: 24, fontWeight: 700, color: "#33281F", margin: "0 0 4px" } }, "Financieel Kompas"),
-      ce("p", { style: { color: "#A08C77", fontSize: 14, margin: "0 0 32px" } }, "Jouw persoonlijke budgetplanner"),
+      ce("p", { style: { color: "#A08C77", fontSize: 14, margin: "0 0 32px" } }, tt("loginScreen.tagline")),
       props.clientIdMissing ? ce(
         "div",
         { style: { padding: 16, background: "#FFF7E6", borderRadius: 12, fontSize: 14, color: "#92400e" } },
-        ce("strong", null, "Setup: "),
-        "Vervang YOUR_GOOGLE_CLIENT_ID op regel 23."
+        ce("strong", null, tt("loginScreen.setupLabel")),
+        tt("loginScreen.setupInstructions")
       ) : ce(
         React.Fragment,
         null,
@@ -6198,9 +6636,9 @@ function LoginScreen(props) {
             ce("path", { fill: "#FBBC05", d: "M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" }),
             ce("path", { fill: "#EA4335", d: "M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" })
           ),
-          "Aanmelden met Google"
+          tt("loginScreen.signInBtn")
         ),
-        ce("p", { style: { fontSize: 12, color: "#A08C77" } }, "Je data wordt opgeslagen in jouw Google Drive.")
+        ce("p", { style: { fontSize: 12, color: "#A08C77" } }, tt("loginScreen.storageNotice"))
       )
     )
   );
@@ -6219,6 +6657,37 @@ function Root() {
   var setSyncStatus = s3[1];
   var clientId = window.GOOGLE_CLIENT_ID || "";
   var clientIdMissing = !clientId || clientId === "YOUR_GOOGLE_CLIENT_ID";
+  var driveSignOut = function() {
+    try {
+      var tok = (window.gapi && gapi.client && gapi.client.getToken) ? gapi.client.getToken() : null;
+      if (tok && tok.access_token && window.google && google.accounts && google.accounts.oauth2) {
+        google.accounts.oauth2.revoke(tok.access_token, function() {});
+      }
+      if (window.gapi && gapi.client && gapi.client.setToken) gapi.client.setToken(null);
+    } catch (e) {}
+    window._driveConnected = false;
+    window._driveEmail = null;
+    _fileId = null;
+    setDriveState("login");
+  };
+  // De eigenlijke opslag naar Drive. Apart gezet zodat zowel de gewone
+  // (uitgestelde) opslag als de "app gaat naar de achtergrond"-spoedopslag
+  // exact dezelfde weg volgen. window._fkDirty = zijn er wijzigingen die
+  // Drive nog niet bevestigd heeft? (gebruikt door de sluit-waarschuwing)
+  var performSave = useCallback(function(next) {
+    if (!window._driveConnected) return;
+    setSyncStatus("saving");
+    driveSave(next).then(function() {
+      window._fkDirty = false;
+      setSyncStatus("saved");
+    }).catch(function(e) {
+      console.error("Drive save:", e);
+      setSyncStatus("error");
+      // Onderscheid: verlopen sessie (auth) versus netwerk-/andere fout —
+      // elk krijgt zijn eigen, eerlijke melding.
+      if (window._onSaveError) window._onSaveError(_isAuthError(e) ? "auth" : "network");
+    });
+  }, []);
   var update = useCallback(function(fn) {
     var current = dataRef.current;
     var next = typeof fn === "function" ? fn(current) : fn;
@@ -6226,28 +6695,105 @@ function Root() {
     setTick(function(t) {
       return t + 1;
     });
-    if (window._driveConnected) setSyncStatus("pending");
+    if (window._driveConnected) { setSyncStatus("pending"); window._fkDirty = true; }
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(function() {
-      if (!window._driveConnected) return;
-      setSyncStatus("saving");
-      driveSave(next).then(function() {
-        setSyncStatus("saved");
-      }).catch(function(e) {
-        console.error("Drive save:", e);
-        setSyncStatus("error");
-        if (window._onSaveError) window._onSaveError();
-      });
+      performSave(next);
     }, 500);
+  }, [performSave]);
+  // Vangnet 1: waarschuw bij het sluiten van tabblad/venster zolang de
+  // laatste wijziging nog niet door Drive bevestigd is.
+  useEffect(function() {
+    var h = function(e) {
+      if (window._driveConnected && window._fkDirty) { e.preventDefault(); e.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", h);
+    return function() { window.removeEventListener("beforeunload", h); };
   }, []);
+  // Vangnet 2 (vooral voor mobiel, waar zo'n waarschuwing niet bestaat):
+  // gaat de app naar de achtergrond terwijl er iets klaarstaat, dan slaan we
+  // meteen op in plaats van de 500 ms af te wachten.
+  useEffect(function() {
+    var onHide = function() {
+      if (document.visibilityState === "hidden" && window._fkDirty && window._driveConnected) {
+        clearTimeout(saveTimer.current);
+        performSave(dataRef.current);
+      }
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return function() { document.removeEventListener("visibilitychange", onHide); };
+  }, [performSave]);
+  // Dagwissel-bewaking: blijft de app openstaan tot na middernacht, of komt ze
+  // op de telefoon na een tijd weer naar voren, dan verversen we "vandaag"
+  // (datumveld, dashboardmaand) en boeken we vaste lasten die intussen vervielen.
+  useEffect(function() {
+    function checkDate() {
+      if (!refreshTodayIfNeeded()) return;
+      if (dataRef.current && dataRef.current.transactions) {
+        var res = processRecurringAutoBook(dataRef.current);
+        if (res.booked > 0) {
+          update(function() { return res.data; });
+          if (window._appToast) window._appToast(res.booked + (res.booked === 1 ? " vaste last" : " vaste lasten") + " automatisch geboekt \u2713");
+          return;
+        }
+      }
+      setTick(function(t) { return t + 1; }); // enkel hertekenen met de nieuwe datum
+    }
+    function msTotVolgendeMiddernacht() {
+      var n = new Date();
+      var nxt = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1, 0, 0, 5);
+      return Math.max(1000, nxt.getTime() - n.getTime());
+    }
+    var timer = null;
+    function wapenTimer() {
+      clearTimeout(timer);
+      timer = setTimeout(function() { checkDate(); wapenTimer(); }, msTotVolgendeMiddernacht());
+    }
+    wapenTimer();
+    var onVis = function() { if (!document.hidden) checkDate(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", onVis);
+    return function() {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", onVis);
+    };
+  }, [update]);
   useEffect(function() {
     window._onRemoteMerge = function(merged) {
       dataRef.current = merged;
       setTick(function(t) { return t + 1; });
       if (window._appToast) window._appToast("Gegevens van je ander toestel erbij gehaald \u2014 niets is verloren \u2713");
     };
-    window._onSaveError = function() {
-      if (window._appToast) window._appToast("Opslaan naar Drive mislukt \u2014 controleer je internetverbinding", "error");
+    window._onSaveError = function(kind) {
+      if (!window._appToast) return;
+      if (kind === "auth") {
+        // Verlopen Google-sessie: één tik herstelt de verbinding en slaat
+        // de wachtende wijzigingen meteen op. Niets gaat verloren.
+        window._appToast(tt("toast.driveSessionExpired"), "error", {
+          label: tt("toast.reconnectAction"),
+          onAction: function() {
+            _driveRefreshToken().then(function() {
+              if (window._fkDirty && dataRef.current) {
+                driveSave(dataRef.current).then(function() {
+                  window._fkDirty = false;
+                  setSyncStatus("saved");
+                  if (window._appToast) window._appToast(tt("toast.reconnectedSaved"));
+                }).catch(function() {
+                  if (window._appToast) window._appToast(tt("toast.saveFailedNetwork"), "error");
+                });
+              } else {
+                setSyncStatus("saved");
+                if (window._appToast) window._appToast(tt("toast.reconnectedSaved"));
+              }
+            }).catch(function() {
+              if (window._appToast) window._appToast(tt("toast.reconnectFailed"), "error");
+            });
+          }
+        });
+      } else {
+        window._appToast(tt("toast.saveFailedNetwork"), "error");
+      }
     };
     return function() { window._onRemoteMerge = null; window._onSaveError = null; };
   }, []);
@@ -6269,6 +6815,14 @@ function Root() {
       return Object.assign({}, d, { categories: cats });
     });
   };
+  window._saveBarcodeMapping = function(code, mapping) {
+    if (!code) return;
+    update(function(d) {
+      var bc = Object.assign({}, d.barcodes || {});
+      bc[code] = Object.assign({ code: code }, mapping, { updatedAt: fmt(today) });
+      return Object.assign({}, d, { barcodes: bc });
+    });
+  };
   useEffect(function() {
     var timeout = setTimeout(function() {
       setDriveState(function(s) {
@@ -6284,18 +6838,12 @@ function Root() {
       setDriveState("login");
     };
     window._driveAuthenticated = function() {
-      // Mark Drive as connected and capture user email
       window._driveConnected = true;
-      try {
-        var accounts = gapi.auth.getToken();
-        if (accounts && accounts.access_token) {
-          // Try to get email from token info
-          fetch("https://www.googleapis.com/oauth2/v1/userinfo?access_token=" + accounts.access_token)
-            .then(function(r) { return r.json(); })
-            .then(function(u) { if (u.email) window._driveEmail = u.email; })
-            .catch(function() {});
-        }
-      } catch(e) {}
+      // Bewust verwijderd: de vroegere e-mailophaling gebruikte de verouderde
+      // gapi.auth-bibliotheek (werkt niet met de huidige inlogmethode) en zette
+      // het token in de URL. Bovendien geeft onze Drive-machtiging geen toegang
+      // tot het e-mailadres, dus dit heeft nooit iets opgeleverd. Instellingen
+      // toont gewoon de terugvaltekst "jouw Google-account".
       setDriveState("loading");
       driveLoad().then(function(loaded) {
         var d;
@@ -6358,7 +6906,7 @@ function Root() {
             });
           }
           // Dossierlijsten altijd aanwezig maken (ook voor data van vóór deze versie)
-          d = Object.assign({}, d, { dossiers: d.dossiers || [], dossierEntries: d.dossierEntries || [], dossierSettlements: d.dossierSettlements || [] });
+          d = Object.assign({}, d, { dossiers: d.dossiers || [], dossierEntries: d.dossierEntries || [], dossierSettlements: d.dossierSettlements || [], barcodes: d.barcodes || {} });
           var autoRes = processRecurringAutoBook(d);
           d = autoRes.data;
           if (autoRes.booked > 0) {
@@ -6398,11 +6946,11 @@ function Root() {
       )
     );
   };
-  if (driveState === "init") return ls("Laden...");
+  if (driveState === "init") return ls(tt("loginScreen.loadingInit"));
   if (driveState === "login") return React.createElement(LoginScreen, { onSignIn: function() {
     driveSignIn();
   }, clientIdMissing });
-  if (driveState === "loading") return ls("Data laden uit Google Drive...");
+  if (driveState === "loading") return ls(tt("loginScreen.loadingData"));
   if (driveState === "error") return React.createElement(
     "div",
     { style: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: navy } },
@@ -6410,15 +6958,15 @@ function Root() {
       "div",
       { style: { background: "white", borderRadius: 16, padding: 24, textAlign: "center", maxWidth: 320 } },
       React.createElement("div", { style: { fontSize: 40, marginBottom: 12 } }, "\u26A0\uFE0F"),
-      React.createElement("p", { style: { color: "#6B5847", marginBottom: 16 } }, "Verbinding mislukt."),
+      React.createElement("p", { style: { color: "#6B5847", marginBottom: 16 } }, tt("loginScreen.connectionFailed")),
       React.createElement("button", { onClick: function() {
         setDriveState("login");
-      }, style: { padding: "8px 20px", background: "#C56A1F", color: "white", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer" } }, "Opnieuw proberen")
+      }, style: { padding: "8px 20px", background: "#C56A1F", color: "white", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer" } }, tt("loginScreen.retryBtn"))
     )
   );
   var data = dataRef.current;
-  if (!data) return ls("Gegevens worden voorbereid...");
-  return React.createElement(App, { data, onUpdate: update, syncStatus });
+  if (!data) return ls(tt("loginScreen.preparingData"));
+  return React.createElement(App, { data, onUpdate: update, syncStatus, onLogout: driveSignOut });
 }
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Root));
 
